@@ -127,6 +127,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     messageId: string | null;
   }>({ isOpen: false, resumo: null, messageId: null });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Infinite pagination state (WhatsApp style)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const dateLocale = getDateLocale();
 
@@ -190,7 +195,35 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     scrollToBottom();
   }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
 
-  // Load chat history on mount
+  // Parse message from database format to Message type
+  const parseDbMessage = (m: any): Message => {
+    let eventData = m.metadata?.eventData;
+    
+    // FALLBACK: Convert old format (resumo_evento) to new format
+    if (eventData && !eventData.title && eventData.resumo_evento) {
+      eventData = {
+        id: eventData.id || eventData.evento_id,
+        title: eventData.resumo_evento.titulo,
+        event_date: eventData.resumo_evento.data,
+        event_time: eventData.resumo_evento.hora === 'Dia inteiro' ? undefined : eventData.resumo_evento.hora,
+        location: eventData.resumo_evento.local,
+        category: eventData.category || 'geral',
+        notification_enabled: eventData.notification_enabled ?? true,
+        call_alert_enabled: eventData.call_alert_enabled ?? false,
+      };
+    }
+    
+    return {
+      id: m.id,
+      type: m.role as 'user' | 'assistant',
+      content: m.content,
+      createdAt: new Date(m.created_at),
+      eventData,
+      eventsListData: m.metadata?.eventsListData,
+    };
+  };
+
+  // Load initial chat history on mount
   useEffect(() => {
     const loadHistory = async () => {
       if (!user) {
@@ -199,59 +232,26 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
 
       try {
-      // Fetch most recent 100 messages (DESC) then reverse for chronological display
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      // Reverse to get chronological order (oldest first for display)
-      const sortedData = data ? [...data].reverse() : [];
+        // Fetch most recent 50 messages (DESC) then reverse for chronological display
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
 
-      if (error) throw error;
+        // Reverse to get chronological order (oldest first for display)
+        const sortedData = data ? [...data].reverse() : [];
 
-      if (sortedData.length > 0) {
-        console.log('[ChatPage] Loading history - total messages:', sortedData.length);
-        const loadedMessages: Message[] = sortedData.map((m: any) => {
-            // DEBUG: Log each message's metadata
-            console.log('[ChatPage] Loading message:', {
-              id: m.id,
-              role: m.role,
-              hasMetadata: !!m.metadata,
-              metadata: m.metadata,
-              hasEventData: !!m.metadata?.eventData,
-              hasEventsListData: !!m.metadata?.eventsListData,
-            });
-            
-            let eventData = m.metadata?.eventData;
-            
-            // FALLBACK: Convert old format (resumo_evento) to new format
-            if (eventData && !eventData.title && eventData.resumo_evento) {
-              console.log('[ChatPage] Converting old eventData format:', eventData);
-              eventData = {
-                id: eventData.id || eventData.evento_id,
-                title: eventData.resumo_evento.titulo,
-                event_date: eventData.resumo_evento.data,
-                event_time: eventData.resumo_evento.hora === 'Dia inteiro' ? undefined : eventData.resumo_evento.hora,
-                location: eventData.resumo_evento.local,
-                category: eventData.category || 'geral',
-                notification_enabled: eventData.notification_enabled ?? true,
-                call_alert_enabled: eventData.call_alert_enabled ?? false,
-              };
-            }
-            
-            return {
-              id: m.id,
-              type: m.role as 'user' | 'assistant',
-              content: m.content,
-              createdAt: new Date(m.created_at),
-              eventData,
-              eventsListData: m.metadata?.eventsListData,
-            };
-          });
+        if (sortedData.length > 0) {
+          const loadedMessages: Message[] = sortedData.map(parseDbMessage);
           setMessages(loadedMessages);
+          // Check if there might be more messages
+          setHasMoreMessages(data.length === 50);
+        } else {
+          setHasMoreMessages(false);
         }
       } catch (error) {
         console.error('Error loading chat history:', error);
@@ -263,33 +263,81 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     loadHistory();
   }, [user]);
 
+  // Load more older messages (pagination)
+  const loadMoreMessages = async () => {
+    if (!user || isLoadingMore || !hasMoreMessages || messages.length === 0) return;
+    
+    const oldestMessage = messages[0];
+    if (!oldestMessage) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      // Fetch 50 messages older than the current oldest
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', user.id)
+        .lt('created_at', oldestMessage.createdAt.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Reverse to get chronological order
+        const olderMessages = [...data].reverse().map(parseDbMessage);
+        
+        // Store current scroll height to preserve position
+        const container = scrollContainerRef.current;
+        const prevScrollHeight = container?.scrollHeight || 0;
+        
+        // Prepend older messages
+        setMessages(prev => [...olderMessages, ...prev]);
+        setHasMoreMessages(data.length === 50);
+        
+        // Restore scroll position after DOM updates
+        requestAnimationFrame(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = newScrollHeight - prevScrollHeight;
+          }
+        });
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Scroll listener for infinite pagination
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      // When within 100px of the top, load more messages
+      if (container.scrollTop < 100 && hasMoreMessages && !isLoadingMore && !isLoadingHistory) {
+        loadMoreMessages();
+      }
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasMoreMessages, isLoadingMore, isLoadingHistory, messages]);
+
   const saveMessage = async (role: 'user' | 'assistant', content: string, metadata?: any) => {
     if (!user) return;
 
-    // DEBUG: Log what we're saving
-    console.log('[ChatPage] saveMessage called:', {
-      role,
-      contentLength: content?.length,
-      hasMetadata: !!metadata,
-      metadata: metadata,
-      eventDataTitle: metadata?.eventData?.title,
-      eventsListCount: metadata?.eventsListData?.length,
-    });
-
     try {
-      const { data, error } = await supabase.from('chat_messages').insert({
+      await supabase.from('chat_messages').insert({
         user_id: user.id,
         role,
         content,
         metadata,
-      }).select();
-      
-      // DEBUG: Log the result
-      console.log('[ChatPage] saveMessage result:', {
-        success: !error,
-        error: error?.message,
-        savedData: data?.[0],
-        savedMetadata: data?.[0]?.metadata,
       });
     } catch (error) {
       console.error('Error saving message:', error);
@@ -878,8 +926,25 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       </header>
 
       {/* Messages - Timeline style */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar">
-        {/* Loading history indicator */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar"
+      >
+        {/* Loading more indicator (top) */}
+        {isLoadingMore && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          </div>
+        )}
+        
+        {/* End of conversation indicator */}
+        {!hasMoreMessages && messages.length > 0 && !isLoadingHistory && (
+          <p className="text-center text-[10px] text-muted-foreground py-4">
+            Início da conversa
+          </p>
+        )}
+
+        {/* Loading initial history indicator */}
         {(isLoadingHistory || isOnboardingLoading) && (
           <div className="flex justify-center py-4">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
