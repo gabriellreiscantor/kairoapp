@@ -141,6 +141,9 @@ const EventDetailPage = ({
 
   // Empty state - no events
   if (!currentEvent) {
+    const weekday = format(selectedDate, 'EEEE', { locale: ptBR });
+    const dayMonth = format(selectedDate, "d 'de' MMM", { locale: ptBR });
+    
     return (
       <div 
         ref={containerRef}
@@ -156,18 +159,21 @@ const EventDetailPage = ({
           className="flex flex-col h-full safe-area-top safe-area-bottom"
           style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
         >
-          {/* Header */}
-          <header className="flex items-center justify-between px-4 py-4">
-            <button onClick={handleClose} className="text-foreground font-medium">
-              Voltar
-            </button>
-            <h1 className="text-lg font-semibold text-foreground">
-              {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-            </h1>
+          {/* Header with handle bar and close button */}
+          <div className="flex items-center justify-between px-4">
+            <div className="w-10" />
+            <div className="w-10 h-1 bg-muted-foreground/50 rounded-full my-3" />
             <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center">
               <X className="w-6 h-6 text-muted-foreground" />
             </button>
-          </header>
+          </div>
+
+          {/* Date Display */}
+          <div className="px-4 pt-4">
+            <h1 className="text-2xl font-bold text-foreground capitalize">
+              {weekday}, {dayMonth}.
+            </h1>
+          </div>
 
           <div className="flex-1 flex items-center justify-center px-4">
             <button 
@@ -175,7 +181,7 @@ const EventDetailPage = ({
               className="w-full py-8 rounded-2xl border border-dashed border-border/40 text-center transition-colors hover:bg-kairo-surface-2/50"
             >
               <p className="text-muted-foreground text-sm">
-                Sem planos ainda. <span className="text-foreground font-medium">Toque para adicionar!</span>
+                Você ainda não adicionou um evento. <span className="text-primary font-medium">Toque aqui para adicionar.</span>
               </p>
             </button>
           </div>
