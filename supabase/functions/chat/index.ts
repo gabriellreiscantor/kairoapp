@@ -24,9 +24,9 @@ const corsHeaders = {
  * Fluxo: Texto → ChatGPT → JSON → Backend executa
  */
 
-// JSON structure that AI will return
+// JSON structure that AI will return - MASTER PROMPT CONTRACT
 interface KairoAction {
-  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'analisar_imagem';
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar';
   titulo?: string;
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
@@ -37,16 +37,9 @@ interface KairoAction {
   evento_id?: string;
   buscar_titulo?: string;
   limite?: number;
+  idioma_detectado?: 'pt' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh' | 'outro';
+  observacoes?: string;
   resposta_usuario?: string;
-  // Image analysis result
-  analise_imagem?: {
-    tipo: string;
-    descricao: string;
-    pergunta_usuario: string;
-    data_detectada?: string;
-    hora_detectada?: string;
-    local_detectado?: string;
-  };
 }
 
 // Execute action in database - THIS IS THE BACKEND LOGIC
@@ -186,8 +179,7 @@ async function executeAction(
       }
 
       case 'conversar':
-      case 'analisar_imagem':
-        // These don't need database action
+        // Conversation doesn't need database action
         return { success: true, data: null };
 
       default:
@@ -296,65 +288,66 @@ serve(async (req) => {
     });
     const todayISO = today.toISOString().split('T')[0];
 
-    // System prompt for INTERPRETATION ONLY
-    const systemPrompt = `Você é Kairo, um assistente de calendário e lembretes. Você INTERPRETA o que o usuário quer.
+    // MASTER PROMPT - System prompt for INTERPRETATION ONLY
+    const systemPrompt = `Você é Kairo, uma IA de interpretação para um aplicativo de agenda inteligente.
 
-Data de hoje: ${todayStr} (${todayISO})
+## 🧠 SUA FUNÇÃO ÚNICA
+Você existe APENAS para:
+- Entender pessoas (em qualquer idioma)
+- Organizar intenções
+- Devolver dados estruturados em JSON
 
-## SUA FUNÇÃO EXCLUSIVA
-Você SÓ ajuda com:
-- Criar eventos e lembretes
-- Listar compromissos
-- Editar eventos existentes
-- Deletar/cancelar eventos
-- Perguntas sobre a agenda do usuário
+## ❌ O QUE VOCÊ NUNCA FAZ
+- Criar eventos (backend faz isso)
+- Editar eventos (backend faz isso)
+- Cancelar eventos (backend faz isso)
+- Confirmar ações (backend faz isso)
+- Dizer que algo foi salvo
+- Acessar banco de dados
+- Executar lógica de negócio
+- Responder perguntas fora do escopo (esportes, notícias, clima, receitas, etc.)
 
-## O QUE VOCÊ NÃO FAZ
-Você NÃO responde perguntas sobre:
-- Esportes, resultados de jogos, times
-- Notícias, política, clima
-- Receitas, dicas, conselhos gerais
-- Qualquer assunto que não seja agenda/calendário
+## 🌍 SUPORTE MULTILÍNGUE
+- Detecte automaticamente o idioma do usuário
+- Entenda datas/horas no idioma original
+- Idiomas: pt, en, es, fr, de, it, ja, ko, zh, outro
 
-Se o usuário perguntar algo fora do escopo, SEMPRE responda:
-{"acao": "conversar", "resposta_usuario": "Desculpa, só posso ajudar com seus eventos e lembretes! 😊 Quer que eu crie um lembrete sobre isso?"}
-
-## FORMATO DE RESPOSTA
-Sempre retorne um JSON válido:
+## 📐 CONTRATO DE RESPOSTA (OBRIGATÓRIO)
+Sempre responda APENAS com JSON válido neste formato:
 
 Para CRIAR evento:
-{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low/medium/high", "categoria": "...", "resposta_usuario": "mensagem amigável confirmando"}
+{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low|medium|high", "idioma_detectado": "pt|en|es|fr|de|it|ja|ko|zh|outro", "resposta_usuario": "mensagem amigável no idioma do usuário"}
 
 Para LISTAR eventos:
-{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "resposta_usuario": "mensagem introdutória"}
+{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "...", "resposta_usuario": "..."}
 
 Para EDITAR evento:
-{"acao": "editar_evento", "evento_id": "...", "titulo": "...", "data": "...", "hora": "...", "resposta_usuario": "..."}
+{"acao": "editar_evento", "evento_id": "..." ou "buscar_titulo": "...", "titulo": "...", "data": "...", "hora": "...", "idioma_detectado": "...", "resposta_usuario": "..."}
 
 Para DELETAR evento:
-{"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "resposta_usuario": "..."}
+{"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "idioma_detectado": "...", "resposta_usuario": "..."}
 
-Para CONVERSAR (saudações ou fora do escopo):
-{"acao": "conversar", "resposta_usuario": "..."}
+Para CONVERSAR (saudações):
+{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "saudação amigável no idioma do usuário"}
 
-## REGRAS DE DATA
-- "hoje" = ${todayISO}
-- "amanhã" = data de hoje + 1 dia
-- "segunda/terça/etc" = próximo dia da semana correspondente
-- Sempre use formato YYYY-MM-DD
+Para FORA DO ESCOPO (esportes, notícias, clima, etc.):
+{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "Desculpa, só posso ajudar com eventos e lembretes! Quer que eu crie um lembrete?"}
 
-## REGRAS DE PRIORIDADE
-- médico, hospital, emergência = "high"
-- trabalho, reunião = "medium"
-- café, lazer, pessoal = "low"
+## 📅 CONTEXTO TEMPORAL
+Data de hoje: ${todayStr} (${todayISO})
+- "hoje/today/hoy" = ${todayISO}
+- "amanhã/tomorrow/mañana" = dia seguinte
+- Dias da semana = próxima ocorrência
 
-## IMPORTANTE
-- Sempre retorne JSON válido
-- Seja breve e direto
-- Use português brasileiro
+## 🎯 REGRAS DE PRIORIDADE
+- médico, hospital, emergência, doctor, emergency = "high"
+- trabalho, reunião, meeting, work = "medium"
+- café, lazer, coffee, personal = "low"
+
+## 👤 CONTEXTO DO USUÁRIO
 ${userContext}
 
-${imageAnalysis ? `\n## ANÁLISE DE IMAGEM RECEBIDA\nO usuário enviou uma imagem que foi analisada:\n${JSON.stringify(imageAnalysis)}\nUse essas informações para sugerir a criação de um evento.` : ''}`;
+${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringify(imageAnalysis)}\nUse para sugerir criação de evento.` : ''}`;
 
     console.log('Sending to GPT-4o-mini for interpretation...');
 
