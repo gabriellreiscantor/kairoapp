@@ -8,7 +8,7 @@ import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
-import FoxIcon from "@/components/icons/FoxIcon";
+import kairoLogo from "@/assets/kairo-logo.png";
 
 interface Event {
   id: string;
@@ -128,13 +128,9 @@ const MainApp = () => {
         {/* Center - Chat/Kairo Button */}
         <button
           onClick={() => setActiveView('chat')}
-          className="dock-item-center mx-1"
+          className="w-14 h-14 rounded-full overflow-hidden mx-1 shadow-lg shadow-primary/30 border-2 border-primary/30"
         >
-          {activeView === 'chat' ? (
-            <FoxIcon size={24} className="text-primary-foreground" />
-          ) : (
-            <MessageCircle className="w-6 h-6 text-primary-foreground" />
-          )}
+          <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
         </button>
         
         {/* Calendar View */}
