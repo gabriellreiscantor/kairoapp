@@ -952,7 +952,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Messages - Timeline style */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar"
+        className="flex-1 overflow-y-auto px-4 pb-32 pt-24 hide-scrollbar"
       >
         {/* Loading more indicator (top) */}
         {isLoadingMore && (
@@ -1161,9 +1161,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         </div>
       </div>
 
-      {/* Input with safe area */}
-      <div className="px-4 pb-4 pt-2 safe-area-bottom">
-        <div className="glass border border-border/20 rounded-2xl px-4 py-3">
+      {/* Input with safe area - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom bg-background/95 backdrop-blur-xl border-t border-border/20">
+        <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl px-4 py-3">
           <input
             type="text"
             value={inputValue}
