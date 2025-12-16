@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Calendar, Bell, Phone, MapPin, CheckCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EventCreatedCardProps {
   event: {
+    id?: string;
     title: string;
     event_date: string;
     event_time?: string;
@@ -32,6 +35,9 @@ const getCategoryEmoji = (category?: string) => {
 };
 
 const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) => {
+  const [callAlertEnabled, setCallAlertEnabled] = useState(event.call_alert_enabled || false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const formatDate = (dateStr: string) => {
     try {
       const date = parseISO(dateStr);
@@ -60,6 +66,30 @@ const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) =>
     }
   };
 
+  const handleToggleCallAlert = async (checked: boolean) => {
+    if (!event.id || isUpdating) return;
+    
+    setIsUpdating(true);
+    setCallAlertEnabled(checked);
+    
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ call_alert_enabled: checked })
+        .eq('id', event.id);
+      
+      if (error) {
+        console.error('Error updating call alert:', error);
+        setCallAlertEnabled(!checked); // Revert on error
+      }
+    } catch (err) {
+      console.error('Error updating call alert:', err);
+      setCallAlertEnabled(!checked); // Revert on error
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const isAllDay = !event.event_time;
 
   return (
@@ -80,41 +110,42 @@ const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) =>
             <span>{getCategoryEmoji(event.category)}</span>
             <span className="text-base font-semibold text-foreground">{event.title}</span>
           </div>
-          <Calendar className="w-5 h-5 text-muted-foreground" />
+          <Calendar className="w-5 h-5 text-kairo-orange" />
         </div>
         
         {/* Date and time row */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-foreground capitalize">{formatDate(event.event_date)}</span>
-          <span className="text-muted-foreground">{isAllDay ? "Dia inteiro" : formatTime(event.event_time)}</span>
+          <span className="text-kairo-amber font-medium">{isAllDay ? "Dia inteiro" : formatTime(event.event_time)}</span>
         </div>
         
         {/* Me Ligue toggle */}
         <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Phone className="w-4 h-4" />
-            <span className="text-sm">Me Ligue</span>
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-green-500" />
+            <span className="text-sm text-foreground">Me Ligue</span>
           </div>
           <Switch 
-            checked={event.call_alert_enabled || false} 
-            disabled 
-            className="data-[state=unchecked]:bg-muted data-[state=checked]:bg-primary" 
+            checked={callAlertEnabled} 
+            onCheckedChange={handleToggleCallAlert}
+            disabled={!event.id || isUpdating}
+            className="data-[state=unchecked]:bg-muted data-[state=checked]:bg-green-500" 
           />
         </div>
         
         {/* Notification info */}
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Bell className="w-4 h-4" />
-          <span className="text-sm">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-amber-500" />
+          <span className="text-sm text-muted-foreground">
             {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
           </span>
         </div>
         
         {/* Location */}
         {event.location && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm">{event.location}</span>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-red-500" />
+            <span className="text-sm text-muted-foreground">{event.location}</span>
           </div>
         )}
       </div>
