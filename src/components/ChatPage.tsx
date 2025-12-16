@@ -28,6 +28,8 @@ interface ChatPageProps {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
   onEventCreated?: () => void;
+  initialEditMessage?: { eventId: string; message: string } | null;
+  onClearInitialEditMessage?: () => void;
 }
 
 interface Message {
@@ -101,7 +103,7 @@ const ONBOARDING_FIRST_EVENT_SUCCESS = `Excelente! Você acabou de criar seu pri
 
 A partir de agora, o Kairo cuida disso pra você.`;
 
-const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated }: ChatPageProps) => {
+const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated, initialEditMessage, onClearInitialEditMessage }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
   const { t, getDateLocale } = useLanguage();
@@ -199,6 +201,20 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   useEffect(() => {
     scrollToBottom();
   }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
+
+  // State for pending edit message from EventDetailPage
+  const [pendingEditMessage, setPendingEditMessage] = useState<string | null>(null);
+
+  // Handle initial edit message from EventDetailPage
+  useEffect(() => {
+    if (initialEditMessage && activeView === 'chat' && !isLoadingHistory) {
+      const { eventId, message } = initialEditMessage;
+      // Set the pending message to be sent
+      setPendingEditMessage(`editar evento id:${eventId} ${message}`);
+      // Clear the initial message from parent
+      onClearInitialEditMessage?.();
+    }
+  }, [initialEditMessage, activeView, isLoadingHistory, onClearInitialEditMessage]);
 
   // Parse message from database format to Message type
   const parseDbMessage = (m: any): Message => {
@@ -790,6 +806,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     await saveMessage('user', messageText);
     await streamChat(messageText, newMessages);
   };
+
+  // Process pending edit message from EventDetailPage
+  useEffect(() => {
+    if (pendingEditMessage && !isLoading && !isLoadingHistory) {
+      handleSend(pendingEditMessage);
+      setPendingEditMessage(null);
+    }
+  }, [pendingEditMessage, isLoading, isLoadingHistory]);
 
   const handleSuggestionClick = (text: string) => {
     handleSend(text);
