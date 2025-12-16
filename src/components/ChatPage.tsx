@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import FoxIcon from "./icons/FoxIcon";
 import { toast } from "@/hooks/use-toast";
 import kairoLogo from "@/assets/kairo-logo.png";
+import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -212,8 +212,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           <div className="pt-8">
             {/* Welcome message */}
             <div className="flex items-start gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full gradient-gold flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
-                <FoxIcon size={18} className="text-primary-foreground" />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
+                <img src={kairoFoxWhite} alt="Kairo" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -261,8 +261,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 
                 {message.type === 'assistant' ? (
                   <div className="flex items-start gap-3 mb-4 pl-1">
-                    <div className="w-6 h-6 rounded-full gradient-gold flex items-center justify-center flex-shrink-0 shadow-sm z-10">
-                      <FoxIcon size={14} className="text-primary-foreground" />
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+                      <img src={kairoFoxWhite} alt="Kairo" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 pt-0.5">
                       <p className="text-sm text-foreground leading-relaxed">
