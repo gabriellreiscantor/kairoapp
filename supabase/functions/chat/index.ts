@@ -710,7 +710,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "update_event",
-          description: "Use quando usuario mencionar MUDAR/ALTERAR/EDITAR/TROCAR evento existente por nome. Ex: 'muda barbearia pras 16h', 'altera reuniao para sexta', 'trocar horario do dentista'. Busca o evento pelo nome e aplica as alteracoes.",
+          description: "SOMENTE use quando usuario EXPLICITAMENTE usar palavras de edicao como: 'mudar', 'muda', 'alterar', 'altera', 'editar', 'edita', 'trocar', 'troca', 'cancelar', 'cancela' seguido do NOME de um evento existente. NUNCA use para novas atividades! Ex CORRETO: 'muda barbearia pras 16h'. Ex ERRADO: 'vou no salao hoje' (isso e NOVO evento).",
           parameters: {
             type: "object",
             properties: {
@@ -844,7 +844,20 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         toolCall = chatResponseCall || message.tool_calls[0];
         console.log(`Greeting detected, prioritizing chat_response. Found: ${chatResponseCall ? 'yes' : 'no'}`);
       } else {
-        toolCall = message.tool_calls[0];
+        // CRITICAL: Check if first tool is update_event but message has NO explicit edit words
+        const explicitEditWords = /\b(muda|mudar|altera|alterar|edita|editar|troca|trocar|cancela|cancelar)\b/i;
+        const hasExplicitEditWord = explicitEditWords.test(lastUserMessage);
+        
+        const firstTool = message.tool_calls[0];
+        if (firstTool.function.name === 'update_event' && !hasExplicitEditWord) {
+          // AI incorrectly chose update_event - find create_event or chat_response instead
+          const createCall = message.tool_calls.find((tc: any) => tc.function.name === 'create_event');
+          const chatCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
+          toolCall = createCall || chatCall || firstTool;
+          console.log(`Blocked update_event (no explicit edit word in "${lastUserMessage}"). Using ${toolCall.function.name} instead.`);
+        } else {
+          toolCall = firstTool;
+        }
       }
       
       const functionName = toolCall.function.name;

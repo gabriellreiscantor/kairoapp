@@ -245,7 +245,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     
     const apiMessages = allMessages.map(m => ({
       role: m.type === 'user' ? 'user' : 'assistant',
-      content: m.content
+      content: m.content,
+      created_at: m.createdAt?.toISOString() || new Date().toISOString()
     }));
 
     let executedActions: ExecutedAction[] = [];
