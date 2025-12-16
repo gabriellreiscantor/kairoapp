@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, CheckCircle2 } from "lucide-react";
+import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import { useToast } from "@/hooks/use-toast";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { useImageCapture } from "@/hooks/useImageCapture";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
@@ -26,6 +28,7 @@ interface Message {
   content: string;
   createdAt: Date;
   actions?: ExecutedAction[];
+  imagePreview?: string;
 }
 
 interface ExecutedAction {
@@ -36,17 +39,24 @@ interface ExecutedAction {
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const TRANSCRIBE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`;
+const ANALYZE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`;
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
   const { t, getDateLocale } = useLanguage();
   const { toast } = useToast();
+  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+  const { captureFromCamera, selectFromGallery } = useImageCapture();
+  
   const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const dateLocale = getDateLocale();
@@ -135,7 +145,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  const streamChat = async (userMessage: string, allMessages: Message[]) => {
+  const streamChat = async (userMessage: string, allMessages: Message[], imageAnalysis?: any) => {
     setIsLoading(true);
     
     const apiMessages = allMessages.map(m => ({
@@ -152,7 +162,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ 
+          messages: apiMessages,
+          imageAnalysis 
+        }),
       });
 
       if (!response.ok || !response.body) {
@@ -200,7 +213,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               if (actionMatch) {
                 try {
                   executedActions = JSON.parse(actionMatch[1]);
-                  // Don't add the metadata to visible content
                   const cleanContent = content.replace(/<!--KAIRO_ACTIONS:.+?-->\n?/, '');
                   if (cleanContent) {
                     assistantContent += cleanContent;
@@ -230,38 +242,25 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         await saveMessage('assistant', assistantContent);
       }
 
-      // Show toast and trigger callback for successful event actions
+      // Handle executed actions
       for (const action of executedActions) {
         if (action.success) {
-          if (action.action === 'create_event') {
-            toast({
-              title: "✅ Evento criado!",
-              description: action.data?.title || "Seu evento foi adicionado ao calendário",
-            });
+          if (action.action === 'criar_evento') {
             onEventCreated?.();
-          } else if (action.action === 'delete_event') {
-            toast({
-              title: "🗑️ Evento removido",
-              description: "O evento foi cancelado",
-            });
+          } else if (action.action === 'deletar_evento') {
             onEventCreated?.();
-          } else if (action.action === 'update_event') {
-            toast({
-              title: "✏️ Evento atualizado",
-              description: action.data?.title || "As alterações foram salvas",
-            });
+          } else if (action.action === 'editar_evento') {
             onEventCreated?.();
           }
-        } else if (action.error) {
-          toast({
-            title: "Erro",
-            description: action.error,
-            variant: "destructive",
-          });
         }
       }
     } catch (error) {
       console.error("Chat error:", error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao conectar",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -282,15 +281,139 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     setMessages(newMessages);
     setInputValue('');
     
-    // Save user message
     await saveMessage('user', messageText);
-    
     await streamChat(messageText, newMessages);
   };
 
   const handleSuggestionClick = (text: string) => {
     handleSend(text);
   };
+
+  // AUDIO RECORDING
+  const handleMicPress = async () => {
+    if (isRecording) {
+      // Stop recording and transcribe
+      setIsTranscribing(true);
+      try {
+        const audioBase64 = await stopRecording();
+        if (!audioBase64) {
+          throw new Error('Nenhum áudio gravado');
+        }
+
+        console.log('Sending audio for transcription...');
+
+        // Send to Whisper for transcription
+        const response = await fetch(TRANSCRIBE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ audio: audioBase64 }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Erro na transcrição');
+        }
+
+        const result = await response.json();
+        console.log('Transcription result:', result);
+
+        if (result.text) {
+          // Send transcribed text to chat
+          await handleSend(result.text);
+        }
+      } catch (error) {
+        console.error('Transcription error:', error);
+        toast({
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Erro ao transcrever áudio",
+          variant: "destructive",
+        });
+      } finally {
+        setIsTranscribing(false);
+      }
+    } else {
+      // Start recording
+      try {
+        await startRecording();
+      } catch (error) {
+        console.error('Recording error:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível acessar o microfone",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // IMAGE CAPTURE
+  const handleImageCapture = async (fromCamera: boolean) => {
+    setIsAnalyzingImage(true);
+    try {
+      const imageData = fromCamera 
+        ? await captureFromCamera() 
+        : await selectFromGallery();
+
+      if (!imageData) {
+        setIsAnalyzingImage(false);
+        return;
+      }
+
+      console.log('Analyzing image...');
+
+      // Add user message with image preview
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: '📷 Imagem enviada',
+        createdAt: new Date(),
+        imagePreview: `data:${imageData.mimeType};base64,${imageData.base64}`,
+      };
+      
+      const newMessages = [...messages, userMessage];
+      setMessages(newMessages);
+      await saveMessage('user', '[Imagem enviada]');
+
+      // Send to vision API for analysis
+      const response = await fetch(ANALYZE_IMAGE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          image: imageData.base64,
+          mimeType: imageData.mimeType,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro na análise');
+      }
+
+      const analysisResult = await response.json();
+      console.log('Image analysis result:', analysisResult);
+
+      // Send analysis to chat for response
+      await streamChat(analysisResult.pergunta_usuario || 'Analisei a imagem', newMessages, analysisResult);
+
+    } catch (error) {
+      console.error('Image analysis error:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao analisar imagem",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const isProcessing = isLoading || isTranscribing || isAnalyzingImage;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -393,13 +516,22 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 pt-0.5">
-                      <p className="text-sm text-foreground leading-relaxed">
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                         {message.content}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-end mb-4 pl-12">
+                    {message.imagePreview && (
+                      <div className="mb-2 rounded-2xl overflow-hidden max-w-[200px]">
+                        <img 
+                          src={message.imagePreview} 
+                          alt="Imagem enviada" 
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    )}
                     <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
                       <p className="text-sm text-foreground">{message.content}</p>
                     </div>
@@ -420,32 +552,59 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={t('chat.placeholder')}
-            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2"
+            placeholder={isRecording ? "Gravando..." : t('chat.placeholder')}
+            disabled={isProcessing}
+            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
           />
           
           <div className="flex items-center justify-between">
-            {/* Mic button on left */}
+            {/* Mic/Send button on left */}
             {inputValue ? (
               <button 
                 onClick={() => handleSend()}
-                disabled={isLoading}
+                disabled={isProcessing}
                 className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center transition-all duration-300 active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/30 golden-ripple"
               >
                 <Send className="w-4 h-4 text-primary-foreground" />
               </button>
             ) : (
-              <button className="w-10 h-10 rounded-full bg-kairo-surface-3 flex items-center justify-center transition-all duration-300 hover:bg-kairo-surface-2">
-                <Mic className="w-4 h-4 text-foreground" />
+              <button 
+                onClick={handleMicPress}
+                disabled={isTranscribing || isLoading}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  isRecording 
+                    ? 'bg-red-500 animate-pulse' 
+                    : isTranscribing
+                    ? 'bg-kairo-surface-3 opacity-50'
+                    : 'bg-kairo-surface-3 hover:bg-kairo-surface-2'
+                }`}
+              >
+                {isTranscribing ? (
+                  <Loader2 className="w-4 h-4 text-foreground animate-spin" />
+                ) : (
+                  <Mic className={`w-4 h-4 ${isRecording ? 'text-white' : 'text-foreground'}`} />
+                )}
               </button>
             )}
             
-            {/* Camera and Image buttons on right - always orange */}
+            {/* Camera and Image buttons on right */}
             <div className="flex items-center gap-1">
-              <button className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300">
-                <Camera className="w-5 h-5" />
+              <button 
+                onClick={() => handleImageCapture(true)}
+                disabled={isProcessing}
+                className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300 disabled:opacity-50"
+              >
+                {isAnalyzingImage ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5" />
+                )}
               </button>
-              <button className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300">
+              <button 
+                onClick={() => handleImageCapture(false)}
+                disabled={isProcessing}
+                className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300 disabled:opacity-50"
+              >
                 <Image className="w-5 h-5" />
               </button>
             </div>
