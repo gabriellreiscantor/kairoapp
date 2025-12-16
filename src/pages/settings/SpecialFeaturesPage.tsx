@@ -35,7 +35,7 @@ const SpecialFeaturesPage = () => {
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Recursos Especiais</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Recursos Premium</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
