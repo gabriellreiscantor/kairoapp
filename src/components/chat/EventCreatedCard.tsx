@@ -37,6 +37,10 @@ const getCategoryEmoji = (category?: string) => {
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
   ({ event, type = 'created' }, ref) => {
   
+  // Hooks FIRST (must always be at top, before any conditional returns)
+  const [callAlertEnabled, setCallAlertEnabled] = useState(event?.call_alert_enabled || false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   // Guard: Don't render if essential fields are missing
   if (!event || !event.title || !event.event_date) {
     console.warn('[EventCreatedCard] Missing required fields:', { 
@@ -46,9 +50,6 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     });
     return null;
   }
-  
-  const [callAlertEnabled, setCallAlertEnabled] = useState(event.call_alert_enabled || false);
-  const [isUpdating, setIsUpdating] = useState(false);
 
   const formatDate = (dateStr: string) => {
     try {
