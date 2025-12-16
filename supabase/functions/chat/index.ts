@@ -451,17 +451,12 @@ ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringif
     };
     
     const actionJson = JSON.stringify([actionData]);
-    chunks.push(`data: {"choices":[{"delta":{"content":"<!--KAIRO_ACTIONS:${actionJson}-->"}}]}\n\n`);
+    const actionContent = `<!--KAIRO_ACTIONS:${actionJson}-->`;
+    chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:actionContent}}]})}\n\n`);
 
-    // Send response text - escape properly for JSON
+    // Send response text - use JSON.stringify for proper escaping
     if (finalResponse) {
-      const escapedResponse = finalResponse
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t');
-      chunks.push(`data: {"choices":[{"delta":{"content":"${escapedResponse}"}}]}\n\n`);
+      chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:finalResponse}}]})}\n\n`);
     }
     
     // Send done marker
