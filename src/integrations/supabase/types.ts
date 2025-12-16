@@ -92,6 +92,45 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_limits: {
+        Row: {
+          chat_capacity_multiplier: number
+          has_conflict_detection: boolean | null
+          has_daily_overview: boolean | null
+          id: string
+          max_events_per_week: number
+          max_google_calendars: number
+          max_kairo_calendars: number
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly: number | null
+          price_yearly: number | null
+        }
+        Insert: {
+          chat_capacity_multiplier?: number
+          has_conflict_detection?: boolean | null
+          has_daily_overview?: boolean | null
+          id?: string
+          max_events_per_week: number
+          max_google_calendars?: number
+          max_kairo_calendars?: number
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly?: number | null
+          price_yearly?: number | null
+        }
+        Update: {
+          chat_capacity_multiplier?: number
+          has_conflict_detection?: boolean | null
+          has_daily_overview?: boolean | null
+          id?: string
+          max_events_per_week?: number
+          max_google_calendars?: number
+          max_kairo_calendars?: number
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly?: number | null
+          price_yearly?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           auto_reschedule_enabled: boolean | null
@@ -170,15 +209,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          billing_period: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          started_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_period?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_period?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          started_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_create_event: { Args: { _user_id: string }; Returns: boolean }
+      count_user_events_this_week: {
+        Args: { _user_id: string }
+        Returns: number
+      }
+      get_user_plan: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_plan"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      subscription_plan: "free" | "plus" | "super"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -305,6 +385,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_plan: ["free", "plus", "super"],
+    },
   },
 } as const

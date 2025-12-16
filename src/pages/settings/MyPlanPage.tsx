@@ -1,4 +1,4 @@
-import { ChevronLeft, Check, ChevronDown } from "lucide-react";
+import { ChevronLeft, Check, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
@@ -8,14 +8,24 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const MyPlanPage = () => {
   const navigate = useNavigate();
-  const usedEvents = 0;
-  const maxEvents = 14;
-  const progress = (usedEvents / maxEvents) * 100;
+  const { subscription, limits, usedEvents, loading } = useSubscription();
+  
+  const currentPlan = subscription?.plan || 'free';
+  const maxEvents = limits?.max_events_per_week || 14;
+  const progress = maxEvents > 0 ? (usedEvents / maxEvents) * 100 : 0;
+  
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<'plus' | 'super'>('plus');
+
+  const planNames: Record<string, string> = {
+    free: 'Grátis',
+    plus: 'Plus',
+    super: 'Super'
+  };
 
   const plans = {
     plus: {
@@ -23,7 +33,7 @@ const MyPlanPage = () => {
       yearlyPrice: 'R$ 148,40',
       tagline: 'Perfeito para o uso diário',
       features: [
-        { highlight: '3x', text: 'eventos por semana' },
+        { highlight: '50', text: 'eventos por semana' },
         { highlight: '', text: 'Lembretes ilimitados', isHighlight: true },
         { highlight: '15', text: 'calendários do Google/Apple' },
         { highlight: '', text: 'Cancele a qualquer momento' },
@@ -34,7 +44,7 @@ const MyPlanPage = () => {
       yearlyPrice: 'R$ 297,80',
       tagline: 'Agende como um profissional',
       features: [
-        { highlight: '20x', text: 'eventos por semana' },
+        { highlight: '280', text: 'eventos por semana' },
         { highlight: '', text: 'Lembretes ilimitados', isHighlight: true },
         { highlight: '25', text: 'calendários do Google/Apple' },
         { highlight: '', text: 'Cancele a qualquer momento' },
@@ -58,6 +68,30 @@ const MyPlanPage = () => {
     { question: 'Como faço para solicitar um cancelamento ou reembolso para o Kairo Premium?', answer: 'Você pode cancelar a qualquer momento nas configurações da App Store ou Google Play.' },
     { question: 'Como transfiro minha assinatura do Kairo Premium para uma nova conta?', answer: 'Entre em contato com nosso suporte para transferir sua assinatura.' },
   ];
+
+  // Calculate reset time (end of current week)
+  const getResetTime = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const daysUntilSunday = 7 - dayOfWeek;
+    const nextSunday = new Date(now);
+    nextSunday.setDate(now.getDate() + daysUntilSunday);
+    nextSunday.setHours(23, 59, 0, 0);
+    return nextSunday.toLocaleDateString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      day: 'numeric',
+      month: 'short'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
@@ -90,17 +124,17 @@ const MyPlanPage = () => {
               MEU PLANO
             </h2>
             <div className="bg-kairo-surface-2 rounded-2xl p-5">
-              <h3 className="text-foreground font-bold text-2xl mb-4">Grátis</h3>
+              <h3 className="text-foreground font-bold text-2xl mb-4">{planNames[currentPlan]}</h3>
               
               <div className="flex items-center justify-between mb-3">
-                <span className="text-muted-foreground">Eventos agendados</span>
+                <span className="text-muted-foreground">Eventos esta semana</span>
                 <span className="text-foreground font-semibold">{usedEvents} / {maxEvents}</span>
               </div>
               <Progress value={progress} className="h-1.5 bg-kairo-surface-3" />
             </div>
             
             <p className="text-muted-foreground text-sm mt-3 px-1">
-              O uso será redefinido em 16:43, 22 de dez..
+              O uso será redefinido em {getResetTime()}
             </p>
           </div>
 
