@@ -1,9 +1,20 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { X, Calendar, Clock, Bell, Repeat } from "lucide-react";
-import type { Priority } from "./EventCard";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { 
+  ChevronRight, 
+  ChevronDown, 
+  Plus, 
+  Bell, 
+  Phone,
+  Check,
+  MapPin,
+  Navigation,
+  Search,
+  X,
+  ChevronLeft
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -12,218 +23,430 @@ interface CreateEventModalProps {
     title: string;
     date: string;
     time: string;
-    priority: Priority;
+    priority: string;
     alertType: string;
     repeat: string;
     notes: string;
   }) => void;
 }
 
+type AlertType = 'notification' | 'call';
+type ScreenView = 'main' | 'location' | 'emoji';
+
+interface Alert {
+  id: number;
+  time: string;
+  daysBefore: number;
+}
+
+const REPEAT_OPTIONS = [
+  { value: 'never', label: 'Nunca' },
+  { value: 'daily', label: 'Todos os Dias' },
+  { value: 'every2days', label: 'A cada 2 dias' },
+  { value: 'weekly', label: 'Todas as Semanas' },
+  { value: 'every2weeks', label: 'Todas as 2 Semanas' },
+  { value: 'monthly', label: 'Todos os Meses' },
+  { value: 'yearly', label: 'Todos os Anos' },
+];
+
+const ALERT_OPTIONS = [
+  { value: 'none', label: 'Nenhum' },
+  { value: '5min', label: '5 minutos antes' },
+  { value: '15min', label: '15 minutos antes' },
+  { value: '30min', label: '30 minutos antes' },
+  { value: '1hour', label: '1 hora antes' },
+  { value: '1day', label: '1 dia antes' },
+];
+
+const EMOJIS = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+  '🙂', '🙃', '🫠', '😉', '😊', '😇', '🥰', '😍',
+  '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛',
+  '😜', '😝', '🤑', '🤗', '🤭', '🫢', '🫣', '🤫',
+  '🤔', '🫡', '🤐', '🤨', '😐', '😑', '😶', '🫥',
+  '😏', '😒', '🙄', '😬', '🤤', '😮‍💨', '😪', '😴',
+  '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯',
+  '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕', '🫤',
+];
+
 const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) => {
+  const [screenView, setScreenView] = useState<ScreenView>('main');
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [alertType, setAlertType] = useState("push");
+  const [location, setLocation] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [startTime, setStartTime] = useState("05:00");
+  const [endTime, setEndTime] = useState("06:00");
   const [repeat, setRepeat] = useState("never");
+  const [showRepeatDropdown, setShowRepeatDropdown] = useState(false);
+  const [alertType, setAlertType] = useState<AlertType>('notification');
+  const [alerts, setAlerts] = useState<Alert[]>([{ id: 1, time: '15min', daysBefore: 0 }]);
   const [notes, setNotes] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState("📅");
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    if (!title.trim()) return;
-    onSave({ title, date, time, priority, alertType, repeat, notes });
-    // Reset form
-    setTitle("");
-    setDate("");
-    setTime("");
-    setPriority("medium");
-    setAlertType("push");
-    setRepeat("never");
-    setNotes("");
+    onSave({
+      title,
+      date: format(startDate, 'yyyy-MM-dd'),
+      time: startTime,
+      priority: 'medium',
+      alertType,
+      repeat,
+      notes,
+    });
     onClose();
   };
 
-  const priorities: { value: Priority; label: string; color: string }[] = [
-    { value: "high", label: "Alta", color: "bg-kairo-red" },
-    { value: "medium", label: "Média", color: "bg-kairo-amber" },
-    { value: "low", label: "Baixa", color: "bg-kairo-green" },
-  ];
+  const addAlert = () => {
+    if (alerts.length < 5) {
+      setAlerts([...alerts, { id: alerts.length + 1, time: 'none', daysBefore: 0 }]);
+    }
+  };
 
-  const alertTypes = [
-    { value: "push", label: "Notificação" },
-    { value: "fullscreen", label: "Tela cheia" },
-    { value: "call", label: "Ligação" },
-  ];
+  const formatDateDisplay = (date: Date) => {
+    return format(date, "d 'de' MMM. 'de' yyyy", { locale: ptBR });
+  };
 
-  const repeatOptions = [
-    { value: "never", label: "Nunca" },
-    { value: "daily", label: "Diário" },
-    { value: "weekly", label: "Semanal" },
-    { value: "monthly", label: "Mensal" },
-  ];
+  const getRepeatLabel = () => {
+    return REPEAT_OPTIONS.find(o => o.value === repeat)?.label || 'Nunca';
+  };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+  const getAlertLabel = (alertTime: string) => {
+    return ALERT_OPTIONS.find(o => o.value === alertTime)?.label || 'Nenhum';
+  };
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg bg-card border border-border rounded-t-3xl sm:rounded-3xl p-6 animate-fade-up max-h-[90vh] overflow-y-auto">
+  // Location Screen
+  if (screenView === 'location') {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Novo Evento</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full hover:bg-accent"
+        <header className="flex items-center justify-between px-4 py-4 safe-area-top">
+          <button 
+            onClick={() => setScreenView('main')}
+            className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
           >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Form */}
-        <div className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-muted-foreground">
-              Título
-            </Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Reunião com cliente"
-              className="kairo-input"
-            />
-          </div>
-
-          {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-muted-foreground flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Data
-              </Label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="kairo-input"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4" /> Hora
-              </Label>
-              <Input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="kairo-input"
-              />
-            </div>
-          </div>
-
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Prioridade</Label>
-            <div className="flex gap-2">
-              {priorities.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setPriority(p.value)}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all duration-200 ${
-                    priority === p.value
-                      ? `${p.color} text-background`
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Alert Type */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground flex items-center gap-2">
-              <Bell className="w-4 h-4" /> Tipo de alerta
-            </Label>
-            <div className="flex gap-2">
-              {alertTypes.map((a) => (
-                <button
-                  key={a.value}
-                  onClick={() => setAlertType(a.value)}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all duration-200 ${
-                    alertType === a.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  }`}
-                >
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Repeat */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground flex items-center gap-2">
-              <Repeat className="w-4 h-4" /> Repetição
-            </Label>
-            <div className="flex gap-2 flex-wrap">
-              {repeatOptions.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => setRepeat(r.value)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                    repeat === r.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-muted-foreground">
-              Observações
-            </Label>
-            <textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Adicione detalhes..."
-              rows={3}
-              className="w-full kairo-input resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 mt-8">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            className="flex-1 kairo-button-secondary"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!title.trim()}
-            className="flex-1 kairo-button-primary disabled:opacity-50"
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground">Local do Evento</h1>
+          <button 
+            onClick={() => setScreenView('main')}
+            className="text-primary font-medium"
           >
             Salvar
-          </Button>
+          </button>
+        </header>
+
+        {/* Search */}
+        <div className="px-4 mb-4">
+          <div className="bg-kairo-surface-2 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Search className="w-5 h-5 text-muted-foreground" />
+            <input
+              type="text"
+              value={locationSearch}
+              onChange={(e) => setLocationSearch(e.target.value)}
+              placeholder="Buscar local..."
+              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none"
+            />
+            {locationSearch && (
+              <button onClick={() => setLocationSearch("")}>
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Current Location */}
+        <button className="flex items-center gap-3 px-4 py-4 border-b border-border/10">
+          <Navigation className="w-5 h-5 text-muted-foreground" />
+          <span className="text-foreground">Usar Localização Atual</span>
+        </button>
+
+        {/* Search Results */}
+        {locationSearch && (
+          <div className="px-4 py-2">
+            <p className="text-xs text-muted-foreground mb-2">Resultado da Pesquisa</p>
+            <button 
+              onClick={() => {
+                setLocation(locationSearch);
+                setScreenView('main');
+              }}
+              className="flex items-start gap-3 py-3 border-b border-border/10 w-full text-left"
+            >
+              <MapPin className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-foreground font-medium">{locationSearch}</p>
+                <p className="text-sm text-muted-foreground">{locationSearch}, Brasil</p>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Emoji Picker Screen
+  if (screenView === 'emoji') {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 py-4 safe-area-top">
+          <button onClick={onClose} className="text-foreground font-medium">
+            Cancelar
+          </button>
+          <h1 className="text-lg font-semibold text-foreground">Criar Novo Evento</h1>
+          <button onClick={handleSave} className="text-primary font-medium">
+            Salvar
+          </button>
+        </header>
+
+        {/* Emoji Preview */}
+        <div className="flex justify-center py-8">
+          <div className="w-28 h-28 rounded-full bg-kairo-surface-2 flex items-center justify-center">
+            <span className="text-5xl">{selectedEmoji}</span>
+          </div>
+        </div>
+
+        {/* Emoji Grid */}
+        <div className="flex-1 px-4 overflow-y-auto">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Sorrisos e Pessoas</p>
+          <div className="grid grid-cols-8 gap-2">
+            {EMOJIS.map((emoji, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedEmoji(emoji);
+                  setScreenView('main');
+                }}
+                className="text-2xl p-1 hover:bg-kairo-surface-2 rounded-lg transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Screen
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in overflow-hidden">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-4 safe-area-top">
+        <button onClick={onClose} className="text-foreground font-medium">
+          Cancelar
+        </button>
+        <h1 className="text-lg font-semibold text-foreground">Criar Novo Evento</h1>
+        <button 
+          onClick={handleSave} 
+          className="text-primary font-medium"
+        >
+          Salvar
+        </button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto hide-scrollbar pb-8">
+        {/* Emoji Picker */}
+        <div className="flex justify-center py-6">
+          <button 
+            onClick={() => setScreenView('emoji')}
+            className="w-28 h-28 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+          >
+            <span className="text-5xl">{selectedEmoji}</span>
+          </button>
+        </div>
+
+        {/* Title & Location Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Título"
+            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none border-b border-border/10"
+          />
+          <button 
+            onClick={() => setScreenView('location')}
+            className="w-full px-4 py-4 flex items-center justify-between"
+          >
+            <span className={location ? 'text-foreground' : 'text-muted-foreground'}>
+              {location || 'Local'}
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Date & Time Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          {/* All Day Toggle */}
+          <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
+            <span className="text-foreground">Dia inteiro</span>
+            <Switch checked={isAllDay} onCheckedChange={setIsAllDay} />
+          </div>
+
+          {/* Start Date/Time */}
+          <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
+            <span className="text-foreground">De</span>
+            <div className="flex items-center gap-2">
+              <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
+                {formatDateDisplay(startDate)}
+              </button>
+              {!isAllDay && (
+                <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
+                  {startTime}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* End Date/Time */}
+          <div className="px-4 py-4 flex items-center justify-between">
+            <span className="text-foreground">Para</span>
+            <div className="flex items-center gap-2">
+              <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
+                {formatDateDisplay(endDate)}
+              </button>
+              {!isAllDay && (
+                <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
+                  {endTime}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Repeat Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden relative">
+          <button 
+            onClick={() => setShowRepeatDropdown(!showRepeatDropdown)}
+            className="w-full px-4 py-4 flex items-center justify-between"
+          >
+            <span className="text-foreground">Repetir</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <span>{getRepeatLabel()}</span>
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </button>
+
+          {/* Dropdown */}
+          {showRepeatDropdown && (
+            <div className="absolute top-full left-0 right-0 mt-1 mx-4 bg-kairo-surface-3 rounded-2xl overflow-hidden z-10 shadow-lg border border-border/20">
+              {REPEAT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setRepeat(option.value);
+                    setShowRepeatDropdown(false);
+                  }}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-kairo-surface-2 transition-colors"
+                >
+                  <span className="text-foreground">{option.label}</span>
+                  {repeat === option.value && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Color & Calendar Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          <button className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10">
+            <span className="text-foreground">Cor do Evento</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <span className="text-sm">Mesma coisa que<br/>o calendário</span>
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </button>
+          <button className="w-full px-4 py-4 flex items-center justify-between">
+            <span className="text-foreground">Calendário</span>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="w-3 h-3 rounded-full bg-primary" />
+              <span>Kairo</span>
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </button>
+        </div>
+
+        {/* Alerts Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          {/* Alert Type Selection */}
+          <div className="flex items-center justify-around py-6 border-b border-border/10">
+            <button 
+              onClick={() => setAlertType('notification')}
+              className="flex flex-col items-center gap-2"
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                alertType === 'notification' ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
+              }`}>
+                <Bell className={`w-6 h-6 ${alertType === 'notification' ? 'text-white' : 'text-muted-foreground'}`} />
+              </div>
+              <span className="text-sm text-foreground">Notificação</span>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                alertType === 'notification' ? 'border-primary bg-primary' : 'border-muted-foreground'
+              }`}>
+                {alertType === 'notification' && <Check className="w-3 h-3 text-background" />}
+              </div>
+            </button>
+
+            <button 
+              onClick={() => setAlertType('call')}
+              className="flex flex-col items-center gap-2"
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                alertType === 'call' ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
+              }`}>
+                <Phone className={`w-6 h-6 ${alertType === 'call' ? 'text-white' : 'text-muted-foreground'}`} />
+              </div>
+              <span className="text-sm text-foreground">Alerta de chamada</span>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                alertType === 'call' ? 'border-primary bg-primary' : 'border-muted-foreground'
+              }`}>
+                {alertType === 'call' && <Check className="w-3 h-3 text-background" />}
+              </div>
+            </button>
+          </div>
+
+          {/* Alert List */}
+          {alerts.map((alert, index) => (
+            <div 
+              key={alert.id}
+              className="px-4 py-4 flex items-center justify-between border-b border-border/10"
+            >
+              <span className="text-foreground">Alerta {index + 1}</span>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <span>{getAlertLabel(alert.time)}</span>
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          ))}
+
+          {/* Add Alert Button */}
+          {alerts.length < 5 && (
+            <button 
+              onClick={addAlert}
+              className="w-full px-4 py-4 flex items-center justify-center gap-2 text-foreground"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Adicionar Alerta</span>
+            </button>
+          )}
+        </div>
+
+        {/* Notes Card */}
+        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notas"
+            rows={5}
+            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none"
+          />
         </div>
       </div>
     </div>

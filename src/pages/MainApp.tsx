@@ -29,8 +29,7 @@ const MainApp = () => {
   // Sample events
   const [events] = useState<Record<string, Event[]>>({
     [format(new Date(), 'yyyy-MM-dd')]: [
-      { id: '1', title: 'Reunião de equipe', time: '09:00', priority: 'high' },
-      { id: '2', title: 'Almoço com cliente', time: '12:30', priority: 'medium' },
+      { id: '1', title: 'Teste', time: '09:00', priority: 'high' },
     ],
   });
 
