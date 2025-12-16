@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, Calendar, User } from "lucide-react";
+import { Camera, Image, Mic, Send } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import kairoLogo from "@/assets/kairo-logo.png";
+import FoxIcon from "./icons/FoxIcon";
 import { toast } from "@/hooks/use-toast";
 
 interface ChatPageProps {
@@ -87,7 +87,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
       let assistantContent = "";
       const assistantId = Date.now().toString();
 
-      // Add empty assistant message
       setMessages(prev => [...prev, {
         id: assistantId,
         type: 'assistant',
@@ -123,7 +122,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
               ));
             }
           } catch {
-            // Incomplete JSON, wait for more data
             textBuffer = line + "\n" + textBuffer;
             break;
           }
@@ -165,99 +163,103 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Fixed Header with safe area */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background flex items-center justify-between px-4 pb-3 safe-area-top">
-        <button 
-          onClick={onNavigateToCalendar}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
-        >
-          <Calendar className="w-5 h-5 text-foreground" />
-        </button>
-        
-        <button 
-          onClick={onOpenSettings}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
-        >
-          <User className="w-5 h-5 text-foreground" />
-        </button>
-      </header>
-
-      {/* Messages - with padding top to compensate for fixed header */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-20 hide-scrollbar">
+      {/* Messages - Timeline style */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-6 hide-scrollbar">
         {/* Show suggestions when chat is empty */}
         {messages.length === 0 && (
-          <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
-            <div className="flex items-start gap-2 mb-3">
-              <img src={kairoLogo} alt="Kairo" className="w-8 h-8 rounded-full flex-shrink-0" />
-              <p className="text-xs text-muted-foreground pt-2">
-                Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
-              </p>
+          <div className="pt-8">
+            {/* Welcome message */}
+            <div className="flex items-start gap-3 mb-6">
+              <div className="w-8 h-8 rounded-full gradient-gold flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
+                <FoxIcon size={18} className="text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Olá! Toque em qualquer exemplo abaixo para criar um compromisso rapidamente.
+                </p>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              {SUGGESTIONS.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSuggestionClick(suggestion.text)}
-                  className="w-full flex items-start gap-2.5 bg-kairo-surface-3 hover:bg-kairo-surface-3/80 rounded-xl px-3 py-2.5 text-left transition-colors"
-                >
-                  <span className="text-base">{suggestion.emoji}</span>
-                  <span className="text-xs text-foreground leading-relaxed">{suggestion.text}</span>
-                </button>
-              ))}
+            {/* Suggestion carousel - horizontal scroll */}
+            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4">
+              <div className="flex gap-2 pb-2">
+                {SUGGESTIONS.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion.text)}
+                    className="flex-shrink-0 w-64 flex items-start gap-2.5 bg-kairo-surface-2 hover:bg-kairo-surface-3 border border-border/20 rounded-2xl px-4 py-3 text-left transition-all duration-300 hover:border-primary/20"
+                  >
+                    <span className="text-lg">{suggestion.emoji}</span>
+                    <span className="text-xs text-foreground/90 leading-relaxed line-clamp-2">{suggestion.text}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {messages.map((message, index) => {
-          const prevMessage = index > 0 ? messages[index - 1] : null;
-          const showTimestamp = shouldShowTimestamp(message, prevMessage);
+        {/* Messages with timeline */}
+        <div className="relative">
+          {messages.length > 0 && (
+            <div className="timeline-line" />
+          )}
           
-          return (
-            <div key={message.id}>
-              {/* Timestamp */}
-              {showTimestamp && (
-                <p className="text-center text-[10px] text-muted-foreground my-3">
-                  {formatMessageTime(message.createdAt)}
-                </p>
-              )}
-              
-              {message.type === 'assistant' ? (
-                <div className="mb-4">
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {message.content}
+          {messages.map((message, index) => {
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const showTimestamp = shouldShowTimestamp(message, prevMessage);
+            
+            return (
+              <div key={message.id} className="relative">
+                {/* Timestamp */}
+                {showTimestamp && (
+                  <p className="text-center text-[10px] text-muted-foreground my-4 relative z-10">
+                    {formatMessageTime(message.createdAt)}
                   </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-end mb-4">
-                  <div className="bg-kairo-user-bubble rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]">
-                    <p className="text-sm text-foreground">{message.content}</p>
+                )}
+                
+                {message.type === 'assistant' ? (
+                  <div className="flex items-start gap-3 mb-4 pl-1">
+                    <div className="w-6 h-6 rounded-full gradient-gold flex items-center justify-center flex-shrink-0 shadow-sm z-10">
+                      <FoxIcon size={14} className="text-primary-foreground" />
+                    </div>
+                    <div className="flex-1 pt-0.5">
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {message.content}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                ) : (
+                  <div className="flex flex-col items-end mb-4 pl-12">
+                    <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
+                      <p className="text-sm text-foreground">{message.content}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input with safe area */}
       <div className="px-4 pb-4 pt-2 safe-area-bottom">
-        <div className="bg-kairo-ai-bubble rounded-2xl px-3 py-2">
+        <div className="glass border border-border/20 rounded-2xl px-4 py-3">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Mensagem Kairo"
-            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1.5 mb-1"
+            placeholder="Digite uma mensagem..."
+            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2"
           />
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+              <button className="p-2 text-muted-foreground hover:text-primary transition-colors duration-300">
                 <Camera className="w-5 h-5" />
               </button>
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+              <button className="p-2 text-muted-foreground hover:text-primary transition-colors duration-300">
                 <Image className="w-5 h-5" />
               </button>
             </div>
@@ -266,12 +268,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
               <button 
                 onClick={() => handleSend()}
                 disabled={isLoading}
-                className="w-9 h-9 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95 disabled:opacity-50"
+                className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center transition-all duration-300 active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/30 golden-ripple"
               >
                 <Send className="w-4 h-4 text-primary-foreground" />
               </button>
             ) : (
-              <button className="w-9 h-9 rounded-full bg-kairo-surface-3 flex items-center justify-center transition-colors">
+              <button className="w-10 h-10 rounded-full bg-kairo-surface-3 flex items-center justify-center transition-all duration-300 hover:bg-kairo-surface-2">
                 <Mic className="w-4 h-4 text-foreground" />
               </button>
             )}

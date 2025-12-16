@@ -1,13 +1,14 @@
 import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, MessageCircle } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
+import FoxIcon from "@/components/icons/FoxIcon";
 
 interface Event {
   id: string;
@@ -92,7 +93,6 @@ const MainApp = () => {
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
     
-    // Only swipe horizontally if the gesture is more horizontal than vertical
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       setSwipeX(deltaX);
     }
@@ -104,16 +104,49 @@ const MainApp = () => {
     const currentIndex = VIEW_ORDER.indexOf(activeView);
     
     if (swipeX > SWIPE_THRESHOLD && currentIndex > 0) {
-      // Swipe right - go to previous view
       setActiveView(VIEW_ORDER[currentIndex - 1]);
     } else if (swipeX < -SWIPE_THRESHOLD && currentIndex < VIEW_ORDER.length - 1) {
-      // Swipe left - go to next view
       setActiveView(VIEW_ORDER[currentIndex + 1]);
     }
     
     setSwipeX(0);
     setIsSwiping(false);
   };
+
+  // Floating Dock Component
+  const FloatingDock = () => (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 safe-area-bottom">
+      <div className="floating-dock flex items-center gap-2 px-3 py-2">
+        {/* List View */}
+        <button
+          onClick={() => setActiveView('list')}
+          className={`dock-item w-11 h-11 rounded-full ${activeView === 'list' ? 'active' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <LayoutGrid className="w-5 h-5" />
+        </button>
+        
+        {/* Center - Chat/Kairo Button */}
+        <button
+          onClick={() => setActiveView('chat')}
+          className="dock-item-center mx-1"
+        >
+          {activeView === 'chat' ? (
+            <FoxIcon size={24} className="text-primary-foreground" />
+          ) : (
+            <MessageCircle className="w-6 h-6 text-primary-foreground" />
+          )}
+        </button>
+        
+        {/* Calendar View */}
+        <button
+          onClick={() => setActiveView('calendar')}
+          className={`dock-item w-11 h-11 rounded-full ${activeView === 'calendar' ? 'active' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <CalendarIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
 
   // Chat Page (Home)
   if (activeView === 'chat') {
@@ -132,6 +165,9 @@ const MainApp = () => {
           onNavigateToCalendar={() => setActiveView('list')}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
+        
+        <FloatingDock />
+        
         <SettingsDrawer
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
@@ -156,22 +192,23 @@ const MainApp = () => {
       <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-sm px-4 safe-area-top pb-2 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl px-5 safe-area-top pb-3 flex items-center justify-between">
         <button 
           onClick={() => {
             setPickerYear(currentMonth.getFullYear());
             setShowMonthPicker(!showMonthPicker);
           }}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1.5"
         >
-          <h1 className="text-2xl font-bold text-foreground capitalize">
+          <h1 className="text-2xl font-bold text-foreground capitalize tracking-tight">
             {format(currentMonth, 'MMMM', { locale: ptBR })}
           </h1>
-          <ChevronUp className={`w-5 h-5 text-muted-foreground transition-transform ${showMonthPicker ? '' : 'rotate-180'}`} />
+          <ChevronUp className={`w-5 h-5 text-primary transition-transform duration-300 ${showMonthPicker ? '' : 'rotate-180'}`} />
         </button>
         
-        <div className="flex items-center gap-1.5 bg-kairo-surface-2 rounded-lg px-2.5 py-1.5">
-          <span className="text-foreground font-bold text-sm tabular-nums">
+        {/* Today indicator */}
+        <div className="flex items-center gap-2 glass border border-primary/20 rounded-xl px-3 py-2">
+          <span className="text-primary font-bold text-sm calendar-number">
             {format(new Date(), 'd')}
           </span>
         </div>
@@ -179,19 +216,19 @@ const MainApp = () => {
 
       {/* Month Picker Popup */}
       {showMonthPicker && (
-        <div className="fixed top-16 left-4 z-50 bg-kairo-surface-2 rounded-2xl p-4 shadow-xl border border-border/20 w-[280px] safe-area-top mt-4">
+        <div className="fixed top-20 left-5 z-50 glass border border-border/20 rounded-2xl p-4 shadow-2xl w-[280px] safe-area-top mt-2">
           {/* Year Navigation */}
           <div className="flex items-center justify-between mb-4">
             <button 
               onClick={() => setPickerYear(prev => prev - 1)}
-              className="p-2 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+              className="p-2 rounded-xl hover:bg-kairo-surface-3 transition-colors duration-300"
             >
               <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
-            <span className="text-foreground font-semibold text-lg">{pickerYear}</span>
+            <span className="text-foreground font-bold text-lg">{pickerYear}</span>
             <button 
               onClick={() => setPickerYear(prev => prev + 1)}
-              className="p-2 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+              className="p-2 rounded-xl hover:bg-kairo-surface-3 transition-colors duration-300"
             >
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -205,9 +242,9 @@ const MainApp = () => {
                 <button
                   key={month}
                   onClick={() => handleMonthSelect(index)}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isCurrentMonth 
-                      ? 'bg-primary text-primary-foreground' 
+                      ? 'gradient-gold text-primary-foreground shadow-lg shadow-primary/20' 
                       : 'text-foreground hover:bg-kairo-surface-3'
                   }`}
                 >
@@ -227,8 +264,8 @@ const MainApp = () => {
         />
       )}
 
-      {/* Main Content - with padding for fixed header and bottom nav */}
-      <div className="flex-1 pt-20 pb-24 overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 pt-20 pb-28 overflow-hidden">
         {activeView === 'calendar' ? (
           <CalendarView 
             selectedDate={selectedDate}
@@ -249,61 +286,20 @@ const MainApp = () => {
       </div>
 
       {/* Gradient Overlay Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 h-24 gradient-overlay-bottom pointer-events-none z-10" />
+      <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom pointer-events-none z-10" />
 
       {/* FAB for list view */}
       {activeView === 'list' && (
         <button 
           onClick={() => handleAddEvent()}
-          className="fixed right-4 bottom-24 w-11 h-11 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/25 transition-transform active:scale-95 z-40"
+          className="fixed right-5 bottom-28 w-14 h-14 rounded-full gradient-gold flex items-center justify-center shadow-2xl shadow-primary/40 transition-all duration-300 active:scale-95 z-40 golden-ripple"
         >
-          <Plus className="w-5 h-5 text-primary-foreground" />
+          <Plus className="w-6 h-6 text-primary-foreground" />
         </button>
       )}
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-4 left-0 right-0 px-4 safe-area-bottom z-50">
-        <div className="flex items-center justify-between">
-          {/* View Toggle Pill - List and Calendar only */}
-          <div className="bg-kairo-surface-2/90 backdrop-blur-sm rounded-full p-1 flex items-center gap-0.5">
-            <button
-              onClick={() => setActiveView('list')}
-              className={`px-3 py-2 rounded-full transition-all duration-150 ${
-                activeView === 'list' 
-                  ? 'bg-foreground text-background' 
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="8" height="8" rx="1.5" />
-                <rect x="13" y="3" width="8" height="8" rx="1.5" />
-                <rect x="3" y="13" width="8" height="8" rx="1.5" />
-                <rect x="13" y="13" width="8" height="8" rx="1.5" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setActiveView('calendar')}
-              className={`px-3 py-2 rounded-full transition-all duration-150 ${
-                activeView === 'calendar' 
-                  ? 'bg-foreground text-background' 
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <CalendarIcon className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Chat Button */}
-          <button
-            onClick={() => setActiveView('chat')}
-            className="w-11 h-11 rounded-full bg-kairo-surface-2/90 backdrop-blur-sm border border-border/20 flex items-center justify-center transition-all duration-150 active:scale-95"
-          >
-            <svg className="w-5 h-5 text-foreground" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.936 1.444 5.544 3.683 7.227L4.5 22l4.414-2.069c.94.262 1.94.41 2.986.41C17.523 19.341 22 15.196 22 11.243S17.523 2 12 2zm0 15.341c-.87 0-1.71-.122-2.5-.35l-.45-.13-2.5 1.17.6-2.21-.35-.3C5.42 14.38 4 12.91 4 11.243 4 7.353 7.582 4 12 4s8 3.353 8 7.243-3.582 7.098-8 7.098z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
+      {/* Floating Dock Navigation */}
+      <FloatingDock />
 
       {/* Event Detail Page */}
       <EventDetailPage
