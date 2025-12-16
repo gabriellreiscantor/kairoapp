@@ -57,7 +57,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto hide-scrollbar">
           {/* Close Button */}
           <div className="flex justify-end px-4 pt-2">
             <button 
