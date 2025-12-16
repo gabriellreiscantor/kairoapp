@@ -200,17 +200,29 @@ async function executeAction(
 }
 
 serve(async (req) => {
+  console.log('=== CHAT FUNCTION CALLED ===');
+  console.log('Method:', req.method);
+  
   if (req.method === "OPTIONS") {
+    console.log('Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, imageAnalysis } = await req.json();
+    const body = await req.json();
+    const { messages, imageAnalysis } = body;
+    
+    console.log('Received messages count:', messages?.length || 0);
+    console.log('Has image analysis:', !!imageAnalysis);
+    
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
     if (!OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY not configured');
       throw new Error("OPENAI_API_KEY não configurada");
     }
+    
+    console.log('OpenAI API key found, length:', OPENAI_API_KEY.length);
 
     const authHeader = req.headers.get('authorization');
     let userContext = "";
@@ -430,44 +442,48 @@ ${imageAnalysis ? `\n## ANÁLISE DE IMAGEM RECEBIDA\nO usuário enviou uma image
     }
 
     // Return SSE stream format for compatibility
+    console.log('Building SSE response with finalResponse:', finalResponse);
+    
     const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // Send action metadata
-        const actionData = {
-          action: action.acao,
-          success: executionResult.success,
-          data: executionResult.data,
-          error: executionResult.error
-        };
-        
-        const metaChunk = `data: {"choices":[{"delta":{"content":"<!--KAIRO_ACTIONS:${JSON.stringify([actionData])}-->"}}]}\n\n`;
-        controller.enqueue(encoder.encode(metaChunk));
+    
+    // Build the complete SSE response as chunks
+    const chunks: string[] = [];
+    
+    // Send action metadata first
+    const actionData = {
+      action: action.acao,
+      success: executionResult.success,
+      data: executionResult.data,
+      error: executionResult.error
+    };
+    
+    const actionJson = JSON.stringify([actionData]);
+    chunks.push(`data: {"choices":[{"delta":{"content":"<!--KAIRO_ACTIONS:${actionJson}-->"}}]}\n\n`);
 
-        // Send response text in chunks for streaming effect
-        const words = finalResponse.split(' ');
-        let i = 0;
-        
-        const sendNextChunk = () => {
-          if (i < words.length) {
-            const chunk = (i === 0 ? '' : ' ') + words[i];
-            const data = `data: {"choices":[{"delta":{"content":"${chunk.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}}]}\n\n`;
-            controller.enqueue(encoder.encode(data));
-            i++;
-            // Small delay for streaming effect
-            setTimeout(sendNextChunk, 20);
-          } else {
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            controller.close();
-          }
-        };
-        
-        sendNextChunk();
-      }
-    });
+    // Send response text - escape properly for JSON
+    if (finalResponse) {
+      const escapedResponse = finalResponse
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+      chunks.push(`data: {"choices":[{"delta":{"content":"${escapedResponse}"}}]}\n\n`);
+    }
+    
+    // Send done marker
+    chunks.push('data: [DONE]\n\n');
+    
+    const fullResponse = chunks.join('');
+    console.log('SSE Response prepared, total length:', fullResponse.length);
 
-    return new Response(stream, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    return new Response(fullResponse, {
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      },
     });
 
   } catch (error) {
