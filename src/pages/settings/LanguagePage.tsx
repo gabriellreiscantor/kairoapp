@@ -32,7 +32,7 @@ const LanguagePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center">
+      <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
         <button 
           onClick={() => navigate(-1)}
           className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center z-10 relative"
