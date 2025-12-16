@@ -105,6 +105,8 @@ export type Database = {
           preferred_times: Json | null
           smart_suggestions_enabled: boolean | null
           updated_at: string | null
+          weather_forecast_enabled: boolean | null
+          weather_forecast_time: string | null
         }
         Insert: {
           auto_reschedule_enabled?: boolean | null
@@ -118,6 +120,8 @@ export type Database = {
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null
           updated_at?: string | null
+          weather_forecast_enabled?: boolean | null
+          weather_forecast_time?: string | null
         }
         Update: {
           auto_reschedule_enabled?: boolean | null
@@ -131,6 +135,8 @@ export type Database = {
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null
           updated_at?: string | null
+          weather_forecast_enabled?: boolean | null
+          weather_forecast_time?: string | null
         }
         Relationships: []
       }
