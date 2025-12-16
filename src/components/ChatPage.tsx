@@ -564,6 +564,21 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               </div>
             );
           })}
+          
+          {/* Typing indicator */}
+          {isLoading && (
+            <div className="flex items-start gap-3 mb-4 pl-1">
+              <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+                <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex items-center gap-1 pt-2">
+                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
+          
           <div ref={messagesEndRef} />
         </div>
       </div>
