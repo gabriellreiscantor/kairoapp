@@ -309,11 +309,14 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, imageAnalysis, isOnboarding, onboardingStep } = body;
+    const { messages, imageAnalysis, isOnboarding, onboardingStep, timezone } = body;
     
+    // Use user's timezone or fallback to America/Sao_Paulo
+    const userTimezone = timezone || 'America/Sao_Paulo';
     console.log('Received messages count:', messages?.length || 0);
     console.log('Has image analysis:', !!imageAnalysis);
     console.log('Is onboarding:', isOnboarding, 'Step:', onboardingStep);
+    console.log('User timezone:', userTimezone);
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
     if (!OPENAI_API_KEY) {
@@ -470,7 +473,7 @@ Quando o usuario menciona hora SEM data:
 - Assuma HOJE se a hora ainda nao passou
 - Assuma AMANHA se a hora ja passou
 
-Hora atual: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Cuiaba' })}
+Hora atual: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone })}
 
 Exemplos:
 "as tres da tarde vou na barbearia" (enviado as 14:00) → HOJE as 15:00

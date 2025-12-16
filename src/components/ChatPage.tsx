@@ -236,6 +236,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       console.log('[ChatPage] Messages being sent:', apiMessages.length);
       console.log('[ChatPage] Onboarding step:', onboardingStep);
       
+      // Get user's timezone from the device
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('[ChatPage] User timezone:', userTimezone);
+      
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -247,6 +251,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           imageAnalysis,
           isOnboarding: isInOnboarding,
           onboardingStep,
+          timezone: userTimezone,
         }),
       });
 
