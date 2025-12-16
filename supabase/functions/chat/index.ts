@@ -32,6 +32,7 @@ interface KairoAction {
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
   local?: string;
+  descricao?: string; // Short AI-generated description
   location_type?: 'commercial' | 'personal';
   location_state?: 'missing_city' | 'missing_place_name' | 'complete';
   duracao_minutos?: number;
@@ -189,6 +190,7 @@ async function executeAction(
           .insert({
             user_id: userId,
             title: action.titulo,
+            description: action.descricao || null,
             event_date: action.data,
             event_time: action.hora || null,
             location: action.local || null,
@@ -658,9 +660,10 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
               local: { type: ["string", "null"], description: "Local se mencionado, senao null" },
               prioridade: { type: "string", enum: ["low", "medium", "high"], description: "low=lazer, medium=trabalho, high=saude/urgente" },
               categoria: { type: "string", description: "pessoal, trabalho, saude, lazer" },
+              descricao: { type: "string", description: "Descricao CURTA (max 10 palavras) e amigavel do evento. Ex: 'Hora de cuidar do visual', 'Momento de diversao com a familia', 'Consulta importante de saude'" },
               resposta_usuario: { type: "string", description: "Mensagem curta confirmando criacao. Ex: Pronto! Criei o evento X para hoje." }
             },
-            required: ["titulo", "data", "prioridade", "categoria", "resposta_usuario"]
+            required: ["titulo", "data", "prioridade", "categoria", "descricao", "resposta_usuario"]
           }
         }
       },

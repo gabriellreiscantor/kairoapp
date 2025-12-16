@@ -9,6 +9,7 @@ interface EventCreatedCardProps {
   event: {
     id?: string;
     title: string;
+    description?: string;
     event_date: string;
     event_time?: string;
     location?: string;
@@ -146,11 +147,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           />
         </div>
         
-        {/* Notification info */}
+        {/* Description or Notification info */}
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-amber-500" />
           <span className="text-sm text-muted-foreground">
-            {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
+            {event.description || (event.event_time ? `${formatTime(event.event_time)}, no dia` : "Dia inteiro")}
           </span>
         </div>
         
