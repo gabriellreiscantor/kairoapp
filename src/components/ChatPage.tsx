@@ -439,6 +439,46 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
           try {
             const parsed = JSON.parse(jsonStr);
+            
+            // Handle custom SSE format from image analysis ({"text": ...}, {"action": ...})
+            if (parsed.text && !parsed.choices) {
+              console.log('[ChatPage] Image analysis text:', parsed.text);
+              assistantContent += parsed.text;
+              setMessages(prev => prev.map(m => 
+                m.id === assistantId ? { ...m, content: assistantContent } : m
+              ));
+              continue;
+            }
+            
+            if (parsed.action && !parsed.choices) {
+              console.log('[ChatPage] Image analysis action:', parsed.action);
+              // Convert to executedAction format
+              const action = parsed.action;
+              executedActions = [{
+                action: action.acao,
+                success: true,
+                resumo_evento: action.resumo_evento,
+                data: action
+              }];
+              
+              // Handle confirmation action from image analysis
+              if (action.acao === 'solicitar_confirmacao' && action.resumo_evento) {
+                setConfirmationModal({
+                  isOpen: true,
+                  resumo: action.resumo_evento,
+                  messageId: assistantId
+                });
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { 
+                    ...m, 
+                    content: assistantContent,
+                    confirmationData: action.resumo_evento 
+                  } : m
+                ));
+              }
+              continue;
+            }
+            
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               // Check for action metadata
