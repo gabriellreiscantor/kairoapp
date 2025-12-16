@@ -603,7 +603,61 @@ ${userContext}
 
 ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
-    console.log('Sending to GPT-4o-mini for interpretation...');
+    console.log('Sending to GPT-4o-mini with Tool Calling...');
+
+    // Define tools to FORCE specific behavior
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "create_event",
+          description: "SEMPRE use esta funcao quando usuario mencionar QUALQUER atividade, compromisso ou evento. Exemplos: lanchonete, cinema, barbearia, shopping, medico, reuniao, etc. Use mesmo sem data/hora especificada - use padroes.",
+          parameters: {
+            type: "object",
+            properties: {
+              titulo: { type: "string", description: "Nome da atividade exatamente como usuario falou" },
+              data: { type: "string", description: `Data YYYY-MM-DD. Padrao: ${todayISO} (hoje)` },
+              hora: { type: ["string", "null"], description: "Hora HH:MM ou null para dia inteiro" },
+              local: { type: ["string", "null"], description: "Local se mencionado, senao null" },
+              prioridade: { type: "string", enum: ["low", "medium", "high"], description: "low=lazer, medium=trabalho, high=saude/urgente" },
+              categoria: { type: "string", description: "pessoal, trabalho, saude, lazer" },
+              resposta_usuario: { type: "string", description: "Mensagem curta confirmando criacao. Ex: Pronto! Criei o evento X para hoje." }
+            },
+            required: ["titulo", "data", "prioridade", "categoria", "resposta_usuario"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "chat_response",
+          description: "Use APENAS para: saudacoes iniciais (oi, ola), perguntas sobre o sistema, ou temas completamente fora do escopo de eventos. NUNCA use para atividades - use create_event.",
+          parameters: {
+            type: "object",
+            properties: {
+              resposta_usuario: { type: "string", description: "Resposta conversacional" }
+            },
+            required: ["resposta_usuario"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "list_events",
+          description: "Use quando usuario perguntar sobre eventos existentes: 'o que tenho hoje', 'meus eventos', 'minha agenda'",
+          parameters: {
+            type: "object",
+            properties: {
+              data: { type: ["string", "null"], description: "Data especifica YYYY-MM-DD ou null para todos" },
+              limite: { type: "number", description: "Limite de eventos. Padrao: 10" },
+              resposta_usuario: { type: "string", description: "Introducao da lista" }
+            },
+            required: ["resposta_usuario"]
+          }
+        }
+      }
+    ];
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -617,7 +671,9 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
           { role: 'system', content: systemPrompt },
           ...messages,
         ],
-        temperature: 0.3,
+        tools: tools,
+        tool_choice: "required", // MUST use a tool
+        temperature: 0.2,
         max_tokens: 1000,
       }),
     });
@@ -640,19 +696,57 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     }
 
     const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content || '';
+    const message = aiResponse.choices?.[0]?.message;
     
-    console.log('AI interpretation:', content);
+    console.log('AI response message:', JSON.stringify(message));
 
     let action: KairoAction;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        action = JSON.parse(jsonMatch[0]);
+    
+    // Process tool calls
+    if (message?.tool_calls && message.tool_calls.length > 0) {
+      const toolCall = message.tool_calls[0];
+      const functionName = toolCall.function.name;
+      const args = JSON.parse(toolCall.function.arguments);
+      
+      console.log(`Tool called: ${functionName}`, args);
+      
+      if (functionName === "create_event") {
+        action = {
+          acao: 'criar_evento',
+          titulo: args.titulo,
+          data: args.data || todayISO,
+          hora: args.hora || null,
+          local: args.local || null,
+          prioridade: args.prioridade || 'low',
+          categoria: args.categoria || 'pessoal',
+          duracao_minutos: 60,
+          resposta_usuario: args.resposta_usuario,
+          resumo_evento: {
+            titulo: args.titulo,
+            data: args.data === todayISO ? 'Hoje' : args.data,
+            hora: args.hora || 'Dia inteiro',
+            local: args.local || '',
+            notificacao: '30 min antes'
+          }
+        };
+      } else if (functionName === "list_events") {
+        action = {
+          acao: 'listar_eventos',
+          data: args.data || null,
+          limite: args.limite || 10,
+          resposta_usuario: args.resposta_usuario
+        };
       } else {
-        action = { acao: 'conversar', resposta_usuario: content };
+        // chat_response
+        action = {
+          acao: 'conversar',
+          resposta_usuario: args.resposta_usuario
+        };
       }
-    } catch {
+    } else {
+      // Fallback if no tool call (shouldn't happen with tool_choice: required)
+      const content = message?.content || '';
+      console.log('No tool call, fallback to content:', content);
       action = { acao: 'conversar', resposta_usuario: content };
     }
 
