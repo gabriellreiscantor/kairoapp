@@ -3,6 +3,8 @@ import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User } from "lucide
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 
@@ -50,9 +52,11 @@ const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): bool
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange }: ChatPageProps) => {
+  const { user, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -62,6 +66,57 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user) {
+        setIsLoadingHistory(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(100);
+
+        if (error) throw error;
+
+        if (data) {
+          const loadedMessages: Message[] = data.map((m: any) => ({
+            id: m.id,
+            type: m.role as 'user' | 'assistant',
+            content: m.content,
+            createdAt: new Date(m.created_at),
+          }));
+          setMessages(loadedMessages);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [user]);
+
+  const saveMessage = async (role: 'user' | 'assistant', content: string) => {
+    if (!user) return;
+
+    try {
+      await supabase.from('chat_messages').insert({
+        user_id: user.id,
+        role,
+        content,
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
 
   const streamChat = async (userMessage: string, allMessages: Message[]) => {
     setIsLoading(true);
@@ -76,7 +131,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ messages: apiMessages }),
       });
@@ -132,6 +187,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           }
         }
       }
+
+      // Save assistant message after streaming completes
+      if (assistantContent) {
+        await saveMessage('assistant', assistantContent);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast({
@@ -158,6 +218,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue('');
+    
+    // Save user message
+    await saveMessage('user', messageText);
     
     await streamChat(messageText, newMessages);
   };
@@ -203,8 +266,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
       {/* Messages - Timeline style */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar">
+        {/* Loading history indicator */}
+        {isLoadingHistory && (
+          <div className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
         {/* Show suggestions when chat is empty */}
-        {messages.length === 0 && (
+        {!isLoadingHistory && messages.length === 0 && (
           <div className="pt-4">
             {/* Timestamp */}
             <p className="text-center text-[10px] text-muted-foreground mb-4">

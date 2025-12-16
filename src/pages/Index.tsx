@@ -1,29 +1,45 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SplashScreen from "@/components/SplashScreen";
-import LoginScreen from "@/components/LoginScreen";
 import MainApp from "@/pages/MainApp";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
-type AppState = 'splash' | 'login' | 'app';
+type AppState = 'splash' | 'loading' | 'app';
 
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('splash');
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   const handleSplashComplete = () => {
-    const hasLoggedIn = localStorage.getItem("kairo-logged-in");
-    setAppState(hasLoggedIn ? 'app' : 'login');
+    setAppState('loading');
   };
 
-  const handleLogin = () => {
-    localStorage.setItem("kairo-logged-in", "true");
-    setAppState('app');
-  };
+  useEffect(() => {
+    if (appState === 'loading' && !isLoading) {
+      if (user) {
+        setAppState('app');
+      } else {
+        navigate('/auth');
+      }
+    }
+  }, [appState, isLoading, user, navigate]);
 
   if (appState === 'splash') {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  if (appState === 'login') {
-    return <LoginScreen onLogin={handleLogin} />;
+  if (appState === 'loading' || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return <MainApp />;
