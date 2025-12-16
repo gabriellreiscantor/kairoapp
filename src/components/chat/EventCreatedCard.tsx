@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Calendar, Bell, Phone, MapPin, CheckCircle } from "lucide-react";
+import { 
+  Calendar, Bell, Phone, MapPin, CheckCircle,
+  Scissors, Film, Waves, Dumbbell, Briefcase, 
+  Heart, ShoppingCart, Utensils, GraduationCap, 
+  Music, Plane, Car, Coffee, Users, Gamepad2,
+  Stethoscope, DollarSign, Home, CircleDot
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +18,7 @@ interface EventCreatedCardProps {
     description?: string;
     event_date: string;
     event_time?: string;
+    duration_minutes?: number;
     location?: string;
     category?: string;
     notification_enabled?: boolean;
@@ -20,19 +27,79 @@ interface EventCreatedCardProps {
   type?: 'created' | 'updated';
 }
 
-const getCategoryEmoji = (category?: string) => {
-  const emojis: Record<string, string> = {
-    trabalho: "💼",
-    saude: "🩺",
-    pessoal: "🏠",
-    fitness: "💪",
-    social: "👥",
-    financeiro: "💰",
-    educacao: "📚",
-    lazer: "🎮",
-    geral: "🔴",
+// Get dynamic icon based on event title/category
+const getEventIcon = (title: string, category?: string) => {
+  const titleLower = title.toLowerCase();
+  
+  // Match by title keywords first
+  if (titleLower.includes('barbeir') || titleLower.includes('cabelo') || titleLower.includes('corte') || titleLower.includes('salão') || titleLower.includes('salon')) {
+    return <Scissors className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('cinema') || titleLower.includes('filme') || titleLower.includes('movie') || titleLower.includes('netflix')) {
+    return <Film className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('piscina') || titleLower.includes('nadar') || titleLower.includes('praia') || titleLower.includes('natação')) {
+    return <Waves className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('academia') || titleLower.includes('treino') || titleLower.includes('gym') || titleLower.includes('musculação') || titleLower.includes('crossfit')) {
+    return <Dumbbell className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('reunião') || titleLower.includes('meeting') || titleLower.includes('trabalho') || titleLower.includes('escritório')) {
+    return <Briefcase className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('médico') || titleLower.includes('medico') || titleLower.includes('consulta') || titleLower.includes('dentista') || titleLower.includes('hospital') || titleLower.includes('exame')) {
+    return <Stethoscope className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('mercado') || titleLower.includes('compras') || titleLower.includes('shopping') || titleLower.includes('supermercado') || titleLower.includes('feira')) {
+    return <ShoppingCart className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('restaurante') || titleLower.includes('jantar') || titleLower.includes('almoço') || titleLower.includes('lanchonete') || titleLower.includes('comida') || titleLower.includes('pizza')) {
+    return <Utensils className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('aula') || titleLower.includes('escola') || titleLower.includes('faculdade') || titleLower.includes('curso') || titleLower.includes('estudar')) {
+    return <GraduationCap className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('show') || titleLower.includes('concert') || titleLower.includes('festa') || titleLower.includes('balada') || titleLower.includes('música')) {
+    return <Music className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('viagem') || titleLower.includes('voo') || titleLower.includes('aeroporto') || titleLower.includes('férias')) {
+    return <Plane className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('carro') || titleLower.includes('oficina') || titleLower.includes('mecânico') || titleLower.includes('uber')) {
+    return <Car className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('café') || titleLower.includes('coffee') || titleLower.includes('cafeteria') || titleLower.includes('starbucks')) {
+    return <Coffee className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('amigo') || titleLower.includes('familia') || titleLower.includes('família') || titleLower.includes('encontro') || titleLower.includes('visita')) {
+    return <Users className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('jogo') || titleLower.includes('game') || titleLower.includes('playstation') || titleLower.includes('xbox') || titleLower.includes('videogame')) {
+    return <Gamepad2 className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('namoro') || titleLower.includes('date') || titleLower.includes('aniversário') || titleLower.includes('casamento')) {
+    return <Heart className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('banco') || titleLower.includes('pagar') || titleLower.includes('conta') || titleLower.includes('financ')) {
+    return <DollarSign className="w-5 h-5 text-primary" />;
+  }
+  if (titleLower.includes('casa') || titleLower.includes('home') || titleLower.includes('faxina') || titleLower.includes('limpeza')) {
+    return <Home className="w-5 h-5 text-primary" />;
+  }
+  
+  // Fallback by category
+  const categoryIcons: Record<string, React.ReactNode> = {
+    trabalho: <Briefcase className="w-5 h-5 text-primary" />,
+    saude: <Stethoscope className="w-5 h-5 text-primary" />,
+    pessoal: <Home className="w-5 h-5 text-primary" />,
+    fitness: <Dumbbell className="w-5 h-5 text-primary" />,
+    social: <Users className="w-5 h-5 text-primary" />,
+    financeiro: <DollarSign className="w-5 h-5 text-primary" />,
+    educacao: <GraduationCap className="w-5 h-5 text-primary" />,
+    lazer: <Gamepad2 className="w-5 h-5 text-primary" />,
   };
-  return emojis[category || "geral"] || "🔴";
+  
+  return categoryIcons[category || ''] || <CircleDot className="w-5 h-5 text-primary" />;
 };
 
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
@@ -80,6 +147,21 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
+  const formatDuration = () => {
+    if (!event.event_time) return "Dia inteiro";
+    
+    if (event.duration_minutes) {
+      const startTime = event.event_time;
+      const [hours, minutes] = startTime.split(":").map(Number);
+      const endMinutes = hours * 60 + minutes + event.duration_minutes;
+      const endHours = Math.floor(endMinutes / 60) % 24;
+      const endMins = endMinutes % 60;
+      return `até ${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+    }
+    
+    return formatTime(event.event_time);
+  };
+
   const handleToggleCallAlert = async (checked: boolean) => {
     if (!event.id || isUpdating) return;
     
@@ -118,19 +200,24 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       
       {/* Event Card */}
       <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl p-4 space-y-3">
-        {/* Title row */}
+        {/* Title row - Calendar on left, dynamic icon on right */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <span>{getCategoryEmoji(event.category)}</span>
+            <Calendar className="w-5 h-5 text-kairo-orange" />
             <span className="text-base font-semibold text-foreground">{event.title}</span>
           </div>
-          <Calendar className="w-5 h-5 text-kairo-orange" />
+          {getEventIcon(event.title, event.category)}
         </div>
         
-        {/* Date and time row */}
+        {/* Date and time row with duration */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-foreground capitalize">{formatDate(event.event_date)}</span>
-          <span className="text-kairo-amber font-medium">{isAllDay ? "Dia inteiro" : formatTime(event.event_time)}</span>
+          <div className="text-right">
+            <span className="text-kairo-amber font-medium">{isAllDay ? "Dia inteiro" : formatTime(event.event_time)}</span>
+            {!isAllDay && event.duration_minutes && (
+              <p className="text-xs text-muted-foreground">{formatDuration()}</p>
+            )}
+          </div>
         </div>
         
         {/* Me Ligue toggle */}
@@ -147,13 +234,20 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           />
         </div>
         
-        {/* Description or Notification info */}
+        {/* Notification time */}
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-amber-500" />
           <span className="text-sm text-muted-foreground">
-            {event.description || (event.event_time ? `${formatTime(event.event_time)}, no dia` : "Dia inteiro")}
+            {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
           </span>
         </div>
+        
+        {/* Description (if available) */}
+        {event.description && (
+          <p className="text-xs text-muted-foreground/80 pl-6 -mt-1">
+            {event.description}
+          </p>
+        )}
         
         {/* Location */}
         {event.location && (
