@@ -16,6 +16,7 @@ import AppearancePage from "./pages/settings/AppearancePage";
 import LanguagePage from "./pages/settings/LanguagePage";
 import HelpPage from "./pages/settings/HelpPage";
 import AboutPage from "./pages/settings/AboutPage";
+import MyPlanPage from "./pages/settings/MyPlanPage";
 
 // Legal Pages
 import TermsPage from "./pages/legal/TermsPage";
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/settings/language" element={<LanguagePage />} />
           <Route path="/settings/help" element={<HelpPage />} />
           <Route path="/settings/about" element={<AboutPage />} />
+          <Route path="/settings/plan" element={<MyPlanPage />} />
           
           {/* Legal Routes */}
           <Route path="/terms" element={<TermsPage />} />

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -23,6 +23,7 @@ interface Event {
 type ViewType = 'chat' | 'list' | 'calendar';
 const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
 const SWIPE_THRESHOLD = 50;
+const MONTHS = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
 
 const MainApp = () => {
   const [activeView, setActiveView] = useState<ViewType>('chat');
@@ -32,6 +33,8 @@ const MainApp = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -69,6 +72,11 @@ const MainApp = () => {
 
   const getEventsForDate = (date: Date) => {
     return events[format(date, 'yyyy-MM-dd')] || [];
+  };
+
+  const handleMonthSelect = (monthIndex: number) => {
+    setCurrentMonth(new Date(pickerYear, monthIndex, 1));
+    setShowMonthPicker(false);
   };
 
   // Swipe navigation handlers
@@ -149,11 +157,17 @@ const MainApp = () => {
       
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-sm px-4 safe-area-top pb-2 flex items-center justify-between">
-        <button className="flex items-center gap-1">
+        <button 
+          onClick={() => {
+            setPickerYear(currentMonth.getFullYear());
+            setShowMonthPicker(!showMonthPicker);
+          }}
+          className="flex items-center gap-1"
+        >
           <h1 className="text-2xl font-bold text-foreground capitalize">
             {format(currentMonth, 'MMMM', { locale: ptBR })}
           </h1>
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          <ChevronUp className={`w-5 h-5 text-muted-foreground transition-transform ${showMonthPicker ? '' : 'rotate-180'}`} />
         </button>
         
         <div className="flex items-center gap-1.5 bg-kairo-surface-2 rounded-lg px-2.5 py-1.5">
@@ -162,6 +176,56 @@ const MainApp = () => {
           </span>
         </div>
       </header>
+
+      {/* Month Picker Popup */}
+      {showMonthPicker && (
+        <div className="fixed top-16 left-4 z-50 bg-kairo-surface-2 rounded-2xl p-4 shadow-xl border border-border/20 w-[280px] safe-area-top mt-4">
+          {/* Year Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <button 
+              onClick={() => setPickerYear(prev => prev - 1)}
+              className="p-2 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <span className="text-foreground font-semibold text-lg">{pickerYear}</span>
+            <button 
+              onClick={() => setPickerYear(prev => prev + 1)}
+              className="p-2 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+          
+          {/* Month Grid */}
+          <div className="grid grid-cols-3 gap-2">
+            {MONTHS.map((month, index) => {
+              const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
+              return (
+                <button
+                  key={month}
+                  onClick={() => handleMonthSelect(index)}
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-colors ${
+                    isCurrentMonth 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-foreground hover:bg-kairo-surface-3'
+                  }`}
+                >
+                  {month}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close month picker */}
+      {showMonthPicker && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowMonthPicker(false)} 
+        />
+      )}
 
       {/* Main Content - with padding for fixed header and bottom nav */}
       <div className="flex-1 pt-20 pb-24 overflow-hidden">
