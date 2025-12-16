@@ -50,7 +50,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
   const handleNextYear = () => setPickerYear(prev => prev + 1);
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 px-4 border-b border-border/10">
         {WEEKDAYS.map((day, index) => (
@@ -60,12 +60,12 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
         ))}
       </div>
 
-      {/* Calendar Grid - Full Height */}
-      <div className="flex-1 flex flex-col">
+      {/* Calendar Grid - Full Height with equal rows */}
+      <div className="flex-1 grid grid-rows-6">
         {weeks.map((week, weekIndex) => (
           <div 
             key={weekIndex} 
-            className="flex-1 grid grid-cols-7"
+            className="grid grid-cols-7 border-b border-border/5 last:border-0"
           >
             {week.map((day, dayIndex) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -75,7 +75,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
                 <button
                   key={dayIndex}
                   onClick={() => onDateSelect(day)}
-                  className="flex items-start justify-center pt-3 transition-all active:bg-kairo-surface-2/30"
+                  className="flex items-start justify-center pt-3 h-full transition-all active:bg-kairo-surface-2/30"
                 >
                   <span
                     className={`

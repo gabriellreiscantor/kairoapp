@@ -88,8 +88,8 @@ const MainApp = () => {
         </div>
       </header>
 
-      {/* Main Content - with padding top to compensate for fixed header */}
-      <div className="flex-1 overflow-hidden hide-scrollbar pt-20">
+      {/* Main Content - with padding for fixed header and bottom nav */}
+      <div className="flex-1 pt-20 pb-24 overflow-hidden">
         {activeView === 'calendar' ? (
           <CalendarView 
             selectedDate={selectedDate}
@@ -98,7 +98,7 @@ const MainApp = () => {
             onMonthChange={setCurrentMonth}
           />
         ) : (
-          <div className="h-full overflow-y-auto hide-scrollbar pb-24">
+          <div className="h-full overflow-y-auto hide-scrollbar">
             <DayListView
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
