@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Mail, Lock, User } from "lucide-react";
@@ -19,19 +18,17 @@ const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const validateForm = () => {
     try {
       emailSchema.parse(email);
       passwordSchema.parse(password);
+      setErrorMessage("");
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          variant: "destructive",
-          title: "Erro de validação",
-          description: error.errors[0].message,
-        });
+        setErrorMessage(error.errors[0].message);
       }
       return false;
     }
@@ -43,23 +40,16 @@ const AuthPage = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
+    setErrorMessage("");
 
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            toast({
-              variant: "destructive",
-              title: "Erro ao entrar",
-              description: "Email ou senha incorretos",
-            });
+            setErrorMessage("Email ou senha incorretos");
           } else {
-            toast({
-              variant: "destructive",
-              title: "Erro ao entrar",
-              description: error.message,
-            });
+            setErrorMessage(error.message);
           }
         } else {
           localStorage.setItem("kairo-logged-in", "true");
@@ -69,24 +59,12 @@ const AuthPage = () => {
         const { error } = await signUp(email, password, displayName);
         if (error) {
           if (error.message.includes("already registered")) {
-            toast({
-              variant: "destructive",
-              title: "Erro ao criar conta",
-              description: "Este email já está cadastrado",
-            });
+            setErrorMessage("Este email já está cadastrado");
           } else {
-            toast({
-              variant: "destructive",
-              title: "Erro ao criar conta",
-              description: error.message,
-            });
+            setErrorMessage(error.message);
           }
         } else {
           localStorage.setItem("kairo-logged-in", "true");
-          toast({
-            title: "Conta criada!",
-            description: "Bem-vindo ao Kairo",
-          });
           navigate("/");
         }
       }
@@ -122,6 +100,11 @@ const AuthPage = () => {
         <p className="text-muted-foreground text-sm mb-8">
           {isLogin ? "Entre na sua conta" : "Crie sua conta"}
         </p>
+
+        {/* Error Message */}
+        {errorMessage && (
+          <p className="text-destructive text-sm text-center mb-4">{errorMessage}</p>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
