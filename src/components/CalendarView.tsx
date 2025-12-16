@@ -174,6 +174,28 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     lastTapTime.current = now;
   }, [scale]);
 
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + delta));
+    
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setOrigin({
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100
+      });
+    }
+    
+    setScale(newScale);
+    
+    if (newScale <= 1.05) {
+      setScale(1);
+      setTranslate({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
   // Reset zoom when month changes
   useEffect(() => {
     setScale(1);
@@ -189,6 +211,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
       onClick={handleDoubleTap}
     >
       {/* Zoom indicator */}
