@@ -3,3 +3,11 @@ project_id = "codkpccwtffhoacwswso"
 [functions.chat]
 enabled = true
 verify_jwt = false
+
+[functions.transcribe-audio]
+enabled = true
+verify_jwt = false
+
+[functions.analyze-image]
+enabled = true
+verify_jwt = false

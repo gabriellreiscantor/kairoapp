@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -6,139 +7,74 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Tool definitions for event management
-const tools = [
-  {
-    type: "function",
-    function: {
-      name: "create_event",
-      description: "Criar um novo evento ou lembrete no calendário do usuário. Use quando o usuário quiser agendar algo.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { 
-            type: "string", 
-            description: "Título descritivo do evento" 
-          },
-          event_date: { 
-            type: "string", 
-            description: "Data do evento no formato YYYY-MM-DD" 
-          },
-          event_time: { 
-            type: "string", 
-            description: "Horário no formato HH:MM (24h). Opcional." 
-          },
-          location: { 
-            type: "string", 
-            description: "Local do evento. Opcional." 
-          },
-          duration_minutes: { 
-            type: "number", 
-            description: "Duração em minutos. Padrão: 60" 
-          },
-          priority: { 
-            type: "string", 
-            enum: ["low", "medium", "high"],
-            description: "Prioridade do evento. Padrão: medium" 
-          },
-          category: {
-            type: "string",
-            description: "Categoria do evento (trabalho, saúde, pessoal, etc). Padrão: geral"
-          }
-        },
-        required: ["title", "event_date"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "list_events",
-      description: "Listar os eventos do usuário. Use quando o usuário perguntar sobre sua agenda.",
-      parameters: {
-        type: "object",
-        properties: {
-          date: {
-            type: "string",
-            description: "Data específica para buscar (YYYY-MM-DD). Se não informado, retorna eventos futuros."
-          },
-          limit: {
-            type: "number",
-            description: "Número máximo de eventos a retornar. Padrão: 10"
-          }
-        },
-        required: []
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "update_event",
-      description: "Atualizar um evento existente. Use quando o usuário quiser editar detalhes de um evento.",
-      parameters: {
-        type: "object",
-        properties: {
-          event_id: {
-            type: "string",
-            description: "ID do evento a ser atualizado"
-          },
-          title: { type: "string" },
-          event_date: { type: "string" },
-          event_time: { type: "string" },
-          location: { type: "string" },
-          priority: { type: "string", enum: ["low", "medium", "high"] }
-        },
-        required: ["event_id"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "delete_event",
-      description: "Cancelar/deletar um evento. Use quando o usuário quiser remover um evento da agenda.",
-      parameters: {
-        type: "object",
-        properties: {
-          event_id: {
-            type: "string",
-            description: "ID do evento a ser removido"
-          },
-          search_title: {
-            type: "string",
-            description: "Título do evento para buscar e deletar (se ID não for conhecido)"
-          }
-        },
-        required: []
-      }
-    }
-  }
-];
+/**
+ * FERRAMENTA 2 - INTERPRETAÇÃO DE TEXTO (ChatGPT)
+ * 
+ * Função EXATA:
+ * - Entender a intenção do usuário
+ * - Extrair informações estruturadas
+ * - Retornar APENAS JSON
+ * 
+ * Regras:
+ * - ChatGPT NÃO cria eventos
+ * - ChatGPT NÃO acessa banco
+ * - ChatGPT NÃO executa lógica
+ * - ChatGPT SÓ interpreta linguagem humana
+ * 
+ * Fluxo: Texto → ChatGPT → JSON → Backend executa
+ */
 
-// Execute tool calls
-async function executeToolCall(
+// JSON structure that AI will return
+interface KairoAction {
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'analisar_imagem';
+  titulo?: string;
+  data?: string; // YYYY-MM-DD
+  hora?: string; // HH:MM
+  local?: string;
+  duracao_minutos?: number;
+  prioridade?: 'low' | 'medium' | 'high';
+  categoria?: string;
+  evento_id?: string;
+  buscar_titulo?: string;
+  limite?: number;
+  resposta_usuario?: string;
+  // Image analysis result
+  analise_imagem?: {
+    tipo: string;
+    descricao: string;
+    pergunta_usuario: string;
+    data_detectada?: string;
+    hora_detectada?: string;
+    local_detectado?: string;
+  };
+}
+
+// Execute action in database - THIS IS THE BACKEND LOGIC
+async function executeAction(
   supabase: any, 
   userId: string, 
-  toolName: string, 
-  args: any
+  action: KairoAction
 ): Promise<{ success: boolean; data?: any; error?: string }> {
-  console.log(`Executing tool: ${toolName}`, args);
+  console.log(`Backend executing action: ${action.acao}`, action);
 
   try {
-    switch (toolName) {
-      case "create_event": {
+    switch (action.acao) {
+      case 'criar_evento': {
+        if (!action.titulo || !action.data) {
+          return { success: false, error: 'Título e data são obrigatórios' };
+        }
+
         const { data, error } = await supabase
           .from('events')
           .insert({
             user_id: userId,
-            title: args.title,
-            event_date: args.event_date,
-            event_time: args.event_time || null,
-            location: args.location || null,
-            duration_minutes: args.duration_minutes || 60,
-            priority: args.priority || 'medium',
-            category: args.category || 'geral',
+            title: action.titulo,
+            event_date: action.data,
+            event_time: action.hora || null,
+            location: action.local || null,
+            duration_minutes: action.duracao_minutos || 60,
+            priority: action.prioridade || 'medium',
+            category: action.categoria || 'geral',
             status: 'pending',
             notification_enabled: true
           })
@@ -149,7 +85,7 @@ async function executeToolCall(
         return { success: true, data };
       }
 
-      case "list_events": {
+      case 'listar_eventos': {
         let query = supabase
           .from('events')
           .select('*')
@@ -157,33 +93,36 @@ async function executeToolCall(
           .order('event_date', { ascending: true })
           .order('event_time', { ascending: true });
 
-        if (args.date) {
-          query = query.eq('event_date', args.date);
+        if (action.data) {
+          query = query.eq('event_date', action.data);
         } else {
-          // Future events
           const today = new Date().toISOString().split('T')[0];
           query = query.gte('event_date', today);
         }
 
-        query = query.limit(args.limit || 10);
+        query = query.limit(action.limite || 10);
 
         const { data, error } = await query;
         if (error) throw error;
         return { success: true, data };
       }
 
-      case "update_event": {
+      case 'editar_evento': {
+        if (!action.evento_id) {
+          return { success: false, error: 'ID do evento é obrigatório' };
+        }
+
         const updates: any = {};
-        if (args.title) updates.title = args.title;
-        if (args.event_date) updates.event_date = args.event_date;
-        if (args.event_time) updates.event_time = args.event_time;
-        if (args.location) updates.location = args.location;
-        if (args.priority) updates.priority = args.priority;
+        if (action.titulo) updates.title = action.titulo;
+        if (action.data) updates.event_date = action.data;
+        if (action.hora) updates.event_time = action.hora;
+        if (action.local) updates.location = action.local;
+        if (action.prioridade) updates.priority = action.prioridade;
 
         const { data, error } = await supabase
           .from('events')
           .update(updates)
-          .eq('id', args.event_id)
+          .eq('id', action.evento_id)
           .eq('user_id', userId)
           .select()
           .single();
@@ -192,23 +131,22 @@ async function executeToolCall(
         return { success: true, data };
       }
 
-      case "delete_event": {
-        if (args.event_id) {
+      case 'deletar_evento': {
+        if (action.evento_id) {
           const { error } = await supabase
             .from('events')
             .delete()
-            .eq('id', args.event_id)
+            .eq('id', action.evento_id)
             .eq('user_id', userId);
 
           if (error) throw error;
           return { success: true, data: { deleted: true } };
-        } else if (args.search_title) {
-          // Find and delete by title
+        } else if (action.buscar_titulo) {
           const { data: events } = await supabase
             .from('events')
             .select('id, title')
             .eq('user_id', userId)
-            .ilike('title', `%${args.search_title}%`)
+            .ilike('title', `%${action.buscar_titulo}%`)
             .limit(1);
 
           if (events && events.length > 0) {
@@ -220,16 +158,21 @@ async function executeToolCall(
             if (error) throw error;
             return { success: true, data: { deleted: true, event: events[0] } };
           }
-          return { success: false, error: "Evento não encontrado" };
+          return { success: false, error: 'Evento não encontrado' };
         }
-        return { success: false, error: "ID ou título do evento necessário" };
+        return { success: false, error: 'ID ou título do evento necessário' };
       }
 
+      case 'conversar':
+      case 'analisar_imagem':
+        // These don't need database action
+        return { success: true, data: null };
+
       default:
-        return { success: false, error: `Tool desconhecida: ${toolName}` };
+        return { success: false, error: `Ação desconhecida: ${action.acao}` };
     }
   } catch (error) {
-    console.error(`Tool error (${toolName}):`, error);
+    console.error(`Action error (${action.acao}):`, error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -240,11 +183,11 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const { messages, imageAnalysis } = await req.json();
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY não configurada");
     }
 
     const authHeader = req.headers.get('authorization');
@@ -252,6 +195,7 @@ serve(async (req) => {
     let userId: string | null = null;
     let supabase: any = null;
 
+    // Get user context
     if (authHeader) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -318,59 +262,76 @@ serve(async (req) => {
     });
     const todayISO = today.toISOString().split('T')[0];
 
-    const systemPrompt = `Você é Kairo, um assistente inteligente de calendário e lembretes. Você é amigável, eficiente e direto.
+    // System prompt for INTERPRETATION ONLY
+    const systemPrompt = `Você é Kairo, um assistente inteligente de calendário. Você INTERPRETA o que o usuário quer.
 
 Data de hoje: ${todayStr} (${todayISO})
 
-IMPORTANTE: Você pode EXECUTAR ações, não apenas conversar!
+## SUA FUNÇÃO
+Você APENAS interpreta a intenção do usuário e retorna JSON estruturado.
+Você NÃO executa ações - o backend fará isso.
 
-Suas capacidades (use as tools quando apropriado):
-1. CRIAR eventos - Use create_event quando o usuário quiser agendar algo
-2. LISTAR eventos - Use list_events para mostrar a agenda
-3. EDITAR eventos - Use update_event para modificar eventos
-4. DELETAR eventos - Use delete_event para cancelar eventos
+## FORMATO DE RESPOSTA
+Sempre retorne um JSON válido com a seguinte estrutura:
 
-Regras para interpretar datas:
+Para CRIAR evento:
+{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low/medium/high", "categoria": "...", "resposta_usuario": "mensagem amigável confirmando"}
+
+Para LISTAR eventos:
+{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "resposta_usuario": "mensagem introdutória"}
+
+Para EDITAR evento:
+{"acao": "editar_evento", "evento_id": "...", "titulo": "...", "data": "...", "hora": "...", "resposta_usuario": "..."}
+
+Para DELETAR evento:
+{"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "resposta_usuario": "..."}
+
+Para CONVERSAR (sem ação):
+{"acao": "conversar", "resposta_usuario": "sua resposta amigável"}
+
+## REGRAS DE DATA
 - "hoje" = ${todayISO}
 - "amanhã" = data de hoje + 1 dia
-- "segunda/terça/etc" = próximo dia da semana
-- "próxima semana" = 7 dias a partir de hoje
-- Sempre converta para formato YYYY-MM-DD
+- "segunda/terça/etc" = próximo dia da semana correspondente
+- Sempre use formato YYYY-MM-DD
 
-Quando criar eventos:
-- Extraia título, data, horário, local se mencionados
-- Infira prioridade pelo contexto (médico = high, café = low, reunião = medium)
-- Confirme a criação com detalhes do evento
+## REGRAS DE PRIORIDADE
+- médico, hospital, emergência = "high"
+- trabalho, reunião = "medium"
+- café, lazer, pessoal = "low"
 
-Ao listar eventos:
-- Formate de forma clara e legível
-- Agrupe por data se houver muitos
+## IMPORTANTE
+- Sempre retorne JSON válido
+- A resposta_usuario é o que será mostrado ao usuário
+- Seja amigável e use emojis ocasionalmente
+- Responda em português brasileiro
+${userContext}
 
-Responda sempre em português brasileiro de forma concisa e amigável.
-Use emojis ocasionalmente para tornar a conversa mais leve.
-${userContext}`;
+${imageAnalysis ? `\n## ANÁLISE DE IMAGEM RECEBIDA\nO usuário enviou uma imagem que foi analisada:\n${JSON.stringify(imageAnalysis)}\nUse essas informações para sugerir a criação de um evento.` : ''}`;
 
-    // First call to get potential tool calls
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
+    console.log('Sending to GPT-4o-mini for interpretation...');
+
+    // Call GPT-4o-mini for INTERPRETATION
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: 'gpt-4o-mini',
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: 'system', content: systemPrompt },
           ...messages,
         ],
-        tools,
-        tool_choice: "auto",
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error('GPT-4o-mini error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -378,118 +339,102 @@ ${userContext}`;
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Entre em contato com o suporte." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       
       return new Response(
-        JSON.stringify({ error: "Erro ao processar sua mensagem. Tente novamente." }),
+        JSON.stringify({ error: "Erro ao processar sua mensagem." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const aiResponse = await response.json();
-    const assistantMessage = aiResponse.choices?.[0]?.message;
+    const content = aiResponse.choices?.[0]?.message?.content || '';
+    
+    console.log('AI interpretation:', content);
 
-    // Check if there are tool calls
-    if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && userId && supabase) {
-      console.log("Tool calls detected:", assistantMessage.tool_calls);
-      
-      const toolResults: any[] = [];
-      const executedActions: any[] = [];
-
-      for (const toolCall of assistantMessage.tool_calls) {
-        const toolName = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments);
-        
-        const result = await executeToolCall(supabase, userId, toolName, args);
-        
-        toolResults.push({
-          tool_call_id: toolCall.id,
-          role: "tool",
-          content: JSON.stringify(result)
-        });
-
-        executedActions.push({
-          action: toolName,
-          success: result.success,
-          data: result.data,
-          error: result.error
-        });
+    // Parse the JSON from AI
+    let action: KairoAction;
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        action = JSON.parse(jsonMatch[0]);
+      } else {
+        action = { acao: 'conversar', resposta_usuario: content };
       }
-
-      // Second call to get final response with tool results
-      const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-            assistantMessage,
-            ...toolResults
-          ],
-          stream: true,
-        }),
-      });
-
-      if (!finalResponse.ok) {
-        const errorText = await finalResponse.text();
-        console.error("Final response error:", errorText);
-        throw new Error("Erro ao gerar resposta final");
-      }
-
-      // Add action metadata to the stream
-      const actionHeader = `<!--KAIRO_ACTIONS:${JSON.stringify(executedActions)}-->\n`;
-      const encoder = new TextEncoder();
-      
-      const transformedStream = new ReadableStream({
-        async start(controller) {
-          // Send action metadata first
-          controller.enqueue(encoder.encode(`data: {"choices":[{"delta":{"content":"${actionHeader}"}}]}\n\n`));
-          
-          const reader = finalResponse.body!.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
-          controller.close();
-        }
-      });
-
-      return new Response(transformedStream, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
+    } catch {
+      action = { acao: 'conversar', resposta_usuario: content };
     }
 
-    // No tool calls - stream regular response
-    const streamResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-      }),
+    console.log('Parsed action:', action);
+
+    // BACKEND EXECUTES THE ACTION
+    let executionResult: { success: boolean; data?: any; error?: string } = { success: true };
+    
+    if (userId && supabase && action.acao !== 'conversar') {
+      executionResult = await executeAction(supabase, userId, action);
+      console.log('Execution result:', executionResult);
+    }
+
+    // Build response
+    let finalResponse = action.resposta_usuario || '';
+
+    // If listing events, append the list
+    if (action.acao === 'listar_eventos' && executionResult.success && executionResult.data) {
+      const events = executionResult.data as any[];
+      if (events.length === 0) {
+        finalResponse += '\n\nVocê não tem eventos agendados.';
+      } else {
+        finalResponse += '\n\n';
+        for (const e of events) {
+          const emoji = e.priority === 'high' ? '🔴' : e.priority === 'medium' ? '🟡' : '🟢';
+          finalResponse += `${emoji} **${e.title}**\n`;
+          finalResponse += `   📅 ${e.event_date}${e.event_time ? ' às ' + e.event_time : ''}\n`;
+          if (e.location) finalResponse += `   📍 ${e.location}\n`;
+          finalResponse += '\n';
+        }
+      }
+    }
+
+    // Return SSE stream format for compatibility
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        // Send action metadata
+        const actionData = {
+          action: action.acao,
+          success: executionResult.success,
+          data: executionResult.data,
+          error: executionResult.error
+        };
+        
+        const metaChunk = `data: {"choices":[{"delta":{"content":"<!--KAIRO_ACTIONS:${JSON.stringify([actionData])}-->"}}]}\n\n`;
+        controller.enqueue(encoder.encode(metaChunk));
+
+        // Send response text in chunks for streaming effect
+        const words = finalResponse.split(' ');
+        let i = 0;
+        
+        const sendNextChunk = () => {
+          if (i < words.length) {
+            const chunk = (i === 0 ? '' : ' ') + words[i];
+            const data = `data: {"choices":[{"delta":{"content":"${chunk.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}}]}\n\n`;
+            controller.enqueue(encoder.encode(data));
+            i++;
+            // Small delay for streaming effect
+            setTimeout(sendNextChunk, 20);
+          } else {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+          }
+        };
+        
+        sendNextChunk();
+      }
     });
 
-    return new Response(streamResponse.body, {
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
+
   } catch (error) {
     console.error("Chat error:", error);
     return new Response(
