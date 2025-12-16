@@ -315,27 +315,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   if (cleanContent) {
                     assistantContent += cleanContent;
                     
-                    // Check if event was created to show creation animation first
+                    // Check if event was created - in optimistic mode, criar_evento includes resumo_evento
                     const eventAction = executedActions.find(a => a.action === 'criar_evento' && a.success);
+                    const eventResumo = eventAction 
+                      ? (eventAction.resumo_evento || eventAction.data?.resumo_evento)
+                      : undefined;
                     
-                    // Check if confirmation is being requested
+                    // Check if confirmation is being requested (legacy flow, kept for compatibility)
                     const confirmationAction = executedActions.find(a => a.action === 'solicitar_confirmacao');
                     const confirmationResumo = confirmationAction 
                       ? (confirmationAction.resumo_evento || confirmationAction.data?.resumo_evento)
                       : undefined;
                     
+                    // For optimistic creation, we show the card directly after creation
+                    const showCreatedCard = !!eventAction && !!eventResumo;
+                    
                     setMessages(prev => prev.map(m => 
                       m.id === assistantId ? { 
                         ...m, 
-                        content: confirmationResumo ? '' : assistantContent, // Don't show text if confirmation card
+                        content: (confirmationResumo || showCreatedCard) ? '' : assistantContent,
                         actions: executedActions,
-                        isCreatingEvent: !!eventAction,
-                        eventData: undefined,
-                        confirmationData: confirmationResumo, // Store confirmation data for card rendering
+                        isCreatingEvent: !!eventAction && !showCreatedCard, // Only show animation if no resumo
+                        eventData: showCreatedCard ? { ...eventAction.data, resumo_evento: eventResumo } : undefined,
+                        confirmationData: confirmationResumo,
                       } : m
                     ));
 
-                    // If confirmation is requested, open modal and mark flag
+                    // If confirmation is requested (legacy), open modal
                     if (confirmationResumo) {
                       hasConfirmationCard = true;
                       setConfirmationModal({
@@ -344,9 +350,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         messageId: assistantId
                       });
                     }
+                    
+                    // Mark flag if we have a created event card
+                    if (showCreatedCard) {
+                      hasConfirmationCard = true;
+                    }
 
-                    // If event was created, show animation then reveal card
-                    if (eventAction) {
+                    // If event was created WITHOUT resumo (legacy), show animation then reveal card
+                    if (eventAction && !eventResumo) {
                       setTimeout(() => {
                         setMessages(prev => prev.map(m => 
                           m.id === assistantId ? { 
@@ -355,7 +366,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                             eventData: eventAction.data 
                           } : m
                         ));
-                      }, 2000); // Match animation duration
+                      }, 2000);
                     }
                   }
                 } catch (e) {
