@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
@@ -20,14 +20,24 @@ interface Event {
   emoji?: string;
 }
 
+type ViewType = 'chat' | 'list' | 'calendar';
+const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
+const SWIPE_THRESHOLD = 50;
+
 const MainApp = () => {
-  const [activeView, setActiveView] = useState<'chat' | 'list' | 'calendar'>('chat');
+  const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
+  
+  // Swipe state
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   // Sample events
   const [events] = useState<Record<string, Event[]>>({
@@ -51,7 +61,6 @@ const MainApp = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    // Open sheet when clicking on a date with events (both calendar and list view)
     const dateEvents = events[format(date, 'yyyy-MM-dd')] || [];
     if (dateEvents.length > 0) {
       setIsDateSheetOpen(true);
@@ -62,10 +71,55 @@ const MainApp = () => {
     return events[format(date, 'yyyy-MM-dd')] || [];
   };
 
+  // Swipe navigation handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    
+    // Only swipe horizontally if the gesture is more horizontal than vertical
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      setSwipeX(deltaX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return;
+    
+    const currentIndex = VIEW_ORDER.indexOf(activeView);
+    
+    if (swipeX > SWIPE_THRESHOLD && currentIndex > 0) {
+      // Swipe right - go to previous view
+      setActiveView(VIEW_ORDER[currentIndex - 1]);
+    } else if (swipeX < -SWIPE_THRESHOLD && currentIndex < VIEW_ORDER.length - 1) {
+      // Swipe left - go to next view
+      setActiveView(VIEW_ORDER[currentIndex + 1]);
+    }
+    
+    setSwipeX(0);
+    setIsSwiping(false);
+  };
+
   // Chat Page (Home)
   if (activeView === 'chat') {
     return (
-      <>
+      <div
+        className="h-screen"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ 
+          transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
+          transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+        }}
+      >
         <ChatPage 
           onNavigateToCalendar={() => setActiveView('list')}
           onOpenSettings={() => setIsSettingsOpen(true)}
@@ -74,13 +128,22 @@ const MainApp = () => {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
         />
-      </>
+      </div>
     );
   }
 
   // Calendar/List Views
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div 
+      className="h-screen bg-background flex flex-col overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ 
+        transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
+        transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+      }}
+    >
       {/* Gradient Overlay Top */}
       <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
