@@ -15,6 +15,7 @@ import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
 import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
+import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
@@ -37,6 +38,13 @@ interface Message {
   eventData?: any; // For showing event cards
   isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
+  confirmationData?: { // For showing confirmation card in chat
+    titulo: string;
+    data: string;
+    hora: string;
+    local: string;
+    notificacao: string;
+  };
 }
 
 interface ExecutedAction {
@@ -311,27 +319,28 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     
                     // Check if confirmation is being requested
                     const confirmationAction = executedActions.find(a => a.action === 'solicitar_confirmacao');
+                    const confirmationResumo = confirmationAction 
+                      ? (confirmationAction.resumo_evento || confirmationAction.data?.resumo_evento)
+                      : undefined;
                     
                     setMessages(prev => prev.map(m => 
                       m.id === assistantId ? { 
                         ...m, 
-                        content: assistantContent, 
+                        content: confirmationResumo ? '' : assistantContent, // Don't show text if confirmation card
                         actions: executedActions,
                         isCreatingEvent: !!eventAction,
                         eventData: undefined,
+                        confirmationData: confirmationResumo, // Store confirmation data for card rendering
                       } : m
                     ));
 
                     // If confirmation is requested, open modal
-                    if (confirmationAction) {
-                      const resumo = confirmationAction.resumo_evento || confirmationAction.data?.resumo_evento;
-                      if (resumo) {
-                        setConfirmationModal({
-                          isOpen: true,
-                          resumo,
-                          messageId: assistantId
-                        });
-                      }
+                    if (confirmationResumo) {
+                      setConfirmationModal({
+                        isOpen: true,
+                        resumo: confirmationResumo,
+                        messageId: assistantId
+                      });
                     }
 
                     // If event was created, show animation then reveal card
@@ -739,16 +748,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 
                 {message.type === 'assistant' ? (
                   <div className="flex flex-col gap-3 mb-4">
-                    <div className="flex items-start gap-3 pl-1">
-                      <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                        <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                    {/* Only show message content if there's text */}
+                    {message.content && (
+                      <div className="flex items-start gap-3 pl-1">
+                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+                          <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 pt-0.5">
+                          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 pt-0.5">
-                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                          {message.content}
-                        </p>
+                    )}
+                    
+                    {/* Event Confirmation Card */}
+                    {message.confirmationData && (
+                      <div className="flex items-start gap-3 pl-1">
+                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+                          <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                        </div>
+                        <EventConfirmationCard
+                          resumo={message.confirmationData}
+                          onConfirm={handleConfirmEvent}
+                          onEdit={handleEditEvent}
+                        />
                       </div>
-                    </div>
+                    )}
                     
                     {/* Event Creation Animation */}
                     {message.isCreatingEvent && (
