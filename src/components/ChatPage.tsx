@@ -184,6 +184,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {/* Show suggestions when chat is empty */}
+        {messages.length === 0 && (
+          <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
+            <div className="flex items-start gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
+                <FoxIcon size={16} className="text-white" />
+              </div>
+              <p className="text-xs text-muted-foreground pt-2">
+                Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              {SUGGESTIONS.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestionClick(suggestion.text)}
+                  className="w-full flex items-start gap-2.5 bg-kairo-surface-3 hover:bg-kairo-surface-3/80 rounded-xl px-3 py-2.5 text-left transition-colors"
+                >
+                  <span className="text-base">{suggestion.emoji}</span>
+                  <span className="text-xs text-foreground leading-relaxed">{suggestion.text}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {messages.map((message, index) => {
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const showTimestamp = shouldShowTimestamp(message, prevMessage);
@@ -199,34 +226,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
               
               {message.type === 'assistant' ? (
                 <div className="mb-4">
-                  {/* Show suggestions after first AI message */}
-                  {index === 0 && (
-                    <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
-                      <div className="flex items-start gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                          <FoxIcon size={16} className="text-white" />
-                        </div>
-                        <p className="text-xs text-muted-foreground pt-2">
-                          Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {SUGGESTIONS.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleSuggestionClick(suggestion.text)}
-                            className="w-full flex items-start gap-2.5 bg-kairo-surface-3 hover:bg-kairo-surface-3/80 rounded-xl px-3 py-2.5 text-left transition-colors"
-                          >
-                            <span className="text-base">{suggestion.emoji}</span>
-                            <span className="text-xs text-foreground leading-relaxed">{suggestion.text}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* AI text message */}
                   <p className="text-sm text-foreground leading-relaxed">
                     {message.content}
                   </p>
