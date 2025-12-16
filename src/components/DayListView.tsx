@@ -9,6 +9,8 @@ interface Event {
   priority: 'high' | 'medium' | 'low';
   isAllDay?: boolean;
   endDate?: Date;
+  location?: string;
+  emoji?: string;
 }
 
 interface DayListViewProps {
