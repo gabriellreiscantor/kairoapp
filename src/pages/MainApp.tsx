@@ -373,6 +373,20 @@ const MainApp = () => {
           setIsDateSheetOpen(false);
           handleAddEvent(selectedDate);
         }}
+        onDeleteEvent={async (eventId) => {
+          try {
+            await supabase.from('events').delete().eq('id', eventId);
+            setEventsVersion(v => v + 1);
+          } catch (error) {
+            console.error('Error deleting event:', error);
+          }
+        }}
+        onEditEvent={(eventId) => {
+          // Switch to chat and send edit command
+          setIsDateSheetOpen(false);
+          setActiveView('chat');
+          // The edit will be handled via chat
+        }}
       />
 
       {/* Settings Drawer */}

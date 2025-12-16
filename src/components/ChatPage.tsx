@@ -14,7 +14,7 @@ import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
-import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
+import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
@@ -37,13 +37,6 @@ interface Message {
   eventData?: any; // For showing event cards
   isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
-  pendingConfirmation?: {
-    titulo: string;
-    data: string;
-    hora: string;
-    local: string;
-    notificacao: string;
-  };
 }
 
 interface ExecutedAction {
@@ -100,6 +93,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [showWeeklySuggestion, setShowWeeklySuggestion] = useState(false);
   const [showCalendarSuggestion, setShowCalendarSuggestion] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    resumo: { titulo: string; data: string; hora: string; local: string; notificacao: string } | null;
+    messageId: string | null;
+  }>({ isOpen: false, resumo: null, messageId: null });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const dateLocale = getDateLocale();
@@ -321,9 +319,20 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         actions: executedActions,
                         isCreatingEvent: !!eventAction,
                         eventData: undefined,
-                        pendingConfirmation: confirmationAction?.resumo_evento || confirmationAction?.data?.resumo_evento || undefined
                       } : m
                     ));
+
+                    // If confirmation is requested, open modal
+                    if (confirmationAction) {
+                      const resumo = confirmationAction.resumo_evento || confirmationAction.data?.resumo_evento;
+                      if (resumo) {
+                        setConfirmationModal({
+                          isOpen: true,
+                          resumo,
+                          messageId: assistantId
+                        });
+                      }
+                    }
 
                     // If event was created, show animation then reveal card
                     if (eventAction) {
@@ -436,24 +445,21 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     handleSend(text);
   };
 
-  // Handle event confirmation from card
-  const handleConfirmEvent = (messageId: string) => {
-    // Clear the pending confirmation from the message
-    setMessages(prev => prev.map(m => 
-      m.id === messageId ? { ...m, pendingConfirmation: undefined } : m
-    ));
-    // Send confirmation message
+  // Handle event confirmation from modal
+  const handleConfirmEvent = () => {
+    setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
     handleSend("confirmar");
   };
 
-  // Handle edit request from confirmation card
-  const handleEditEvent = (messageId: string) => {
-    // Clear the pending confirmation
-    setMessages(prev => prev.map(m => 
-      m.id === messageId ? { ...m, pendingConfirmation: undefined } : m
-    ));
-    // Send edit request
+  // Handle edit request from modal
+  const handleEditEvent = () => {
+    setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
     handleSend("editar");
+  };
+
+  // Close confirmation modal
+  const handleCloseConfirmationModal = () => {
+    setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
   };
 
   // Handle weekly planning suggestion
@@ -758,16 +764,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       </div>
                     )}
                     
-                    {/* Confirmation Card */}
-                    {message.pendingConfirmation && !message.eventData && !message.isCreatingEvent && (
-                      <div className="pl-9 animate-fade-in">
-                        <EventConfirmationCard 
-                          resumo={message.pendingConfirmation}
-                          onConfirm={() => handleConfirmEvent(message.id)}
-                          onEdit={() => handleEditEvent(message.id)}
-                        />
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-end mb-4 pl-12">
@@ -895,6 +891,17 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           </div>
         </div>
       </div>
+
+      {/* Event Confirmation Modal */}
+      {confirmationModal.resumo && (
+        <EventConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={handleCloseConfirmationModal}
+          resumo={confirmationModal.resumo}
+          onConfirm={handleConfirmEvent}
+          onEdit={handleEditEvent}
+        />
+      )}
     </div>
   );
 };
