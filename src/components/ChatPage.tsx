@@ -238,11 +238,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           {/* Calendar View - Left */}
           <button
             onClick={() => onViewChange('calendar')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-              activeView === 'calendar' 
-                ? 'bg-primary/20 text-primary' 
-                : 'text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2'
-            }`}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <CalendarIcon className="w-5 h-5" />
           </button>
@@ -258,7 +254,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           {/* Settings - Right */}
           <button
             onClick={onOpenSettings}
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <User className="w-5 h-5" />
           </button>
