@@ -187,6 +187,16 @@
     height: 0 !important;
   }
   
+  /* Remove focus rings for mobile native app - touch-first interface */
+  *,
+  *:focus,
+  *:focus-visible,
+  *:focus-within {
+    outline: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-offset-shadow: none !important;
+  }
+
   * {
     @apply border-border;
   }
