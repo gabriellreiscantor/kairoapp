@@ -19,9 +19,9 @@
     --kairo-ai-bubble: 20 5% 12%;
     --kairo-user-bubble: 35 80% 45%;
     
-    /* Primary - Golden Amber accent */
-    --primary: 38 95% 50%;
-    --primary-foreground: 20 8% 8%;
+    /* Primary - Vibrant Coral-Orange from logo */
+    --primary: 12 95% 55%;
+    --primary-foreground: 0 0% 100%;
     
     /* Secondary - Deep Emerald */
     --secondary: 160 40% 20%;
@@ -32,7 +32,7 @@
     --muted-foreground: 40 10% 50%;
     
     /* Accent - warm glow */
-    --accent: 35 50% 20%;
+    --accent: 12 50% 25%;
     --accent-foreground: 40 20% 95%;
     
     /* Card */
@@ -43,23 +43,23 @@
     --popover: 20 6% 10%;
     --popover-foreground: 40 20% 95%;
     
-    /* Border - subtle gold tint */
-    --border: 35 15% 18%;
-    --input: 35 15% 18%;
-    --ring: 38 95% 50%;
+    /* Border - subtle warm tint */
+    --border: 12 15% 20%;
+    --input: 12 15% 20%;
+    --ring: 12 95% 55%;
     
     /* Kairo accent colors */
     --kairo-accent-green: 160 60% 40%;
     --kairo-accent-amber: 38 95% 50%;
     --kairo-accent-red: 0 70% 50%;
-    --kairo-fox-orange: 30 100% 55%;
+    --kairo-fox-orange: 12 95% 55%;
     
-    /* Golden gradients */
-    --gradient-primary-start: 38 95% 50%;
-    --gradient-primary-mid: 30 100% 45%;
-    --gradient-primary-end: 25 90% 40%;
+    /* Vibrant gradients matching logo */
+    --gradient-primary-start: 12 95% 55%;
+    --gradient-primary-mid: 350 85% 50%;
+    --gradient-primary-end: 280 70% 45%;
     
-    --gradient-glow: 38 95% 50%;
+    --gradient-glow: 12 95% 55%;
     
     /* Destructive */
     --destructive: 0 70% 50%;
@@ -76,12 +76,12 @@
     /* Sidebar */
     --sidebar-background: 20 6% 11%;
     --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 38 95% 50%;
-    --sidebar-primary-foreground: 20 8% 8%;
-    --sidebar-accent: 35 50% 15%;
+    --sidebar-primary: 12 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 12 50% 20%;
     --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 35 15% 18%;
-    --sidebar-ring: 38 95% 50%;
+    --sidebar-border: 12 15% 20%;
+    --sidebar-ring: 12 95% 55%;
     
     --radius: 1rem;
   }
@@ -183,8 +183,9 @@
   .gradient-gold {
     background: linear-gradient(
       135deg,
-      hsl(38 95% 50%) 0%,
-      hsl(30 100% 45%) 100%
+      hsl(12 95% 55%) 0%,
+      hsl(350 85% 50%) 50%,
+      hsl(280 70% 45%) 100%
     );
   }
   
@@ -203,8 +204,8 @@
     height: 100%;
     background: radial-gradient(
       ellipse at center,
-      hsl(38 95% 50% / 0.15) 0%,
-      hsl(30 100% 45% / 0.08) 30%,
+      hsl(12 95% 55% / 0.15) 0%,
+      hsl(350 85% 50% / 0.08) 30%,
       transparent 60%
     );
     animation: aurora-glow 8s ease-in-out infinite;
@@ -232,7 +233,7 @@
   .dock-item-center {
     @apply w-14 h-14 rounded-full flex items-center justify-center;
     @apply transition-all duration-300;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(30 100% 45%) 100%);
+    background: linear-gradient(135deg, hsl(12 95% 55%) 0%, hsl(350 85% 50%) 50%, hsl(280 70% 45%) 100%);
     box-shadow: 0 4px 20px hsl(var(--primary) / 0.4);
   }
   
