@@ -51,7 +51,9 @@ const MainApp = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    if (activeView === 'calendar') {
+    // Open sheet when clicking on a date with events (both calendar and list view)
+    const dateEvents = events[format(date, 'yyyy-MM-dd')] || [];
+    if (dateEvents.length > 0) {
       setIsDateSheetOpen(true);
     }
   };
@@ -111,7 +113,7 @@ const MainApp = () => {
           <div className="h-full overflow-y-auto hide-scrollbar">
             <DayListView
               selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
+              onDateSelect={handleDateSelect}
               onAddEvent={handleAddEvent}
               events={events}
             />
