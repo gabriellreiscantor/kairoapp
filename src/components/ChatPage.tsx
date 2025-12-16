@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
-import kairoFoxColor from "@/assets/kairo-fox-color.jpg";
+import kairoFoxColor from "@/assets/kairo-fox-color.png";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
