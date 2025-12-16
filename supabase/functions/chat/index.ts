@@ -790,8 +790,8 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       ? (now.getTime() - lastAssistantTime.getTime()) / (1000 * 60) 
       : Infinity;
     
-    // Context is only active if less than 2 minutes passed
-    const contextIsActive = minutesSinceLastAssistant < 2;
+    // Context is only active if less than 1 minute passed
+    const contextIsActive = minutesSinceLastAssistant < 1;
     
     // Check if previous AI message asked about editing (only if context is active)
     const recentAssistantMessages = previousAssistantMessages.slice(-2);
@@ -961,19 +961,24 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     let finalResponse = action.resposta_usuario || '';
 
+    // Handle list events - include structured data for frontend cards
+    let listedEvents: any[] | undefined;
     if (action.acao === 'listar_eventos' && executionResult.success && executionResult.data) {
       const events = executionResult.data as any[];
       if (events.length === 0) {
-        finalResponse += '\n\nVoce nao tem eventos agendados.';
+        finalResponse = action.resposta_usuario || 'Você não tem eventos agendados.';
       } else {
-        finalResponse += '\n\n';
-        for (const e of events) {
-          const priority = e.priority === 'high' ? '[ALTA]' : e.priority === 'medium' ? '[MEDIA]' : '[BAIXA]';
-          finalResponse += `${priority} ${e.title}\n`;
-          finalResponse += `   ${e.event_date}${e.event_time ? ' as ' + e.event_time : ''}\n`;
-          if (e.location) finalResponse += `   ${e.location}\n`;
-          finalResponse += '\n';
-        }
+        // Map events to structured format for frontend
+        listedEvents = events.map(e => ({
+          id: e.id,
+          titulo: e.title,
+          data: e.event_date,
+          hora: e.event_time,
+          local: e.location,
+          prioridade: e.priority,
+          categoria: e.category
+        }));
+        finalResponse = action.resposta_usuario || `Você tem ${events.length} evento(s):`;
       }
     }
 
@@ -988,7 +993,8 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       success: executionResult.success,
       data: executionResult.data || action,
       error: executionResult.error,
-      resumo_evento: action.resumo_evento
+      resumo_evento: action.resumo_evento,
+      eventos: listedEvents // Include structured events for list action
     };
     
     const actionJson = JSON.stringify([actionData]);

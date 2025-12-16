@@ -17,6 +17,7 @@ import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
 import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
+import EventListCard from "@/components/chat/EventListCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -38,6 +39,15 @@ interface Message {
   eventData?: any; // For showing event cards
   isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
+  eventsListData?: Array<{ // For showing list of events
+    id: string;
+    titulo: string;
+    data: string;
+    hora?: string;
+    local?: string;
+    prioridade?: string;
+    categoria?: string;
+  }>;
   confirmationData?: { // For showing confirmation card in chat
     titulo: string;
     data: string;
@@ -59,6 +69,15 @@ interface ExecutedAction {
     local: string;
     notificacao: string;
   };
+  eventos?: Array<{
+    id: string;
+    titulo: string;
+    data: string;
+    hora?: string;
+    local?: string;
+    prioridade?: string;
+    categoria?: string;
+  }>;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -363,6 +382,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     eventData = { ...eventAction.data, resumo_evento: eventResumo };
                   }
                   
+                  // Check if events were LISTED
+                  const listAction = executedActions.find(a => a.action === 'listar_eventos' && a.success);
+                  const listedEvents = listAction?.eventos || listAction?.data?.eventos;
+                  
+                  console.log('[ChatPage] List events processing:', { 
+                    listAction: !!listAction, 
+                    listedEvents: listedEvents?.length || 0 
+                  });
+                  
                   setMessages(prev => prev.map(m => 
                     m.id === assistantId ? { 
                       ...m, 
@@ -370,6 +398,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       actions: executedActions,
                       isCreatingEvent: !!eventAction && !showCreatedCard,
                       eventData,
+                      eventsListData: listedEvents,
                       confirmationData: confirmationResumo,
                     } : m
                   ));
@@ -833,6 +862,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           event={message.eventData} 
                           type={message.eventData.isUpdate ? 'updated' : 'created'}
                         />
+                      </div>
+                    )}
+                    
+                    {/* Events List Cards */}
+                    {message.eventsListData && message.eventsListData.length > 0 && (
+                      <div className="pl-9 animate-fade-in">
+                        <EventListCard events={message.eventsListData} />
                       </div>
                     )}
                     
