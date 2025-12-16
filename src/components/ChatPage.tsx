@@ -209,7 +209,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         if (error) throw error;
 
         if (data) {
+          console.log('[ChatPage] Loading history - total messages:', data.length);
           const loadedMessages: Message[] = data.map((m: any) => {
+            // DEBUG: Log each message's metadata
+            console.log('[ChatPage] Loading message:', {
+              id: m.id,
+              role: m.role,
+              hasMetadata: !!m.metadata,
+              metadata: m.metadata,
+              hasEventData: !!m.metadata?.eventData,
+              hasEventsListData: !!m.metadata?.eventsListData,
+            });
+            
             let eventData = m.metadata?.eventData;
             
             // FALLBACK: Convert old format (resumo_evento) to new format
@@ -251,12 +262,30 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const saveMessage = async (role: 'user' | 'assistant', content: string, metadata?: any) => {
     if (!user) return;
 
+    // DEBUG: Log what we're saving
+    console.log('[ChatPage] saveMessage called:', {
+      role,
+      contentLength: content?.length,
+      hasMetadata: !!metadata,
+      metadata: metadata,
+      eventDataTitle: metadata?.eventData?.title,
+      eventsListCount: metadata?.eventsListData?.length,
+    });
+
     try {
-      await supabase.from('chat_messages').insert({
+      const { data, error } = await supabase.from('chat_messages').insert({
         user_id: user.id,
         role,
         content,
         metadata,
+      }).select();
+      
+      // DEBUG: Log the result
+      console.log('[ChatPage] saveMessage result:', {
+        success: !error,
+        error: error?.message,
+        savedData: data?.[0],
+        savedMetadata: data?.[0]?.metadata,
       });
     } catch (error) {
       console.error('Error saving message:', error);
@@ -528,11 +557,27 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
 
       // Save assistant message after streaming completes with metadata for cards
+      // DEBUG: Log what we have before saving
+      console.log('[ChatPage] BEFORE saveMessage - checking finalEventData:', {
+        hasAssistantContent: !!assistantContent,
+        assistantContentLength: assistantContent?.length,
+        hasFinalEventData: !!finalEventData,
+        finalEventData: finalEventData,
+        hasFinalEventsListData: !!finalEventsListData,
+        finalEventsListCount: finalEventsListData?.length,
+        executedActionsCount: executedActions.length,
+        executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
+      });
+      
       if (assistantContent || finalEventData || finalEventsListData) {
         const metadata = (finalEventData || finalEventsListData) 
           ? { eventData: finalEventData, eventsListData: finalEventsListData }
           : undefined;
+        
+        console.log('[ChatPage] Constructed metadata for save:', metadata);
         await saveMessage('assistant', assistantContent || '', metadata);
+      } else {
+        console.warn('[ChatPage] NOT saving - no content or event data!');
       }
 
       // Handle executed actions
