@@ -141,7 +141,7 @@ const MyPlanPage = () => {
             {/* PLUS Plan */}
             <button
               onClick={() => setSelectedPlan('plus')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative z-10 cursor-pointer ${
+              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative cursor-pointer ${
                 selectedPlan === 'plus' ? 'ring-2 ring-primary' : ''
               }`}
             >
@@ -180,7 +180,7 @@ const MyPlanPage = () => {
             {/* SUPER Plan */}
             <button
               onClick={() => setSelectedPlan('super')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative z-10 cursor-pointer ${
+              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative cursor-pointer ${
                 selectedPlan === 'super' ? 'ring-2 ring-yellow-500' : ''
               }`}
             >
@@ -302,7 +302,7 @@ const MyPlanPage = () => {
       </div>
 
       {/* Fixed Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border/20 p-4 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border/20 p-4 safe-area-bottom">
         <div className="flex items-center justify-between mb-3">
           <span className="text-muted-foreground text-sm">Economize 17% com a cobrança anual</span>
           <div 
