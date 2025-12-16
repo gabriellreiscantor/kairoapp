@@ -13,6 +13,7 @@ import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
+import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
@@ -33,6 +34,7 @@ interface Message {
   actions?: ExecutedAction[];
   imagePreview?: string;
   eventData?: any; // For showing event cards
+  isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
 }
 
@@ -291,7 +293,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   if (cleanContent) {
                     assistantContent += cleanContent;
                     
-                    // Check if event was created to show event card
+                    // Check if event was created to show creation animation first
                     const eventAction = executedActions.find(a => a.action === 'criar_evento' && a.success);
                     
                     setMessages(prev => prev.map(m => 
@@ -299,9 +301,23 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         ...m, 
                         content: assistantContent, 
                         actions: executedActions,
-                        eventData: eventAction?.data 
+                        isCreatingEvent: !!eventAction,
+                        eventData: undefined // Will be set after animation
                       } : m
                     ));
+
+                    // If event was created, show animation then reveal card
+                    if (eventAction) {
+                      setTimeout(() => {
+                        setMessages(prev => prev.map(m => 
+                          m.id === assistantId ? { 
+                            ...m, 
+                            isCreatingEvent: false,
+                            eventData: eventAction.data 
+                          } : m
+                        ));
+                      }, 2000); // Match animation duration
+                    }
                   }
                 } catch (e) {
                   console.error('[ChatPage] Error parsing actions:', e);
@@ -688,9 +704,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       </div>
                     </div>
                     
-                    {/* Event Card */}
-                    {message.eventData && (
+                    {/* Event Creation Animation */}
+                    {message.isCreatingEvent && (
                       <div className="pl-9">
+                        <EventCreatingAnimation />
+                      </div>
+                    )}
+                    
+                    {/* Event Card */}
+                    {message.eventData && !message.isCreatingEvent && (
+                      <div className="pl-9 animate-fade-in">
                         <EventCreatedCard event={message.eventData} />
                       </div>
                     )}

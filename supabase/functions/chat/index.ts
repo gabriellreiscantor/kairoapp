@@ -40,7 +40,7 @@ interface KairoAction {
   idioma_detectado?: 'pt' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh' | 'outro';
   observacoes?: string;
   resposta_usuario?: string;
-  informacao_faltante?: 'data' | 'hora' | 'ambos'; // For coletar_informacoes
+  informacao_faltante?: 'data' | 'hora' | 'local' | 'ambos'; // For coletar_informacoes
   contexto_coletado?: string; // What user already said
 }
 
@@ -482,8 +482,17 @@ Informações OPCIONAIS (use valores padrão se não especificado):
 
 ⚠️ SE FALTAR DATA OU HORA: Use "coletar_informacoes" para perguntar!
 
-Para COLETAR informações faltantes (use SEMPRE que faltar data ou hora):
-{"acao": "coletar_informacoes", "contexto_coletado": "o que o usuário já disse", "informacao_faltante": "data|hora|ambos", "idioma_detectado": "...", "resposta_usuario": "pergunta amigável e natural"}
+## 📍 REGRAS DE LOCALIZAÇÃO
+Para eventos que envolvem LUGARES (cinema, shopping, restaurante, médico, academia, etc.):
+- Se o usuário mencionar um NOME de lugar genérico (ex: "Pantanal Shopping"), pergunte a CIDADE
+- Somente crie evento quando tiver: DATA + HORA + LOCAL específico (com cidade se aplicável)
+
+Exemplos de coleta de localização:
+- "cinema no Pantanal Shopping" → {"acao": "coletar_informacoes", "contexto_coletado": "cinema no Pantanal Shopping", "informacao_faltante": "local", "resposta_usuario": "Pantanal Shopping! De qual cidade?"}
+- "Pantanal Shopping de Cuiabá sábado 15h" → COMPLETO → criar evento com local "Pantanal Shopping, Cuiabá"
+
+Para COLETAR informações faltantes (use SEMPRE que faltar data, hora, ou local específico):
+{"acao": "coletar_informacoes", "contexto_coletado": "o que o usuário já disse", "informacao_faltante": "data|hora|local|ambos", "idioma_detectado": "...", "resposta_usuario": "pergunta amigável e natural"}
 
 Exemplos de coletar_informacoes:
 - "ir no shopping" → falta DATA e HORA → {"acao": "coletar_informacoes", "contexto_coletado": "ir no shopping", "informacao_faltante": "ambos", "resposta_usuario": "Boa! Qual dia você quer ir no shopping?"}
