@@ -197,6 +197,16 @@
     --tw-ring-offset-shadow: none !important;
   }
 
+  /* Plan card gradient - dark gradient that works on both themes */
+  .gradient-plan {
+    background: linear-gradient(
+      135deg,
+      hsl(20 8% 12%) 0%,
+      hsl(20 6% 18%) 50%,
+      hsl(20 8% 14%) 100%
+    );
+  }
+
   * {
     @apply border-border;
   }
