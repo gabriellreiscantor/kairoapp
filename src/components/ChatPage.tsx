@@ -57,6 +57,7 @@ interface Message {
     local: string;
     notificacao: string;
   };
+  pendingImageEvent?: any; // For storing image analysis event data to create when user confirms
 }
 
 interface ExecutedAction {
@@ -461,18 +462,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 data: action
               }];
               
-              // Handle confirmation action from image analysis
+              // Handle confirmation action from image analysis - show inline in chat, no modal
               if (action.acao === 'solicitar_confirmacao' && action.resumo_evento) {
-                setConfirmationModal({
-                  isOpen: true,
-                  resumo: action.resumo_evento,
-                  messageId: assistantId
-                });
+                console.log('[ChatPage] Showing inline confirmation for image analysis');
                 setMessages(prev => prev.map(m => 
                   m.id === assistantId ? { 
                     ...m, 
                     content: assistantContent,
-                    confirmationData: action.resumo_evento 
+                    confirmationData: action.resumo_evento,
+                    pendingImageEvent: action // Store full action for when user confirms
                   } : m
                 ));
               }
@@ -771,15 +769,34 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     handleSend(text);
   };
 
-  // Handle event confirmation from modal
-  const handleConfirmEvent = () => {
+  // Handle event confirmation - for image analysis, create event directly
+  const handleConfirmEvent = async (pendingEvent?: any) => {
     setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
-    handleSend("confirmar");
+    
+    if (pendingEvent) {
+      // Create event directly from image analysis data
+      console.log('[ChatPage] Creating event from image analysis:', pendingEvent);
+      
+      // Clear the confirmation card and show creating animation
+      const msgId = Date.now().toString();
+      setMessages(prev => prev.map(m => 
+        m.confirmationData ? { ...m, confirmationData: undefined, pendingImageEvent: undefined } : m
+      ));
+      
+      // Send confirmation to create the event
+      await handleSend(`Criar evento: ${pendingEvent.titulo} no dia ${pendingEvent.data} às ${pendingEvent.hora}${pendingEvent.local ? ` em ${pendingEvent.local}` : ''}`);
+    } else {
+      handleSend("confirmar");
+    }
   };
 
-  // Handle edit request from modal
+  // Handle edit request from confirmation card
   const handleEditEvent = () => {
     setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
+    // Clear confirmation data to allow editing
+    setMessages(prev => prev.map(m => 
+      m.confirmationData ? { ...m, confirmationData: undefined, pendingImageEvent: undefined } : m
+    ));
     handleSend("editar");
   };
 
@@ -1104,7 +1121,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         </div>
                         <EventConfirmationCard
                           resumo={message.confirmationData}
-                          onConfirm={handleConfirmEvent}
+                          onConfirm={() => handleConfirmEvent(message.pendingImageEvent)}
                           onEdit={handleEditEvent}
                         />
                       </div>
