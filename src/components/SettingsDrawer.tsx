@@ -58,36 +58,71 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
         </DrawerHeader>
 
         <div className="overflow-y-auto">
+          {/* Close Button */}
+          <div className="flex justify-end px-4 pt-2">
+            <button 
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* User Profile */}
+          <div className="px-4 py-4 flex items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-kairo-surface-2 overflow-hidden">
+              <img 
+                src={kairoLogo} 
+                alt="Avatar" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-foreground text-lg font-semibold">Usuário Kairo</span>
+                <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </div>
+              <span className="text-muted-foreground text-sm">usuario@kairo.app</span>
+            </div>
+          </div>
+
           {/* Plan Card */}
-          <div className="px-4 pt-2 pb-4">
-            <div className="gradient-plan rounded-2xl p-4 relative">
-              <button 
-                onClick={onClose}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 flex items-center justify-center"
-              >
-                <X className="w-4 h-4 text-white" />
-              </button>
+          <div className="px-4 pb-4">
+            <button 
+              onClick={() => handleNavigate('/settings/plan')}
+              className="w-full gradient-plan rounded-2xl p-4 relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-semibold text-left">Plano gratuito</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-white/80 text-sm">Eventos agendados</span>
+                  </div>
+                </div>
+                <button 
+                  className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNavigate('/settings/plan');
+                  }}
+                >
+                  Atualizar
+                </button>
+              </div>
               
-              <p className="text-white/70 text-sm">Plano gratuito</p>
-              <button 
-                onClick={() => handleNavigate('/settings/plan')}
-                className="absolute top-4 right-14 text-primary text-sm font-medium"
-              >
-                Atualizar
-              </button>
-              
-              <button 
-                onClick={() => handleNavigate('/settings/plan')}
-                className="flex items-center justify-between w-full mt-2"
-              >
-                <span className="text-white/80 text-sm">Eventos agendados</span>
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex-1 mr-4">
+                  <Progress value={progress} className="h-1 bg-white/20" />
+                </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-white font-semibold">{usedEvents}</span>
-                  <span className="text-white/70">/{maxEvents}</span>
+                  <span className="text-white font-bold">{usedEvents}</span>
+                  <span className="text-white/70 text-sm">/ {maxEvents}</span>
                   <ChevronRight className="w-4 h-4 text-white/50" />
                 </div>
-              </button>
-            </div>
+              </div>
+            </button>
           </div>
 
           {/* Kairo Section */}
