@@ -6,7 +6,7 @@ import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
-import DateDetailSheet from "@/components/DateDetailSheet";
+import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
 
 interface Event {
@@ -178,8 +178,8 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* Date Detail Sheet */}
-      <DateDetailSheet
+      {/* Event Detail Page */}
+      <EventDetailPage
         isOpen={isDateSheetOpen}
         onClose={() => setIsDateSheetOpen(false)}
         selectedDate={selectedDate}
