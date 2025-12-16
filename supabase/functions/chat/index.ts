@@ -1059,6 +1059,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       data: executionResult.data || action,
       error: executionResult.error,
       resumo_evento: action.resumo_evento,
+      evento_atualizado: action.evento_atualizado, // CRITICAL: Include for update card persistence
       eventos: listedEvents // Include structured events for list action
     };
     
