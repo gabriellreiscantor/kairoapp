@@ -259,12 +259,41 @@
     padding-top: calc(1rem + env(safe-area-inset-top, 0px));
   }
   
+  /* Hide scrollbar but allow scroll */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
   .bg-kairo-ai-bubble {
     background-color: hsl(var(--kairo-ai-bubble));
   }
   
   .bg-kairo-user-bubble {
     background-color: hsl(var(--kairo-user-bubble));
+  }
+  
+  /* Gradient overlays for app polish */
+  .gradient-overlay-top {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--background)) 0%,
+      hsl(var(--background) / 0.8) 50%,
+      transparent 100%
+    );
+  }
+  
+  .gradient-overlay-bottom {
+    background: linear-gradient(
+      to top,
+      hsl(var(--background)) 0%,
+      hsl(var(--background) / 0.8) 50%,
+      transparent 100%
+    );
   }
 }
 
