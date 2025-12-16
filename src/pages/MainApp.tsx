@@ -42,6 +42,8 @@ const MainApp = () => {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   
+  // Initial edit message from EventDetailPage to ChatPage
+  const [initialEditMessage, setInitialEditMessage] = useState<{ eventId: string; message: string } | null>(null);
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -223,6 +225,8 @@ const MainApp = () => {
           activeView={activeView}
           onViewChange={setActiveView}
           onEventCreated={handleEventCreated}
+          initialEditMessage={initialEditMessage}
+          onClearInitialEditMessage={() => setInitialEditMessage(null)}
         />
         
         <SettingsDrawer
@@ -383,10 +387,13 @@ const MainApp = () => {
           }
         }}
         onEditEvent={(eventId) => {
-          // Switch to chat and send edit command
           setIsDateSheetOpen(false);
           setActiveView('chat');
-          // The edit will be handled via chat
+        }}
+        onNavigateToChat={(eventId, message) => {
+          setInitialEditMessage({ eventId, message });
+          setIsDateSheetOpen(false);
+          setActiveView('chat');
         }}
       />
 

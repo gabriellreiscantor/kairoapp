@@ -11,7 +11,8 @@ import {
   Mic,
   Copy,
   Navigation,
-  X
+  X,
+  Send
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -33,6 +34,7 @@ interface EventDetailPageProps {
   onAddEvent: () => void;
   onDeleteEvent?: (eventId: string) => void;
   onEditEvent?: (eventId: string) => void;
+  onNavigateToChat?: (eventId: string, message: string) => void;
 }
 
 const COLORS = [
@@ -64,7 +66,8 @@ const EventDetailPage = ({
   events, 
   onAddEvent,
   onDeleteEvent,
-  onEditEvent 
+  onEditEvent,
+  onNavigateToChat
 }: EventDetailPageProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [callMeEnabled, setCallMeEnabled] = useState(false);
@@ -73,6 +76,7 @@ const EventDetailPage = ({
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [selectedCalendar, setSelectedCalendar] = useState('kairo');
   const [editInput, setEditInput] = useState('');
+  const [showEditArea, setShowEditArea] = useState(false);
   
   // Swipe and animation state
   const [isClosing, setIsClosing] = useState(false);
@@ -134,8 +138,21 @@ const EventDetailPage = ({
   };
 
   const handleEdit = () => {
-    if (currentEvent && onEditEvent) {
-      onEditEvent(currentEvent.id);
+    setShowEditArea(true);
+  };
+
+  const handleSendEdit = () => {
+    if (editInput.trim() && currentEvent && onNavigateToChat) {
+      onNavigateToChat(currentEvent.id, editInput.trim());
+      setEditInput('');
+      setShowEditArea(false);
+      onClose();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && editInput.trim()) {
+      handleSendEdit();
     }
   };
 
@@ -420,35 +437,72 @@ const EventDetailPage = ({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Bottom Actions */}
-        <div className="px-4 pb-4 safe-area-bottom">
-          {/* Quick Action Buttons */}
-          <div className="flex gap-2 mb-3 overflow-x-auto hide-scrollbar pb-1">
-            <button className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap">
-              Adiar para daqui a 1 hora
-            </button>
-            <button className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap">
-              Me ligue
-            </button>
-            <button className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap">
-              Notificar
-            </button>
-          </div>
+        {/* Bottom Actions - Only show when edit mode is active */}
+        {showEditArea && (
+          <div className="px-4 pb-4 safe-area-bottom">
+            {/* Quick Action Buttons - Horizontal Scroll */}
+            <div className="flex gap-2 mb-3 overflow-x-auto hide-scrollbar pb-1 -mx-4 px-4 touch-pan-x">
+              <button 
+                onClick={() => {
+                  if (currentEvent && onNavigateToChat) {
+                    onNavigateToChat(currentEvent.id, 'adiar para daqui a 1 hora');
+                    onClose();
+                  }
+                }}
+                className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap active:scale-95 transition-transform"
+              >
+                Adiar para daqui a 1 hora
+              </button>
+              <button 
+                onClick={() => {
+                  if (currentEvent && onNavigateToChat) {
+                    onNavigateToChat(currentEvent.id, 'ativar me ligue');
+                    onClose();
+                  }
+                }}
+                className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap active:scale-95 transition-transform"
+              >
+                Me ligue
+              </button>
+              <button 
+                onClick={() => {
+                  if (currentEvent && onNavigateToChat) {
+                    onNavigateToChat(currentEvent.id, 'ativar notificação');
+                    onClose();
+                  }
+                }}
+                className="flex-shrink-0 px-4 py-3 rounded-xl bg-kairo-surface-2 text-foreground text-sm font-medium whitespace-nowrap active:scale-95 transition-transform"
+              >
+                Notificar
+              </button>
+            </div>
 
-          {/* Edit Input */}
-          <div className="flex items-center gap-3 bg-kairo-surface-2 rounded-2xl px-4 py-3">
-            <input
-              type="text"
-              value={editInput}
-              onChange={(e) => setEditInput(e.target.value)}
-              placeholder="Editar este evento"
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none"
-            />
-            <button className="w-10 h-10 rounded-full bg-background flex items-center justify-center">
-              <Mic className="w-5 h-5 text-foreground" />
-            </button>
+            {/* Edit Input */}
+            <div className="flex items-center gap-3 bg-kairo-surface-2 rounded-2xl px-4 py-3">
+              <input
+                type="text"
+                value={editInput}
+                onChange={(e) => setEditInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Editar este evento"
+                className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none"
+                autoFocus
+              />
+              {editInput.trim() ? (
+                <button 
+                  onClick={handleSendEdit}
+                  className="w-10 h-10 rounded-full bg-primary flex items-center justify-center"
+                >
+                  <Send className="w-5 h-5 text-primary-foreground" />
+                </button>
+              ) : (
+                <button className="w-10 h-10 rounded-full bg-background flex items-center justify-center">
+                  <Mic className="w-5 h-5 text-foreground" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
