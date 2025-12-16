@@ -11,6 +11,8 @@ interface Profile {
   auto_reschedule_enabled: boolean;
   context_aware_enabled: boolean;
   learn_patterns_enabled: boolean;
+  weather_forecast_enabled: boolean;
+  weather_forecast_time: string | null;
   preferred_times: any[];
 }
 

@@ -1,4 +1,4 @@
-import { ChevronLeft, Sparkles, Brain, Clock, Repeat } from "lucide-react";
+import { ChevronLeft, Sparkles, Brain, Clock, Repeat, CloudSun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +13,8 @@ const SmartTasksPage = () => {
   const [autoReschedule, setAutoReschedule] = useState(true);
   const [contextAware, setContextAware] = useState(true);
   const [learnPatterns, setLearnPatterns] = useState(true);
+  const [weatherForecast, setWeatherForecast] = useState(false);
+  const [weatherTime, setWeatherTime] = useState("07:00");
   const [isSaving, setIsSaving] = useState(false);
 
   // Load preferences from profile
@@ -22,10 +24,12 @@ const SmartTasksPage = () => {
       setAutoReschedule(profile.auto_reschedule_enabled ?? true);
       setContextAware(profile.context_aware_enabled ?? true);
       setLearnPatterns(profile.learn_patterns_enabled ?? true);
+      setWeatherForecast(profile.weather_forecast_enabled ?? false);
+      setWeatherTime(profile.weather_forecast_time ?? "07:00");
     }
   }, [profile]);
 
-  const updatePreference = async (field: string, value: boolean) => {
+  const updatePreference = async (field: string, value: boolean | string) => {
     if (!user) return;
     
     setIsSaving(true);
@@ -63,6 +67,16 @@ const SmartTasksPage = () => {
   const handleLearnPatterns = (checked: boolean) => {
     setLearnPatterns(checked);
     updatePreference('learn_patterns_enabled', checked);
+  };
+
+  const handleWeatherForecast = (checked: boolean) => {
+    setWeatherForecast(checked);
+    updatePreference('weather_forecast_enabled', checked);
+  };
+
+  const handleWeatherTimeChange = (time: string) => {
+    setWeatherTime(time);
+    updatePreference('weather_forecast_time', time);
   };
 
   return (
@@ -141,7 +155,7 @@ const SmartTasksPage = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/10">
               <div className="flex items-center gap-3">
                 <Repeat className="w-5 h-5 text-muted-foreground" />
                 <div>
@@ -155,12 +169,44 @@ const SmartTasksPage = () => {
                 disabled={isSaving}
               />
             </div>
+
+            {/* Weather Forecast */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CloudSun className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-foreground">Previsão do Tempo Matinal</p>
+                    <p className="text-xs text-muted-foreground">Receba a previsão diariamente no chat</p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={weatherForecast} 
+                  onCheckedChange={handleWeatherForecast}
+                  disabled={isSaving}
+                />
+              </div>
+              
+              {/* Time Picker - Only visible when enabled */}
+              {weatherForecast && (
+                <div className="mt-3 ml-8 flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">Horário:</span>
+                  <input
+                    type="time"
+                    value={weatherTime}
+                    onChange={(e) => handleWeatherTimeChange(e.target.value)}
+                    className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    disabled={isSaving}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Privacy Note */}
         <p className="text-xs text-muted-foreground px-1">
-          Seus dados são processados de forma segura. A IA aprende apenas com suas interações dentro do app para melhorar sua experiência.
+          Seus dados são processados de forma segura. A IA aprende apenas com suas interações dentro do app para melhorar sua experiência. O horário é baseado no fuso do seu dispositivo.
         </p>
       </div>
     </div>
