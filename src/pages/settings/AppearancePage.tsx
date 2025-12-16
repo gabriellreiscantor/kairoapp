@@ -1,28 +1,47 @@
 import { ChevronLeft, Sun, Moon, Monitor, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 type Theme = 'light' | 'dark' | 'system';
 
-const THEMES: { id: Theme; icon: typeof Sun; label: string }[] = [
-  { id: 'light', icon: Sun, label: 'Claro' },
-  { id: 'dark', icon: Moon, label: 'Escuro' },
-  { id: 'system', icon: Monitor, label: 'Sistema' },
+const THEMES: { id: Theme; icon: typeof Sun; label: string; description: string }[] = [
+  { id: 'light', icon: Sun, label: 'Claro', description: 'Cores vibrantes com fundo branco' },
+  { id: 'dark', icon: Moon, label: 'Escuro', description: 'Tons escuros e acentos quentes' },
+  { id: 'system', icon: Monitor, label: 'Sistema', description: 'Segue as configurações do dispositivo' },
 ];
 
 const AppearancePage = () => {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<Theme>('dark');
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Update meta theme-color when theme changes
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', resolvedTheme === 'dark' ? '#272726' : '#FFFFFF');
+    }
+  }, [resolvedTheme, mounted]);
+
+  const currentTheme = theme as Theme || 'dark';
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
         <button 
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center z-50 relative active:scale-95 transition-transform"
         >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
+          <ChevronLeft className="w-5 h-5 text-foreground pointer-events-none" />
         </button>
         <h1 className="text-xl font-bold text-foreground">Aparência</h1>
       </header>
@@ -38,15 +57,28 @@ const AppearancePage = () => {
               <button
                 key={themeOption.id}
                 onClick={() => setTheme(themeOption.id)}
-                className={`w-full flex items-center justify-between px-4 py-3.5 ${
+                className={`w-full flex items-center justify-between px-4 py-4 ${
                   index < THEMES.length - 1 ? 'border-b border-border/10' : ''
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <themeOption.icon className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-foreground">{themeOption.label}</span>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    currentTheme === themeOption.id 
+                      ? 'bg-primary/20' 
+                      : 'bg-background'
+                  }`}>
+                    <themeOption.icon className={`w-5 h-5 ${
+                      currentTheme === themeOption.id 
+                        ? 'text-primary' 
+                        : 'text-muted-foreground'
+                    }`} />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-foreground font-medium block">{themeOption.label}</span>
+                    <span className="text-xs text-muted-foreground">{themeOption.description}</span>
+                  </div>
                 </div>
-                {theme === themeOption.id && (
+                {currentTheme === themeOption.id && (
                   <Check className="w-5 h-5 text-primary" />
                 )}
               </button>
@@ -61,16 +93,76 @@ const AppearancePage = () => {
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl p-4">
             <div className="flex gap-3">
-              <div className="flex-1 h-24 rounded-xl bg-background border border-border/20" />
-              <div className="flex-1 h-24 rounded-xl bg-kairo-surface-3 border border-border/20" />
+              {/* Light theme preview */}
+              <div className="flex-1 rounded-xl overflow-hidden border border-border/20">
+                <div className="bg-white p-3 h-24 flex flex-col justify-between">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-[hsl(12,95%,55%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(350,85%,50%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(280,70%,45%)]" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-2 w-3/4 rounded bg-gray-200" />
+                    <div className="h-2 w-1/2 rounded bg-gray-100" />
+                  </div>
+                </div>
+                <div className={`text-center py-1.5 text-xs font-medium ${
+                  mounted && resolvedTheme === 'light' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-kairo-surface-3 text-muted-foreground'
+                }`}>
+                  Claro
+                </div>
+              </div>
+              
+              {/* Dark theme preview */}
+              <div className="flex-1 rounded-xl overflow-hidden border border-border/20">
+                <div className="bg-[#1a1a19] p-3 h-24 flex flex-col justify-between">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-[hsl(12,95%,55%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(350,85%,50%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(280,70%,45%)]" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-2 w-3/4 rounded bg-[#2a2a29]" />
+                    <div className="h-2 w-1/2 rounded bg-[#222221]" />
+                  </div>
+                </div>
+                <div className={`text-center py-1.5 text-xs font-medium ${
+                  mounted && resolvedTheme === 'dark' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-kairo-surface-3 text-muted-foreground'
+                }`}>
+                  Escuro
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              {currentTheme === 'system' 
+                ? `Usando tema ${mounted && resolvedTheme === 'dark' ? 'escuro' : 'claro'} do sistema` 
+                : currentTheme === 'dark' 
+                  ? 'Tema escuro ativado'
+                  : 'Tema claro com as cores vibrantes do Kairo'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Accent Colors Preview */}
+        <div>
+          <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
+            Cores do Kairo
+          </h2>
+          <div className="bg-kairo-surface-2 rounded-2xl p-4">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[hsl(12,95%,55%)]" title="Laranja" />
+              <div className="w-6 h-6 rounded-full bg-[hsl(350,85%,50%)]" title="Rosa" />
+              <div className="w-5 h-5 rounded-full bg-[hsl(280,70%,45%)]" title="Roxo" />
+              <div className="w-4 h-4 rounded-full bg-[hsl(160,60%,40%)]" title="Verde" />
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3">
-              {theme === 'system' 
-                ? 'Segue as configurações do dispositivo' 
-                : theme === 'dark' 
-                  ? 'Tema escuro ativado'
-                  : 'Tema claro ativado'
-              }
+              As cores vibrantes da logo aparecem em ambos os temas
             </p>
           </div>
         </div>
