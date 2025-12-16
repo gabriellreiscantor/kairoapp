@@ -314,10 +314,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             
             {/* Camera and Image buttons on right - always orange */}
             <div className="flex items-center gap-1">
-              <button className="p-2 text-primary hover:text-primary/80 transition-colors duration-300">
+              <button className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300">
                 <Camera className="w-5 h-5" />
               </button>
-              <button className="p-2 text-primary hover:text-primary/80 transition-colors duration-300">
+              <button className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300">
                 <Image className="w-5 h-5" />
               </button>
             </div>
