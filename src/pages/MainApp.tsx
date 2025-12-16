@@ -70,10 +70,10 @@ const MainApp = () => {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Gradient Overlay Top */}
-      <div className="fixed top-0 left-0 right-0 h-20 gradient-overlay-top pointer-events-none z-10" />
+      <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
-      {/* Header - Toki style */}
-      <header className="px-4 safe-area-top pb-2 flex items-center justify-between relative z-20">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-sm px-4 safe-area-top pb-2 flex items-center justify-between">
         <button className="flex items-center gap-1">
           <h1 className="text-2xl font-bold text-foreground capitalize">
             {format(currentMonth, 'MMMM', { locale: ptBR })}
@@ -88,8 +88,8 @@ const MainApp = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden hide-scrollbar">
+      {/* Main Content - with padding top to compensate for fixed header */}
+      <div className="flex-1 overflow-hidden hide-scrollbar pt-20">
         {activeView === 'calendar' ? (
           <CalendarView 
             selectedDate={selectedDate}

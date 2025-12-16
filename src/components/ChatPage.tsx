@@ -165,8 +165,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header with safe area */}
-      <header className="flex items-center justify-between px-4 pb-3 safe-area-top">
+      {/* Fixed Header with safe area */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background flex items-center justify-between px-4 pb-3 safe-area-top">
         <button 
           onClick={onNavigateToCalendar}
           className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
@@ -182,8 +182,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
         </button>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      {/* Messages - with padding top to compensate for fixed header */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-20 hide-scrollbar">
         {/* Show suggestions when chat is empty */}
         {messages.length === 0 && (
           <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
