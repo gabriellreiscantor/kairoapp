@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, MessageCircle } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -24,9 +24,11 @@ interface Event {
 type ViewType = 'chat' | 'list' | 'calendar';
 const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
 const SWIPE_THRESHOLD = 50;
-const MONTHS = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
 
 const MainApp = () => {
+  const { t, getDateLocale } = useLanguage();
+  const dateLocale = getDateLocale();
+  
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -57,6 +59,14 @@ const MainApp = () => {
       },
     ],
   });
+
+  // Generate months using date-fns with current locale
+  const getMonths = () => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(2024, i, 1);
+      return format(date, 'MMM', { locale: dateLocale }).toLowerCase();
+    });
+  };
 
   const handleAddEvent = (date?: Date) => {
     setCreateEventDate(date || selectedDate);
@@ -169,6 +179,8 @@ const MainApp = () => {
     );
   }
 
+  const months = getMonths();
+
   // Calendar/List Views
   return (
     <div 
@@ -194,7 +206,7 @@ const MainApp = () => {
           className="flex items-center gap-1.5"
         >
           <h1 className="text-2xl font-bold text-foreground capitalize tracking-tight">
-            {format(currentMonth, 'MMMM', { locale: ptBR })}
+            {format(currentMonth, 'MMMM', { locale: dateLocale })}
           </h1>
           <ChevronUp className={`w-5 h-5 text-primary transition-transform duration-300 ${showMonthPicker ? '' : 'rotate-180'}`} />
         </button>
@@ -202,7 +214,7 @@ const MainApp = () => {
         {/* Today indicator */}
         <div className="flex items-center gap-2 glass border border-primary/20 rounded-xl px-3 py-2">
           <span className="text-muted-foreground text-xs italic font-light tracking-wide">
-            hoje é dia
+            {t('calendar.todayIs')}
           </span>
           <span className="text-primary font-bold text-lg calendar-number">
             {format(new Date(), 'd')}
@@ -232,7 +244,7 @@ const MainApp = () => {
           
           {/* Month Grid */}
           <div className="grid grid-cols-3 gap-2">
-            {MONTHS.map((month, index) => {
+            {months.map((month, index) => {
               const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
               return (
                 <button

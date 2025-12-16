@@ -9,6 +9,7 @@ import {
   endOfWeek,
   isSameMonth
 } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CalendarViewProps {
   selectedDate: Date;
@@ -16,8 +17,6 @@ interface CalendarViewProps {
   currentMonth: Date;
   onMonthChange: (date: Date) => void;
 }
-
-const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 // Sample events for demo (dots)
 const DEMO_EVENTS: Record<string, string[]> = {
@@ -27,6 +26,18 @@ const DEMO_EVENTS: Record<string, string[]> = {
 };
 
 const CalendarView = ({ selectedDate, onDateSelect, currentMonth }: CalendarViewProps) => {
+  const { t } = useLanguage();
+  
+  const weekdays = [
+    t('calendar.weekdaySun'),
+    t('calendar.weekdayMon'),
+    t('calendar.weekdayTue'),
+    t('calendar.weekdayWed'),
+    t('calendar.weekdayThu'),
+    t('calendar.weekdayFri'),
+    t('calendar.weekdaySat'),
+  ];
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart);
@@ -49,7 +60,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth }: CalendarView
     <div className="flex flex-col h-full px-2">
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 mb-2">
-        {WEEKDAYS.map((day, index) => (
+        {weekdays.map((day, index) => (
           <div key={index} className="text-center text-xs text-muted-foreground font-medium py-3">
             {day}
           </div>

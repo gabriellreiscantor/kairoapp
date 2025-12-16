@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import kairoLogo from "@/assets/kairo-logo.png";
@@ -25,42 +25,45 @@ interface Message {
   createdAt: Date;
 }
 
-const SUGGESTIONS = [
-  { emoji: "🍖", text: "Organizar um churrasco com os amigos neste sábado às 13h." },
-  { emoji: "🩺", text: "Consulta médica na quarta-feira às 9h." },
-  { emoji: "☕", text: "Café com a Sofia amanhã às 16h na padaria." },
-  { emoji: "🏆", text: "Comprar ingressos para o jogo do Flamengo neste fim de semana." },
-];
-
-const formatMessageTime = (date: Date): string => {
-  const time = format(date, 'HH:mm');
-  
-  if (isToday(date)) {
-    return `Hoje ${time}`;
-  } else if (isYesterday(date)) {
-    return `Ontem ${time}`;
-  } else {
-    return format(date, "d 'de' MMM HH:mm", { locale: ptBR });
-  }
-};
-
-const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): boolean => {
-  if (!prevMsg) return true;
-  const minutesDiff = differenceInMinutes(currentMsg.createdAt, prevMsg.createdAt);
-  return minutesDiff >= 5 || currentMsg.type !== prevMsg.type;
-};
-
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
+  const { t, getDateLocale } = useLanguage();
   const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const dateLocale = getDateLocale();
+
+  const suggestions = [
+    { emoji: "🍖", text: t('chat.suggestion1') },
+    { emoji: "🩺", text: t('chat.suggestion2') },
+    { emoji: "☕", text: t('chat.suggestion3') },
+    { emoji: "🏆", text: t('chat.suggestion4') },
+  ];
+
+  const formatMessageTime = (date: Date): string => {
+    const time = format(date, 'HH:mm');
+    
+    if (isToday(date)) {
+      return `${t('chat.today')} ${time}`;
+    } else if (isYesterday(date)) {
+      return `${t('chat.yesterday')} ${time}`;
+    } else {
+      return format(date, "d MMM HH:mm", { locale: dateLocale });
+    }
+  };
+
+  const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): boolean => {
+    if (!prevMsg) return true;
+    const minutesDiff = differenceInMinutes(currentMsg.createdAt, prevMsg.createdAt);
+    return minutesDiff >= 5 || currentMsg.type !== prevMsg.type;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -141,7 +144,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
       if (!response.ok || !response.body) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Falha ao conectar com a IA");
+        throw new Error(errorData.error || t('chat.errorConnect'));
       }
 
       const reader = response.body.getReader();
@@ -286,14 +289,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               </div>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Olá! Toque em qualquer exemplo abaixo para criar um compromisso rapidamente.
+                  {t('chat.greeting')}
                 </p>
               </div>
             </div>
             
             {/* Suggestions - vertical stack, left aligned */}
             <div className="flex flex-col gap-2 pl-11">
-              {SUGGESTIONS.map((suggestion, idx) => (
+              {suggestions.map((suggestion, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion.text)}
@@ -359,7 +362,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Digite uma mensagem..."
+            placeholder={t('chat.placeholder')}
             className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2"
           />
           

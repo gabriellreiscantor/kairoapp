@@ -1,6 +1,6 @@
 import { format, isToday, addDays, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Event {
   id: string;
@@ -21,6 +21,9 @@ interface DayListViewProps {
 }
 
 const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayListViewProps) => {
+  const { t, getDateLocale } = useLanguage();
+  const dateLocale = getDateLocale();
+  
   // Generate days from start of current month to end + some extra days
   const today = startOfDay(new Date());
   const monthStart = startOfMonth(today);
@@ -36,11 +39,10 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
     return events[dateKey] || [];
   };
 
-  // Format weekday abbreviation in Portuguese
+  // Format weekday abbreviation in current locale
   const formatWeekday = (date: Date) => {
-    const weekday = format(date, 'EEEE', { locale: ptBR });
-    // Get first 3 letters and add period
-    return weekday.slice(0, 3) + '.';
+    const weekday = format(date, 'EEE', { locale: dateLocale });
+    return weekday;
   };
 
   return (
@@ -76,7 +78,7 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-primary" />
                         <span className="text-sm text-muted-foreground">
-                          {event.isAllDay ? 'Dia inteiro' : event.time}
+                          {event.isAllDay ? t('calendar.allDay') : event.time}
                         </span>
                       </div>
                       {event.endDate && (
