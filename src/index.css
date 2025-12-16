@@ -90,6 +90,85 @@
     --background: 20 8% 8%;
     --foreground: 40 20% 95%;
   }
+  
+  .light {
+    /* Core backgrounds - Clean white with warm undertone */
+    --background: 0 0% 100%;
+    --foreground: 20 10% 12%;
+    
+    /* Surfaces - Warm light grays */
+    --kairo-surface-1: 30 15% 97%;
+    --kairo-surface-2: 30 12% 94%;
+    --kairo-surface-3: 30 10% 90%;
+    
+    /* Message colors */
+    --kairo-ai-bubble: 30 15% 95%;
+    --kairo-user-bubble: 12 95% 55%;
+    
+    /* Primary - Keep vibrant coral-orange */
+    --primary: 12 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Light emerald tint */
+    --secondary: 160 30% 92%;
+    --secondary-foreground: 160 50% 30%;
+    
+    /* Muted - Soft warm grays */
+    --muted: 30 10% 94%;
+    --muted-foreground: 20 8% 45%;
+    
+    /* Accent - Light warm tint */
+    --accent: 12 30% 95%;
+    --accent-foreground: 12 95% 45%;
+    
+    /* Card - White with subtle warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 20 10% 12%;
+    
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 10% 12%;
+    
+    /* Border - Subtle warm */
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --ring: 12 95% 55%;
+    
+    /* Kairo accent colors - slightly adjusted for light mode */
+    --kairo-accent-green: 160 55% 38%;
+    --kairo-accent-amber: 38 90% 48%;
+    --kairo-accent-red: 0 65% 48%;
+    --kairo-fox-orange: 12 95% 55%;
+    
+    /* Gradients stay vibrant */
+    --gradient-primary-start: 12 95% 55%;
+    --gradient-primary-mid: 350 85% 50%;
+    --gradient-primary-end: 280 70% 45%;
+    
+    --gradient-glow: 12 95% 55%;
+    
+    /* Destructive */
+    --destructive: 0 65% 48%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Warning */
+    --warning: 38 90% 48%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Success */
+    --success: 160 55% 38%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Sidebar - Light */
+    --sidebar-background: 30 15% 97%;
+    --sidebar-foreground: 20 10% 12%;
+    --sidebar-primary: 12 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 12 20% 95%;
+    --sidebar-accent-foreground: 12 95% 45%;
+    --sidebar-border: 30 15% 85%;
+    --sidebar-ring: 12 95% 55%;
+  }
 }
 
 @layer base {
