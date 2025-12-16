@@ -352,22 +352,23 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             if (isInOnboarding && (onboardingStep === 'welcome' || onboardingStep === 'guiding')) {
               await markFirstEventCreated();
               
-              // Show success message and event card
-              const eventCardMessage: Message = {
-                id: `event-card-${Date.now()}`,
-                type: 'assistant',
-                content: ONBOARDING_FIRST_EVENT_SUCCESS,
-                createdAt: new Date(),
-                eventData: action.data,
-              };
-              setMessages(prev => [...prev, eventCardMessage]);
-              await saveMessage('assistant', ONBOARDING_FIRST_EVENT_SUCCESS);
-              
-              // After a short delay, show weekly planning suggestion
-              setTimeout(() => {
-                setShowWeeklySuggestion(true);
-                setOnboardingStep('suggest_weekly');
-              }, 2000);
+              // Add success message after a delay (card already shown in the animation message)
+              setTimeout(async () => {
+                const successMessage: Message = {
+                  id: `success-${Date.now()}`,
+                  type: 'assistant',
+                  content: ONBOARDING_FIRST_EVENT_SUCCESS,
+                  createdAt: new Date(),
+                };
+                setMessages(prev => [...prev, successMessage]);
+                await saveMessage('assistant', ONBOARDING_FIRST_EVENT_SUCCESS);
+                
+                // After a short delay, show weekly planning suggestion
+                setTimeout(() => {
+                  setShowWeeklySuggestion(true);
+                  setOnboardingStep('suggest_weekly');
+                }, 2000);
+              }, 2500); // After animation completes
             }
           } else if (action.action === 'deletar_evento') {
             onEventCreated?.();

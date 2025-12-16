@@ -482,16 +482,36 @@ Informações OPCIONAIS (use valores padrão se não especificado):
 
 ⚠️ SE FALTAR DATA OU HORA: Use "coletar_informacoes" para perguntar!
 
-## 📍 REGRAS DE LOCALIZAÇÃO
-Para eventos que envolvem LUGARES (cinema, shopping, restaurante, médico, academia, etc.):
-- Se o usuário mencionar um NOME de lugar genérico (ex: "Pantanal Shopping"), pergunte a CIDADE
-- Somente crie evento quando tiver: DATA + HORA + LOCAL específico (com cidade se aplicável)
+## 📍 REGRAS DE LOCALIZAÇÃO (MUITO IMPORTANTE!)
+PERGUNTE "Onde vai ser?" para QUALQUER evento que pode ter um local físico:
+- Eventos sociais: churrasco, festa, aniversário, encontro, casamento, reunião de família
+- Entretenimento: cinema, teatro, show, jogo, balada
+- Trabalho: reunião presencial, apresentação, entrevista
+- Saúde: médico, dentista, exame, consulta
+- Compras: shopping, mercado, loja
+- Alimentação: almoço, jantar, café, restaurante
 
-Exemplos de coleta de localização:
-- "cinema no Pantanal Shopping" → {"acao": "coletar_informacoes", "contexto_coletado": "cinema no Pantanal Shopping", "informacao_faltante": "local", "resposta_usuario": "Pantanal Shopping! De qual cidade?"}
-- "Pantanal Shopping de Cuiabá sábado 15h" → COMPLETO → criar evento com local "Pantanal Shopping, Cuiabá"
+NÃO precisa perguntar local para:
+- Tarefas pessoais: "tomar remédio", "pagar conta", "ligar para alguém"
+- Eventos online: "call", "reunião por zoom", "live"
+- Lembretes genéricos: "estudar", "ler", "descansar"
 
-Para COLETAR informações faltantes (use SEMPRE que faltar data, hora, ou local específico):
+FLUXO OBRIGATÓRIO:
+1. Primeiro pergunte DATA (se não tiver)
+2. Depois pergunte HORA (se não tiver)
+3. Por último pergunte LOCAL (se o evento pode ter local)
+4. Só então crie o evento
+
+Exemplos:
+- "churrasco" → falta tudo → perguntar DATA primeiro
+- "churrasco amanhã" → falta HORA → perguntar hora
+- "churrasco amanhã 12h" → falta LOCAL → perguntar "Onde vai ser o churrasco?"
+- "churrasco amanhã 12h na casa do João" → COMPLETO → criar evento
+
+Se o usuário mencionar um NOME de lugar comercial (ex: "Pantanal Shopping"), pergunte a CIDADE:
+- "cinema no Pantanal Shopping amanhã 15h" → {"acao": "coletar_informacoes", "contexto_coletado": "cinema no Pantanal Shopping amanhã 15h", "informacao_faltante": "local", "resposta_usuario": "Pantanal Shopping! De qual cidade?"}
+
+Para COLETAR informações faltantes (use SEMPRE que faltar data, hora, ou local):
 {"acao": "coletar_informacoes", "contexto_coletado": "o que o usuário já disse", "informacao_faltante": "data|hora|local|ambos", "idioma_detectado": "...", "resposta_usuario": "pergunta amigável e natural"}
 
 Exemplos de coletar_informacoes:
