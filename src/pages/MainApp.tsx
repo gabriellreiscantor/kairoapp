@@ -65,10 +65,7 @@ const MainApp = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    const dateEvents = events[format(date, 'yyyy-MM-dd')] || [];
-    if (dateEvents.length > 0) {
-      setIsDateSheetOpen(true);
-    }
+    setIsDateSheetOpen(true);
   };
 
   const getEventsForDate = (date: Date) => {
