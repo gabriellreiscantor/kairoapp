@@ -179,7 +179,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
               <SettingItem 
                 icon={<div className="w-5 h-5 rounded-full border-2 border-muted-foreground flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /></div>} 
                 label={t('settings.appearance')}
-                value="Sistema"
+                value={t('settings.system')}
                 valueIcon="updown"
                 onClick={() => handleNavigate('/settings/appearance')}
               />
