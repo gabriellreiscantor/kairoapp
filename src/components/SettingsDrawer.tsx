@@ -18,15 +18,15 @@ interface SettingItemProps {
 const SettingItem = ({ icon, label, value, onClick, showChevron = true }: SettingItemProps) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-kairo-surface-3 transition-colors"
+    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-kairo-surface-3/50 transition-colors"
   >
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <div className="text-muted-foreground">{icon}</div>
-      <span className="text-foreground font-medium">{label}</span>
+      <span className="text-foreground text-sm">{label}</span>
     </div>
-    <div className="flex items-center gap-2">
-      {value && <span className="text-sm text-muted-foreground">{value}</span>}
-      {showChevron && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+    <div className="flex items-center gap-1.5">
+      {value && <span className="text-xs text-muted-foreground">{value}</span>}
+      {showChevron && <ChevronRight className="w-4 h-4 text-muted-foreground/50" />}
     </div>
   </button>
 );
@@ -38,88 +38,88 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-kairo-surface-1 border-border/30 max-h-[90vh]">
-        <DrawerHeader className="px-6 pt-4 pb-0">
+      <DrawerContent className="bg-kairo-surface-1 border-border/20 max-h-[85vh]">
+        <DrawerHeader className="px-4 pt-3 pb-0">
           <div className="flex items-center justify-between">
-            <DrawerTitle className="text-foreground text-lg font-semibold">Configurações</DrawerTitle>
+            <DrawerTitle className="text-foreground text-sm font-semibold">Configurações</DrawerTitle>
             <button 
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+              className="w-7 h-7 rounded-full bg-kairo-surface-2 flex items-center justify-center"
             >
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
         </DrawerHeader>
 
-        <div className="px-6 py-4 overflow-y-auto">
+        <div className="px-4 py-3 overflow-y-auto">
           {/* Profile Section */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-kairo-surface-3 flex items-center justify-center">
-                <User className="w-8 h-8 text-muted-foreground" />
+              <div className="w-12 h-12 rounded-full bg-kairo-surface-3 flex items-center justify-center">
+                <User className="w-6 h-6 text-muted-foreground" />
               </div>
-              <button className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                <Pencil className="w-3 h-3 text-primary-foreground" />
+              <button className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                <Pencil className="w-2.5 h-2.5 text-primary-foreground" />
               </button>
             </div>
             <div>
-              <h3 className="text-foreground font-semibold">Usuário</h3>
-              <p className="text-sm text-muted-foreground">usuario@email.com</p>
+              <h3 className="text-foreground text-sm font-semibold">Usuário</h3>
+              <p className="text-xs text-muted-foreground">usuario@email.com</p>
             </div>
           </div>
 
           {/* Plan Card */}
-          <div className="gradient-plan rounded-3xl p-5 mb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="gradient-plan rounded-2xl p-3.5 mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-white/80 text-sm">Plano atual</p>
-                <h3 className="text-white font-bold text-lg">Gratuito</h3>
+                <p className="text-white/70 text-[10px]">Plano atual</p>
+                <h3 className="text-white font-semibold text-sm">Gratuito</h3>
               </div>
-              <button className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+              <button className="bg-white/20 hover:bg-white/30 text-white font-medium px-3 py-1.5 rounded-lg text-xs transition-colors">
                 Atualizar
               </button>
             </div>
             
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white/80 text-xs">Eventos agendados</span>
-                <span className="text-white font-semibold text-sm">{usedEvents}/{maxEvents}</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-white/70 text-[10px]">Eventos agendados</span>
+                <span className="text-white font-semibold text-xs">{usedEvents}/{maxEvents}</span>
               </div>
-              <Progress value={progress} className="h-2 bg-white/20" />
+              <Progress value={progress} className="h-1.5 bg-white/20" />
             </div>
           </div>
 
           {/* Settings Sections */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Kairo Section */}
             <div>
-              <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-4">Kairo</h4>
-              <div className="bg-kairo-surface-2 rounded-2xl">
-                <SettingItem icon={<Calendar className="w-5 h-5" />} label="Calendários" />
-                <SettingItem icon={<Bell className="w-5 h-5" />} label="Notificação de Evento" />
-                <SettingItem icon={<Sparkles className="w-5 h-5" />} label="Tarefas Inteligentes" />
-                <SettingItem icon={<Zap className="w-5 h-5" />} label="Recursos Especiais" />
+              <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Kairo</h4>
+              <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
+                <SettingItem icon={<Calendar className="w-4 h-4" />} label="Calendários" />
+                <SettingItem icon={<Bell className="w-4 h-4" />} label="Notificações" />
+                <SettingItem icon={<Sparkles className="w-4 h-4" />} label="Tarefas Inteligentes" />
+                <SettingItem icon={<Zap className="w-4 h-4" />} label="Recursos Especiais" />
               </div>
             </div>
 
             {/* General Section */}
             <div>
-              <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-4">Geral</h4>
-              <div className="bg-kairo-surface-2 rounded-2xl">
-                <SettingItem icon={<User className="w-5 h-5" />} label="Conta" />
-                <SettingItem icon={<Palette className="w-5 h-5" />} label="Aparência" value="Sistema" />
-                <SettingItem icon={<Globe className="w-5 h-5" />} label="Idioma" value="Português" />
+              <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Geral</h4>
+              <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
+                <SettingItem icon={<User className="w-4 h-4" />} label="Conta" />
+                <SettingItem icon={<Palette className="w-4 h-4" />} label="Aparência" value="Sistema" />
+                <SettingItem icon={<Globe className="w-4 h-4" />} label="Idioma" value="PT" />
               </div>
             </div>
 
             {/* Others Section */}
             <div>
-              <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-4">Outros</h4>
-              <div className="bg-kairo-surface-2 rounded-2xl">
-                <SettingItem icon={<HelpCircle className="w-5 h-5" />} label="Ajuda" />
-                <SettingItem icon={<Info className="w-5 h-5" />} label="Sobre" />
+              <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Outros</h4>
+              <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
+                <SettingItem icon={<HelpCircle className="w-4 h-4" />} label="Ajuda" />
+                <SettingItem icon={<Info className="w-4 h-4" />} label="Sobre" />
                 <SettingItem 
-                  icon={<LogOut className="w-5 h-5 text-kairo-red" />} 
+                  icon={<LogOut className="w-4 h-4 text-kairo-red" />} 
                   label="Sair" 
                   showChevron={false}
                 />
@@ -128,7 +128,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           </div>
 
           {/* Version */}
-          <p className="text-center text-xs text-muted-foreground mt-6 mb-4">
+          <p className="text-center text-[10px] text-muted-foreground mt-4 mb-2">
             Kairo v1.0.0
           </p>
         </div>

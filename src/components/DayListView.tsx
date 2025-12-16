@@ -27,7 +27,7 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
   };
 
   return (
-    <div className="px-6 space-y-1">
+    <div className="px-4">
       {days.map((day) => {
         const isTodayDate = isToday(day);
         const dayEvents = getDayEvents(day);
@@ -38,49 +38,48 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
             key={day.toISOString()}
             onClick={() => hasEvents ? onDateSelect(day) : onAddEvent(day)}
             className={`
-              w-full text-left p-4 rounded-2xl transition-all
-              ${isTodayDate ? 'bg-primary/10' : 'hover:bg-kairo-surface-2'}
+              w-full text-left px-3 py-2.5 rounded-lg transition-all
+              ${isTodayDate ? 'bg-primary/10' : 'hover:bg-kairo-surface-2/50'}
             `}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <span className={`
-                  text-2xl font-bold
+                  text-lg font-semibold tabular-nums
                   ${isTodayDate ? 'text-primary' : 'text-foreground'}
                 `}>
                   {format(day, 'd')}
                 </span>
                 <span className={`
-                  text-sm font-medium
-                  ${isTodayDate ? 'text-primary' : 'text-muted-foreground'}
+                  text-xs font-medium
+                  ${isTodayDate ? 'text-primary/80' : 'text-muted-foreground'}
                 `}>
-                  {format(day, 'EEE', { locale: ptBR })}.
+                  {format(day, 'EEE', { locale: ptBR })}
                 </span>
               </div>
               
               {hasEvents ? (
-                <div className="flex items-center gap-2">
-                  {dayEvents.slice(0, 2).map((event, index) => (
+                <div className="flex items-center gap-1.5">
+                  {dayEvents.slice(0, 2).map((event) => (
                     <div
                       key={event.id}
                       className={`
-                        px-3 py-1 rounded-full text-xs font-medium
-                        ${event.priority === 'high' ? 'bg-kairo-red/20 text-kairo-red' : ''}
-                        ${event.priority === 'medium' ? 'bg-kairo-amber/20 text-kairo-amber' : ''}
-                        ${event.priority === 'low' ? 'bg-kairo-green/20 text-kairo-green' : ''}
+                        px-2 py-0.5 rounded-md text-[10px] font-semibold
+                        ${event.priority === 'high' ? 'bg-kairo-red/15 text-kairo-red' : ''}
+                        ${event.priority === 'medium' ? 'bg-kairo-amber/15 text-kairo-amber' : ''}
+                        ${event.priority === 'low' ? 'bg-kairo-green/15 text-kairo-green' : ''}
                       `}
                     >
                       {event.time}
                     </div>
                   ))}
                   {dayEvents.length > 2 && (
-                    <span className="text-xs text-muted-foreground">+{dayEvents.length - 2}</span>
+                    <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 2}</span>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span className="text-xs">Sem planos ainda</span>
-                  <Plus className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-muted-foreground/60">
+                  <Plus className="w-3 h-3" />
                 </div>
               )}
             </div>
