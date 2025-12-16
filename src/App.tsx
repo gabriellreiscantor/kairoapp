@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -27,34 +28,36 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Settings Routes */}
-          <Route path="/settings/calendars" element={<CalendarSettingsPage />} />
-          <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
-          <Route path="/settings/smart-tasks" element={<SmartTasksPage />} />
-          <Route path="/settings/features" element={<SpecialFeaturesPage />} />
-          <Route path="/settings/account" element={<AccountPage />} />
-          <Route path="/settings/appearance" element={<AppearancePage />} />
-          <Route path="/settings/language" element={<LanguagePage />} />
-          <Route path="/settings/help" element={<HelpPage />} />
-          <Route path="/settings/about" element={<AboutPage />} />
-          <Route path="/settings/plan" element={<MyPlanPage />} />
-          
-          {/* Legal Routes */}
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/eula" element={<EULAPage />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            
+            {/* Settings Routes */}
+            <Route path="/settings/calendars" element={<CalendarSettingsPage />} />
+            <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+            <Route path="/settings/smart-tasks" element={<SmartTasksPage />} />
+            <Route path="/settings/features" element={<SpecialFeaturesPage />} />
+            <Route path="/settings/account" element={<AccountPage />} />
+            <Route path="/settings/appearance" element={<AppearancePage />} />
+            <Route path="/settings/language" element={<LanguagePage />} />
+            <Route path="/settings/help" element={<HelpPage />} />
+            <Route path="/settings/about" element={<AboutPage />} />
+            <Route path="/settings/plan" element={<MyPlanPage />} />
+            
+            {/* Legal Routes */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/eula" element={<EULAPage />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
