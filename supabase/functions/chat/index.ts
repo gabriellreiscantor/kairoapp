@@ -42,11 +42,113 @@ interface KairoAction {
   resposta_usuario?: string;
 }
 
+interface UserProfile {
+  display_name?: string;
+  smart_suggestions_enabled?: boolean;
+  auto_reschedule_enabled?: boolean;
+  context_aware_enabled?: boolean;
+  learn_patterns_enabled?: boolean;
+  weather_forecast_enabled?: boolean;
+  weather_forecast_time?: string;
+  preferred_times?: any[];
+}
+
+// Save user patterns after event creation
+async function saveUserPattern(
+  supabase: any,
+  userId: string,
+  action: KairoAction,
+  profile: UserProfile
+): Promise<void> {
+  // Only save if learn_patterns_enabled
+  if (!profile.learn_patterns_enabled) {
+    console.log('Pattern learning disabled for user');
+    return;
+  }
+
+  try {
+    const patterns: Array<{ type: string; data: any }> = [];
+
+    // Pattern: preferred time
+    if (action.hora) {
+      patterns.push({
+        type: 'preferred_time',
+        data: { time: action.hora, category: action.categoria || 'geral' }
+      });
+    }
+
+    // Pattern: common category
+    if (action.categoria) {
+      patterns.push({
+        type: 'common_category',
+        data: { category: action.categoria }
+      });
+    }
+
+    // Pattern: common duration
+    if (action.duracao_minutos) {
+      patterns.push({
+        type: 'common_duration',
+        data: { duration: action.duracao_minutos, category: action.categoria || 'geral' }
+      });
+    }
+
+    // Pattern: common location
+    if (action.local) {
+      patterns.push({
+        type: 'common_location',
+        data: { location: action.local }
+      });
+    }
+
+    // Save each pattern (upsert logic)
+    for (const pattern of patterns) {
+      // Check if pattern exists
+      const { data: existing } = await supabase
+        .from('user_patterns')
+        .select('id, confidence, pattern_data')
+        .eq('user_id', userId)
+        .eq('pattern_type', pattern.type)
+        .maybeSingle();
+
+      if (existing) {
+        // Update confidence and merge data
+        const newConfidence = Math.min(existing.confidence + 0.1, 1.0);
+        const mergedData = { ...existing.pattern_data, ...pattern.data, count: (existing.pattern_data?.count || 1) + 1 };
+        
+        await supabase
+          .from('user_patterns')
+          .update({ 
+            confidence: newConfidence, 
+            pattern_data: mergedData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+      } else {
+        // Create new pattern
+        await supabase
+          .from('user_patterns')
+          .insert({
+            user_id: userId,
+            pattern_type: pattern.type,
+            pattern_data: { ...pattern.data, count: 1 },
+            confidence: 0.5
+          });
+      }
+    }
+
+    console.log(`Saved ${patterns.length} patterns for user`);
+  } catch (error) {
+    console.error('Error saving patterns:', error);
+  }
+}
+
 // Execute action in database - THIS IS THE BACKEND LOGIC
 async function executeAction(
   supabase: any, 
   userId: string, 
-  action: KairoAction
+  action: KairoAction,
+  profile: UserProfile
 ): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
 
@@ -97,6 +199,10 @@ async function executeAction(
           .single();
 
         if (error) throw error;
+
+        // Save patterns after successful event creation
+        await saveUserPattern(supabase, userId, action, profile);
+
         return { success: true, data };
       }
 
@@ -220,6 +326,8 @@ serve(async (req) => {
     let userContext = "";
     let userId: string | null = null;
     let supabase: any = null;
+    let userProfile: UserProfile = {};
+    let userName = "";
 
     // Get user context
     if (authHeader) {
@@ -239,6 +347,20 @@ serve(async (req) => {
           .eq('id', userId)
           .single();
         
+        if (profile) {
+          userProfile = profile;
+          userName = profile.display_name || '';
+          
+          userContext += `\n\n## 👤 CONTEXTO DO USUÁRIO`;
+          userContext += `\n- Nome: ${userName || 'Não informado'}`;
+          
+          // Only include smart features context if enabled
+          if (profile.context_aware_enabled && profile.preferred_times && profile.preferred_times.length > 0) {
+            userContext += `\n- Horários preferidos: ${JSON.stringify(profile.preferred_times)}`;
+          }
+        }
+        
+        // Get events
         const { data: events } = await supabase
           .from('events')
           .select('*')
@@ -247,34 +369,47 @@ serve(async (req) => {
           .order('event_date', { ascending: true })
           .limit(10);
         
-        const { data: patterns } = await supabase
-          .from('user_patterns')
-          .select('*')
-          .eq('user_id', userId)
-          .order('confidence', { ascending: false })
-          .limit(5);
-        
-        if (profile) {
-          userContext += `\n\nContexto do usuário:`;
-          userContext += `\n- Nome: ${profile.display_name || 'Não informado'}`;
-          
-          if (profile.preferred_times && profile.preferred_times.length > 0) {
-            userContext += `\n- Horários preferidos: ${JSON.stringify(profile.preferred_times)}`;
-          }
-        }
-        
         if (events && events.length > 0) {
-          userContext += `\n\nPróximos eventos do usuário:`;
+          userContext += `\n\n## 📅 PRÓXIMOS EVENTOS`;
           events.forEach((e: any) => {
             userContext += `\n- [ID: ${e.id}] ${e.title} em ${e.event_date}${e.event_time ? ' às ' + e.event_time : ''}${e.location ? ' em ' + e.location : ''} (${e.priority})`;
           });
+
+          // Auto-reschedule suggestion for past events
+          if (userProfile.auto_reschedule_enabled) {
+            const today = new Date().toISOString().split('T')[0];
+            const { data: pastEvents } = await supabase
+              .from('events')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('status', 'pending')
+              .lt('event_date', today)
+              .limit(3);
+
+            if (pastEvents && pastEvents.length > 0) {
+              userContext += `\n\n## ⏰ EVENTOS PERDIDOS (sugira reagendamento)`;
+              pastEvents.forEach((e: any) => {
+                userContext += `\n- [ID: ${e.id}] ${e.title} era em ${e.event_date}`;
+              });
+            }
+          }
         }
         
-        if (patterns && patterns.length > 0) {
-          userContext += `\n\nPadrões aprendidos:`;
-          patterns.forEach((p: any) => {
-            userContext += `\n- ${p.pattern_type}: ${JSON.stringify(p.pattern_data)}`;
-          });
+        // Only include patterns if smart suggestions enabled
+        if (userProfile.smart_suggestions_enabled) {
+          const { data: patterns } = await supabase
+            .from('user_patterns')
+            .select('*')
+            .eq('user_id', userId)
+            .order('confidence', { ascending: false })
+            .limit(5);
+          
+          if (patterns && patterns.length > 0) {
+            userContext += `\n\n## 🧠 PADRÕES APRENDIDOS (use para sugestões inteligentes)`;
+            patterns.forEach((p: any) => {
+              userContext += `\n- ${p.pattern_type}: ${JSON.stringify(p.pattern_data)} (confiança: ${(p.confidence * 100).toFixed(0)}%)`;
+            });
+          }
         }
       }
     }
@@ -287,6 +422,11 @@ serve(async (req) => {
       day: 'numeric' 
     });
     const todayISO = today.toISOString().split('T')[0];
+
+    // Greeting instruction based on user name
+    const greetingInstruction = userName 
+      ? `Sempre cumprimente o usuário pelo nome "${userName}". Exemplo: "E aí ${userName}! O que vamos agendar hoje?"`
+      : `Use uma saudação casual como "E aí! O que vamos agendar hoje?"`;
 
     // MASTER PROMPT - System prompt for INTERPRETATION ONLY
     const systemPrompt = `Você é Kairo, uma IA de interpretação para um aplicativo de agenda inteligente.
@@ -305,7 +445,7 @@ Você existe APENAS para:
 - Dizer que algo foi salvo
 - Acessar banco de dados
 - Executar lógica de negócio
-- Responder perguntas fora do escopo (esportes, notícias, clima, receitas, etc.)
+- Responder perguntas fora do escopo (esportes, notícias, política, receitas, piadas, jogos, etc.)
 
 ## 🌍 SUPORTE MULTILÍNGUE
 - Detecte automaticamente o idioma do usuário
@@ -316,7 +456,7 @@ Você existe APENAS para:
 Sempre responda APENAS com JSON válido neste formato:
 
 Para CRIAR evento:
-{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low|medium|high", "idioma_detectado": "pt|en|es|fr|de|it|ja|ko|zh|outro", "resposta_usuario": "mensagem amigável no idioma do usuário"}
+{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low|medium|high", "categoria": "trabalho|pessoal|saude|lazer|geral", "duracao_minutos": 60, "idioma_detectado": "pt|en|es|fr|de|it|ja|ko|zh|outro", "resposta_usuario": "mensagem amigável no idioma do usuário"}
 
 Para LISTAR eventos:
 {"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "...", "resposta_usuario": "..."}
@@ -328,14 +468,15 @@ Para DELETAR evento:
 {"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "idioma_detectado": "...", "resposta_usuario": "..."}
 
 Para CONVERSAR (saudações):
-{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "E aí! O que vamos agendar hoje?"}
+${greetingInstruction}
+{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "saudação personalizada"}
 
-Para FORA DO ESCOPO (esportes, notícias, política, receitas, piadas, etc.):
-{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "Hmm, isso não é minha especialidade! Sou focado em te ajudar a não esquecer compromissos. O que quer agendar?"}
+Para FORA DO ESCOPO (esportes, notícias, política, receitas, piadas, jogos, quem ganhou, etc.):
+{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "Hmm, isso não é minha praia! Sou focado em te ajudar a não esquecer compromissos. O que quer agendar?"}
 
-IMPORTANTE sobre clima/tempo:
-- NÃO responda sobre previsão do tempo diretamente
-- Diga: "A previsão do tempo está disponível em Configurações > Ações Inteligentes. Posso te ajudar a agendar algo?"
+## 🌤️ SOBRE CLIMA/TEMPO
+NÃO responda sobre previsão do tempo. Responda assim:
+{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "A previsão do tempo pode ser ativada em Configurações > Ações Inteligentes. Você receberá diariamente no chat! Posso ajudar com outra coisa?"}
 
 ## 📅 CONTEXTO TEMPORAL
 Data de hoje: ${todayStr} (${todayISO})
@@ -348,7 +489,6 @@ Data de hoje: ${todayStr} (${todayISO})
 - trabalho, reunião, meeting, work = "medium"
 - café, lazer, coffee, personal = "low"
 
-## 👤 CONTEXTO DO USUÁRIO
 ${userContext}
 
 ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringify(imageAnalysis)}\nUse para sugerir criação de evento.` : ''}`;
@@ -414,7 +554,7 @@ ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringif
     let executionResult: { success: boolean; data?: any; error?: string } = { success: true };
     
     if (userId && supabase && action.acao !== 'conversar') {
-      executionResult = await executeAction(supabase, userId, action);
+      executionResult = await executeAction(supabase, userId, action, userProfile);
       console.log('Execution result:', executionResult);
     }
 
