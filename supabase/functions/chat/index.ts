@@ -536,7 +536,10 @@ APOS criar o evento, envie confirmacao com resumo visual.
 
 === MODO EDICAO (CRITICO) ===
 
-DETECTAR MODO EDICAO:
+CONTEXTO DE EDICAO TEM VALIDADE DE 2 MINUTOS.
+Se passou mais de 2 minutos desde a ultima mensagem do assistant, trate como nova conversa.
+
+DETECTAR MODO EDICAO (SOMENTE SE CONTEXTO ATIVO):
 Se a ultima mensagem do sistema foi "Quer editar algo?" ou "Criado! Quer editar algo?"
 E o usuario responde "sim", "quero", "vou", "editar", "s":
 → Use edit_event para perguntar O QUE quer mudar
@@ -547,13 +550,26 @@ Se usuario diz "nao", "errado", "muda", "nao e isso", "corrige":
 
 Exemplo CORRETO:
 Sistema: "Criado! Quer editar algo?"
-Usuario: "sim"
+Usuario: "sim" (dentro de 2 minutos)
 → edit_event com resposta_usuario: "O que voce quer mudar? Titulo, data, hora ou local?"
 
 Exemplo ERRADO (NAO FACA):
 Sistema: "Criado! Quer editar algo?"
 Usuario: "sim"
 → create_event (ERRADO! NAO crie novo evento!)
+
+=== EDICAO NATURAL DE EVENTOS (update_event) ===
+
+Quando usuario menciona ALTERAR/MUDAR/EDITAR/CANCELAR + nome de evento existente,
+use update_event para buscar e modificar o evento.
+
+Exemplos:
+- "quero mudar o horario da barbearia pras 16h" → update_event busca="barbearia", novo_horario="16:00"
+- "muda a reuniao de amanha para sexta" → update_event busca="reuniao", nova_data="YYYY-MM-DD"
+- "altera o dentista pras 14h" → update_event busca="dentista", novo_horario="14:00"
+- "muda o local do cinema pro shopping" → update_event busca="cinema", novo_local="shopping"
+
+IMPORTANTE: Palavras como "mudar", "alterar", "editar", "trocar" + nome de evento = SEMPRE edicao!
 
 === REGRAS DE LOCAL (RELAXADAS) ===
 
@@ -686,6 +702,25 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             required: ["resposta_usuario"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_event",
+          description: "Use quando usuario mencionar MUDAR/ALTERAR/EDITAR/TROCAR evento existente por nome. Ex: 'muda barbearia pras 16h', 'altera reuniao para sexta', 'trocar horario do dentista'. Busca o evento pelo nome e aplica as alteracoes.",
+          parameters: {
+            type: "object",
+            properties: {
+              busca_evento: { type: "string", description: "Nome ou parte do titulo do evento a buscar" },
+              novo_titulo: { type: ["string", "null"], description: "Novo titulo se usuario quiser mudar" },
+              nova_data: { type: ["string", "null"], description: "Nova data YYYY-MM-DD se usuario quiser mudar" },
+              novo_horario: { type: ["string", "null"], description: "Novo horario HH:MM se usuario quiser mudar" },
+              novo_local: { type: ["string", "null"], description: "Novo local se usuario quiser mudar" },
+              resposta_usuario: { type: "string", description: "Confirmacao da alteracao" }
+            },
+            required: ["busca_evento", "resposta_usuario"]
+          }
+        }
       }
     ];
 
@@ -743,9 +778,21 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     
     const isGreeting = greetings.some(g => lastUserMessage === g || lastUserMessage === g + '!');
     
-    // Check if previous AI message asked about editing
-    const previousAssistantMessages = messages.filter((m: any) => m.role === 'assistant').slice(-2);
-    const askedAboutEditing = previousAssistantMessages.some((m: any) => 
+    // Check timestamp of last assistant message for context timeout (2 minutes)
+    const previousAssistantMessages = messages.filter((m: any) => m.role === 'assistant');
+    const lastAssistantMsg = previousAssistantMessages.slice(-1)[0];
+    const lastAssistantTime = lastAssistantMsg?.created_at ? new Date(lastAssistantMsg.created_at) : null;
+    const now = new Date();
+    const minutesSinceLastAssistant = lastAssistantTime 
+      ? (now.getTime() - lastAssistantTime.getTime()) / (1000 * 60) 
+      : Infinity;
+    
+    // Context is only active if less than 2 minutes passed
+    const contextIsActive = minutesSinceLastAssistant < 2;
+    
+    // Check if previous AI message asked about editing (only if context is active)
+    const recentAssistantMessages = previousAssistantMessages.slice(-2);
+    const askedAboutEditing = contextIsActive && recentAssistantMessages.some((m: any) => 
       m.content?.toLowerCase()?.includes('quer editar') || 
       m.content?.toLowerCase()?.includes('quer mudar')
     );
@@ -754,7 +801,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     const editConfirmations = ['sim', 's', 'quero', 'vou', 'editar', 'yes', 'yeah', 'y'];
     const wantsToEdit = askedAboutEditing && editConfirmations.some(e => lastUserMessage === e || lastUserMessage === e + '!');
     
-    console.log(`Last user message: "${lastUserMessage}", isGreeting: ${isGreeting}, askedAboutEditing: ${askedAboutEditing}, wantsToEdit: ${wantsToEdit}`);
+    console.log(`Last user message: "${lastUserMessage}", isGreeting: ${isGreeting}, contextIsActive: ${contextIsActive}, minutesSinceLastAssistant: ${minutesSinceLastAssistant.toFixed(1)}, askedAboutEditing: ${askedAboutEditing}, wantsToEdit: ${wantsToEdit}`);
     
     // Process tool calls
     if (message?.tool_calls && message.tool_calls.length > 0) {
@@ -814,6 +861,75 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
           resposta_usuario: args.resposta_usuario || "O que você quer mudar? Título, data, hora ou local?"
         };
         console.log('Edit mode: asking user what to change');
+      } else if (functionName === "update_event") {
+        // Natural language update - search for event and update it
+        console.log('Update event requested:', args);
+        
+        if (userId && supabase && args.busca_evento) {
+          // Search for matching event
+          const { data: eventos } = await supabase
+            .from('events')
+            .select('*')
+            .eq('user_id', userId)
+            .ilike('title', `%${args.busca_evento}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (eventos && eventos.length > 0) {
+            const evento = eventos[0];
+            const updates: any = {};
+            
+            if (args.novo_titulo) updates.title = args.novo_titulo;
+            if (args.nova_data) updates.event_date = args.nova_data;
+            if (args.novo_horario) updates.event_time = args.novo_horario;
+            if (args.novo_local) updates.location = args.novo_local;
+            
+            if (Object.keys(updates).length > 0) {
+              const { data: updatedEvent, error } = await supabase
+                .from('events')
+                .update(updates)
+                .eq('id', evento.id)
+                .select()
+                .single();
+              
+              if (!error && updatedEvent) {
+                action = {
+                  acao: 'editar_evento',
+                  evento_id: evento.id,
+                  resposta_usuario: args.resposta_usuario || `Pronto! Atualizei o evento "${evento.title}".`,
+                  resumo_evento: {
+                    titulo: updatedEvent.title,
+                    data: updatedEvent.event_date,
+                    hora: updatedEvent.event_time || 'Dia inteiro',
+                    local: updatedEvent.location || '',
+                    notificacao: '30 min antes'
+                  }
+                };
+                console.log('Event updated successfully:', updatedEvent);
+              } else {
+                action = {
+                  acao: 'conversar',
+                  resposta_usuario: 'Não consegui atualizar o evento. Tente novamente.'
+                };
+              }
+            } else {
+              action = {
+                acao: 'conversar',
+                resposta_usuario: args.resposta_usuario
+              };
+            }
+          } else {
+            action = {
+              acao: 'conversar',
+              resposta_usuario: `Não encontrei nenhum evento com "${args.busca_evento}". Quer que eu liste seus eventos?`
+            };
+          }
+        } else {
+          action = {
+            acao: 'conversar',
+            resposta_usuario: args.resposta_usuario
+          };
+        }
       } else {
         // chat_response
         action = {
