@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Camera, Image, Mic, Send, Calendar, User } from "lucide-react";
+import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import FoxIcon from "./icons/FoxIcon";
 
 interface ChatPageProps {
@@ -11,7 +13,7 @@ interface Message {
   id: string;
   type: 'user' | 'assistant';
   content: string;
-  timestamp?: string;
+  createdAt: Date;
 }
 
 const SUGGESTIONS = [
@@ -21,12 +23,33 @@ const SUGGESTIONS = [
   { emoji: "🏆", text: "Comprar ingressos para o jogo do Flamengo neste fim de semana." },
 ];
 
+const formatMessageTime = (date: Date): string => {
+  const time = format(date, 'HH:mm');
+  
+  if (isToday(date)) {
+    return `Hoje ${time}`;
+  } else if (isYesterday(date)) {
+    return `Ontem ${time}`;
+  } else {
+    return format(date, "d 'de' MMM HH:mm", { locale: ptBR });
+  }
+};
+
+const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): boolean => {
+  if (!prevMsg) return true;
+  
+  // Show timestamp if more than 5 minutes apart or different sender
+  const minutesDiff = differenceInMinutes(currentMsg.createdAt, prevMsg.createdAt);
+  return minutesDiff >= 5 || currentMsg.type !== prevMsg.type;
+};
+
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
-      content: 'Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso, assim você não precisa guardar tudo na cabeça. Pode ser lembrar de passar na padaria para pegar um pão de queijo fresquinho, buscar um remédio na farmácia depois do trabalho, ou avisar alguém que vai chegar um pouco mais tarde para o jantar em família. Me conta uma coisa que você gostaria de lembrar?'
+      content: 'Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso, assim você não precisa guardar tudo na cabeça. Pode ser lembrar de passar na padaria para pegar um pão de queijo fresquinho, buscar um remédio na farmácia depois do trabalho, ou avisar alguém que vai chegar um pouco mais tarde para o jantar em família. Me conta uma coisa que você gostaria de lembrar?',
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -36,7 +59,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
       id: Date.now().toString(),
       type: 'user',
       content: text,
-      timestamp: 'Agora'
+      createdAt: new Date()
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -46,7 +69,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
       const response: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: '✅ Entendido! Vou criar esse evento para você.'
+        content: '✅ Entendido! Vou criar esse evento para você.',
+        createdAt: new Date()
       };
       setMessages(prev => [...prev, response]);
     }, 1000);
@@ -59,7 +83,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
       id: Date.now().toString(),
       type: 'user',
       content: inputValue,
-      timestamp: 'Agora'
+      createdAt: new Date()
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -70,7 +94,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
       const response: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: '✅ Entendido! Vou criar esse evento para você.'
+        content: '✅ Entendido! Vou criar esse evento para você.',
+        createdAt: new Date()
       };
       setMessages(prev => [...prev, response]);
     }, 1000);
@@ -97,54 +122,63 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {messages.map((message, index) => (
-          <div key={message.id}>
-            {message.type === 'assistant' ? (
-              <div className="mb-4">
-                {/* Show suggestions after first AI message */}
-                {index === 0 && (
-                  <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
-                    <div className="flex items-start gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                        <FoxIcon size={16} className="text-white" />
-                      </div>
-                      <p className="text-xs text-muted-foreground pt-2">
-                        Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {SUGGESTIONS.map((suggestion, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSuggestionClick(suggestion.text)}
-                          className="w-full flex items-start gap-2.5 bg-kairo-surface-3 hover:bg-kairo-surface-3/80 rounded-xl px-3 py-2.5 text-left transition-colors"
-                        >
-                          <span className="text-base">{suggestion.emoji}</span>
-                          <span className="text-xs text-foreground leading-relaxed">{suggestion.text}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* AI text message */}
-                <p className="text-sm text-foreground leading-relaxed">
-                  {message.content}
+        {messages.map((message, index) => {
+          const prevMessage = index > 0 ? messages[index - 1] : null;
+          const showTimestamp = shouldShowTimestamp(message, prevMessage);
+          
+          return (
+            <div key={message.id}>
+              {/* Timestamp */}
+              {showTimestamp && (
+                <p className="text-center text-[10px] text-muted-foreground my-3">
+                  {formatMessageTime(message.createdAt)}
                 </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-end mb-4">
-                {message.timestamp && (
-                  <p className="text-[10px] text-muted-foreground mb-1">{message.timestamp}</p>
-                )}
-                <div className="bg-kairo-user-bubble rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]">
-                  <p className="text-sm text-foreground">{message.content}</p>
+              )}
+              
+              {message.type === 'assistant' ? (
+                <div className="mb-4">
+                  {/* Show suggestions after first AI message */}
+                  {index === 0 && (
+                    <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
+                      <div className="flex items-start gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
+                          <FoxIcon size={16} className="text-white" />
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-2">
+                          Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {SUGGESTIONS.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSuggestionClick(suggestion.text)}
+                            className="w-full flex items-start gap-2.5 bg-kairo-surface-3 hover:bg-kairo-surface-3/80 rounded-xl px-3 py-2.5 text-left transition-colors"
+                          >
+                            <span className="text-base">{suggestion.emoji}</span>
+                            <span className="text-xs text-foreground leading-relaxed">{suggestion.text}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* AI text message */}
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {message.content}
+                  </p>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              ) : (
+                <div className="flex flex-col items-end mb-4">
+                  <div className="bg-kairo-user-bubble rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]">
+                    <p className="text-sm text-foreground">{message.content}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Input with safe area */}
