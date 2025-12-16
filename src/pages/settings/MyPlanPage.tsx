@@ -209,7 +209,7 @@ const MyPlanPage = () => {
               const data = planData[plan];
               const Icon = data.icon;
               const isSelected = selectedPlan === plan;
-              const isRecommended = plan === 'plus';
+              const isRecommended = plan === 'super';
               
               return (
                 <button
@@ -391,10 +391,6 @@ const MyPlanPage = () => {
             >
               Privacidade
             </button>
-            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <button className="text-muted-foreground text-xs hover:text-foreground transition-colors">
-              Restaurar compras
-            </button>
           </div>
 
         </div>
@@ -448,6 +444,11 @@ const MyPlanPage = () => {
                 ? 'Mudar para Grátis'
                 : 'Começar 7 dias grátis'
             }
+          </button>
+          
+          {/* Restore purchases */}
+          <button className="w-full text-center text-muted-foreground text-xs mt-3 hover:text-foreground transition-colors">
+            Restaurar compras
           </button>
         </div>
       </div>
