@@ -60,7 +60,7 @@ const MyPlanPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
         <button 
@@ -141,7 +141,7 @@ const MyPlanPage = () => {
             {/* PLUS Plan */}
             <button
               onClick={() => setSelectedPlan('plus')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative ${
+              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative z-10 cursor-pointer ${
                 selectedPlan === 'plus' ? 'ring-2 ring-primary' : ''
               }`}
             >
@@ -180,7 +180,7 @@ const MyPlanPage = () => {
             {/* SUPER Plan */}
             <button
               onClick={() => setSelectedPlan('super')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative ${
+              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative z-10 cursor-pointer ${
                 selectedPlan === 'super' ? 'ring-2 ring-yellow-500' : ''
               }`}
             >
@@ -351,6 +351,10 @@ const MyPlanPage = () => {
         
         <button className="w-full py-4 rounded-2xl bg-foreground text-background font-semibold text-lg">
           Experimente grátis por 7 dias
+        </button>
+        
+        <button className="w-full text-center text-muted-foreground text-sm py-3 hover:text-foreground transition-colors">
+          Restaurar compras
         </button>
       </div>
     </div>
