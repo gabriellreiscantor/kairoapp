@@ -130,7 +130,7 @@ const MyPlanPage = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="px-4 pb-40 pt-4">
+        <div className="px-4 pb-48 pt-4">
           
           {/* Current Plan Compact Banner */}
           <div className="flex items-center gap-3 p-4 bg-kairo-surface-1 rounded-2xl mb-6">
@@ -377,7 +377,7 @@ const MyPlanPage = () => {
           </div>
 
           {/* Legal Links */}
-          <div className="flex items-center justify-center gap-4 mb-6">
+          <div className="flex items-center justify-center gap-3 mb-10">
             <button 
               onClick={() => navigate('/legal/terms')}
               className="text-muted-foreground text-xs hover:text-foreground transition-colors"
@@ -390,6 +390,13 @@ const MyPlanPage = () => {
               className="text-muted-foreground text-xs hover:text-foreground transition-colors"
             >
               Privacidade
+            </button>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+            <button 
+              onClick={() => navigate('/legal/eula')}
+              className="text-muted-foreground text-xs hover:text-foreground transition-colors"
+            >
+              EULA
             </button>
           </div>
 
