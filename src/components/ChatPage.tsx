@@ -209,14 +209,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         if (error) throw error;
 
         if (data) {
-          const loadedMessages: Message[] = data.map((m: any) => ({
-            id: m.id,
-            type: m.role as 'user' | 'assistant',
-            content: m.content,
-            createdAt: new Date(m.created_at),
-            eventData: m.metadata?.eventData,
-            eventsListData: m.metadata?.eventsListData,
-          }));
+          const loadedMessages: Message[] = data.map((m: any) => {
+            let eventData = m.metadata?.eventData;
+            
+            // FALLBACK: Convert old format (resumo_evento) to new format
+            if (eventData && !eventData.title && eventData.resumo_evento) {
+              console.log('[ChatPage] Converting old eventData format:', eventData);
+              eventData = {
+                id: eventData.id || eventData.evento_id,
+                title: eventData.resumo_evento.titulo,
+                event_date: eventData.resumo_evento.data,
+                event_time: eventData.resumo_evento.hora === 'Dia inteiro' ? undefined : eventData.resumo_evento.hora,
+                location: eventData.resumo_evento.local,
+                category: eventData.category || 'geral',
+                notification_enabled: eventData.notification_enabled ?? true,
+                call_alert_enabled: eventData.call_alert_enabled ?? false,
+              };
+            }
+            
+            return {
+              id: m.id,
+              type: m.role as 'user' | 'assistant',
+              content: m.content,
+              createdAt: new Date(m.created_at),
+              eventData,
+              eventsListData: m.metadata?.eventsListData,
+            };
+          });
           setMessages(loadedMessages);
         }
       } catch (error) {
