@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import kairoLogo from "@/assets/kairo-logo.png";
@@ -194,11 +193,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
     } catch (error) {
       console.error("Chat error:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao enviar mensagem",
-      });
     } finally {
       setIsLoading(false);
     }

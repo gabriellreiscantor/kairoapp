@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
 const SmartTasksPage = () => {
   const navigate = useNavigate();
@@ -41,11 +40,6 @@ const SmartTasksPage = () => {
       await refreshProfile();
     } catch (error) {
       console.error('Error updating preference:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível salvar a preferência",
-      });
     } finally {
       setIsSaving(false);
     }
