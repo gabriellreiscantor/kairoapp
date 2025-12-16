@@ -23,13 +23,10 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      <div className="flex flex-col items-center gap-6 animate-fade-up">
-        <div className="animate-pulse-soft">
-          <FoxIcon size={100} />
+      <div className="animate-scale-in">
+        <div className="w-32 h-32 rounded-full gradient-primary flex items-center justify-center">
+          <FoxIcon size={72} className="text-white" />
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Kairo
-        </h1>
       </div>
     </div>
   );
