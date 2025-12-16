@@ -826,6 +826,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     handleSend("editar");
   };
 
+  // Handle edit request for a specific event by ID
+  const handleEditEventById = (eventId: string) => {
+    console.log('[ChatPage] Editing event by ID:', eventId);
+    // Send a message that includes the event ID for the AI to know which event to edit
+    handleSend(`editar evento id:${eventId}`);
+  };
+
   // Close confirmation modal
   const handleCloseConfirmationModal = () => {
     setConfirmationModal({ isOpen: false, resumo: null, messageId: null });
@@ -940,11 +947,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
       console.log('Analyzing image...');
 
-      // Add user message with image preview
+      // Add user message with image preview (no text, just the image)
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
-        content: '📷 Imagem enviada',
+        content: '', // No text - just the image
         createdAt: new Date(),
         imagePreview: `data:${imageData.mimeType};base64,${imageData.base64}`,
       };
@@ -952,6 +959,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       const newMessages = [...messages, userMessage];
       setMessages(newMessages);
       await saveMessage('user', '[Imagem enviada]');
+      
+      // Add loading indicator message while analyzing
+      const loadingMessage: Message = {
+        id: `loading-${Date.now()}`,
+        type: 'assistant',
+        content: '...',
+        createdAt: new Date(),
+      };
+      setMessages([...newMessages, loadingMessage]);
 
       // Send to vision API for analysis
       const response = await fetch(ANALYZE_IMAGE_URL, {
@@ -974,11 +990,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       const analysisResult = await response.json();
       console.log('Image analysis result:', analysisResult);
 
-      // Send neutral message - the edge function will use imageAnalysis to respond
-      await streamChat('📷 imagem enviada', newMessages, analysisResult);
+      // Remove loading message before streaming response
+      setMessages(newMessages);
+      
+      // Send to chat - the edge function will use imageAnalysis to create event
+      await streamChat('', newMessages, analysisResult);
 
     } catch (error) {
       console.error('Image analysis error:', error);
+      // Remove loading message on error
+      setMessages(messages);
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro ao analisar imagem",
@@ -1166,6 +1187,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         <EventCreatedCard 
                           event={message.eventData} 
                           type={message.eventData.isUpdate ? 'updated' : 'created'}
+                          onEdit={handleEditEventById}
                         />
                       </div>
                     )}
@@ -1196,9 +1218,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         />
                       </div>
                     )}
-                    <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
-                      <p className="text-sm text-foreground">{message.content}</p>
-                    </div>
+                    {/* Only show text bubble if there's content */}
+                    {message.content && message.content.trim() !== '' && (
+                      <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
+                        <p className="text-sm text-foreground">{message.content}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

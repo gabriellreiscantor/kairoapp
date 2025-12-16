@@ -1077,18 +1077,37 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         let updateSuccess = false;
         let updatedEventData: any = null;
         
-        if (userId && supabase && args.busca_evento) {
-          // Search for matching event
-          const { data: eventos } = await supabase
-            .from('events')
-            .select('*')
-            .eq('user_id', userId)
-            .ilike('title', `%${args.busca_evento}%`)
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // Check for direct event ID in user message (e.g., "editar evento id:xxx")
+        const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || '';
+        const idMatch = lastUserMessage.match(/id:([a-f0-9-]+)/i);
+        let eventIdToUpdate = idMatch ? idMatch[1] : null;
+        
+        if (userId && supabase && (args.busca_evento || eventIdToUpdate)) {
+          let evento: any = null;
           
-          if (eventos && eventos.length > 0) {
-            const evento = eventos[0];
+          // If we have a direct ID, use it
+          if (eventIdToUpdate) {
+            console.log('Direct event ID provided:', eventIdToUpdate);
+            const { data: eventById } = await supabase
+              .from('events')
+              .select('*')
+              .eq('id', eventIdToUpdate)
+              .eq('user_id', userId)
+              .single();
+            evento = eventById;
+          } else {
+            // Search for matching event by name
+            const { data: eventos } = await supabase
+              .from('events')
+              .select('*')
+              .eq('user_id', userId)
+              .ilike('title', `%${args.busca_evento}%`)
+              .order('created_at', { ascending: false })
+              .limit(1);
+            evento = eventos?.[0];
+          }
+          
+          if (evento) {
             const updates: any = {};
             
             if (args.novo_titulo) updates.title = args.novo_titulo;

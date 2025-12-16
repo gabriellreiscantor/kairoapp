@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  Calendar, Bell, Phone, MapPin, CheckCircle,
+  Calendar, Bell, Phone, MapPin, CheckCircle, Pencil,
   Scissors, Film, Waves, Dumbbell, Briefcase, 
   Heart, ShoppingCart, Utensils, GraduationCap, 
   Music, Plane, Car, Coffee, Users, Gamepad2,
@@ -9,6 +9,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EventCreatedCardProps {
@@ -25,6 +26,7 @@ interface EventCreatedCardProps {
     call_alert_enabled?: boolean;
   };
   type?: 'created' | 'updated';
+  onEdit?: (eventId: string) => void;
 }
 
 // Get dynamic icon based on event title/category
@@ -103,11 +105,21 @@ const getEventIcon = (title: string, category?: string) => {
 };
 
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
-  ({ event, type = 'created' }, ref) => {
+  ({ event, type = 'created', onEdit }, ref) => {
   
   // Hooks FIRST (must always be at top, before any conditional returns)
   const [callAlertEnabled, setCallAlertEnabled] = useState(event?.call_alert_enabled || false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showEditButton, setShowEditButton] = useState(true);
+  
+  // Timer to hide edit button after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEditButton(false);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Guard: Don't render if essential fields are missing
   if (!event || !event.title || !event.event_date) {
@@ -257,6 +269,19 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           </div>
         )}
       </div>
+      
+      {/* Edit button - visible for 5 seconds */}
+      {showEditButton && event.id && onEdit && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(event.id!)}
+          className="mt-2 text-muted-foreground hover:text-foreground transition-opacity animate-in fade-in-0"
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Editar
+        </Button>
+      )}
     </div>
   );
 });
