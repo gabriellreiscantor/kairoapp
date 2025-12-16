@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, Calendar, User } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import FoxIcon from "./icons/FoxIcon";
+import kairoLogo from "@/assets/kairo-logo.png";
 import { toast } from "@/hooks/use-toast";
 
 interface ChatPageProps {
@@ -188,9 +188,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
         {messages.length === 0 && (
           <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
             <div className="flex items-start gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                <FoxIcon size={16} className="text-white" />
-              </div>
+              <img src={kairoLogo} alt="Kairo" className="w-8 h-8 rounded-full flex-shrink-0" />
               <p className="text-xs text-muted-foreground pt-2">
                 Você pode tocar em qualquer exemplo abaixo para ver como é fácil criar um compromisso.
               </p>
