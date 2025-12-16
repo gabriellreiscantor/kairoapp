@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -55,6 +55,8 @@ const CALENDARS = [
   { id: 'example', name: 'Exemplo de cronograma', color: '#EF4444' },
 ];
 
+const SWIPE_THRESHOLD = 100;
+
 const EventDetailPage = ({ 
   isOpen, 
   onClose, 
@@ -71,10 +73,52 @@ const EventDetailPage = ({
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [selectedCalendar, setSelectedCalendar] = useState('kairo');
   const [editInput, setEditInput] = useState('');
+  
+  // Swipe and animation state
+  const [isClosing, setIsClosing] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const currentEvent = events[0];
 
-  if (!isOpen) return null;
+  // Handle close with animation
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setDragY(0);
+      onClose();
+    }, 300);
+  };
+
+  // Touch handlers for swipe gesture
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY.current;
+    // Only allow dragging down
+    if (deltaY > 0) {
+      setDragY(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (dragY > SWIPE_THRESHOLD) {
+      handleClose();
+    } else {
+      setDragY(0);
+    }
+  };
+
+  if (!isOpen && !isClosing) return null;
 
   const getDateLabel = () => {
     if (isToday(selectedDate)) return 'Hoje';
@@ -98,17 +142,31 @@ const EventDetailPage = ({
   // Empty state - no events
   if (!currentEvent) {
     return (
-      <div className="fixed inset-0 z-50 bg-background animate-fade-in">
-        <div className="flex flex-col h-full safe-area-top safe-area-bottom">
+      <div 
+        ref={containerRef}
+        className={`fixed inset-0 z-50 bg-background transition-transform duration-300 ease-out ${
+          isClosing ? 'translate-y-full' : 'animate-slide-up'
+        }`}
+        style={{ transform: isDragging ? `translateY(${dragY}px)` : undefined }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          className="flex flex-col h-full safe-area-top safe-area-bottom"
+          style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
+        >
           {/* Header */}
           <header className="flex items-center justify-between px-4 py-4">
-            <button onClick={onClose} className="text-foreground font-medium">
+            <button onClick={handleClose} className="text-foreground font-medium">
               Voltar
             </button>
             <h1 className="text-lg font-semibold text-foreground">
               {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
             </h1>
-            <div className="w-12" />
+            <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center">
+              <X className="w-6 h-6 text-muted-foreground" />
+            </button>
           </header>
 
           <div className="flex-1 flex items-center justify-center px-4">
@@ -127,14 +185,30 @@ const EventDetailPage = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background animate-fade-in overflow-hidden">
+    <div 
+      ref={containerRef}
+      className={`fixed inset-0 z-50 bg-background overflow-hidden transition-transform duration-300 ease-out ${
+        isClosing ? 'translate-y-full' : 'animate-slide-up'
+      }`}
+      style={{ transform: isDragging ? `translateY(${dragY}px)` : undefined }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Background gradient effect like Toki */}
       <div className="absolute inset-0 bg-gradient-to-b from-red-900/20 via-background to-background pointer-events-none" />
       
-      <div className="relative flex flex-col h-full">
-        {/* Handle bar */}
-        <div className="flex justify-center py-3 safe-area-top">
-          <div className="w-10 h-1 bg-muted-foreground/50 rounded-full" />
+      <div 
+        className="relative flex flex-col h-full"
+        style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
+      >
+        {/* Header with handle bar and close button */}
+        <div className="flex items-center justify-between px-4 safe-area-top">
+          <div className="w-10" />
+          <div className="w-10 h-1 bg-muted-foreground/50 rounded-full my-3" />
+          <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center">
+            <X className="w-6 h-6 text-muted-foreground" />
+          </button>
         </div>
 
         {/* Event Card */}
