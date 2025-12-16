@@ -65,6 +65,7 @@ interface ExecutedAction {
   success: boolean;
   data?: any;
   error?: string;
+  eventData?: any; // Full event data from image analysis
   resumo_evento?: {
     titulo: string;
     data: string;
@@ -457,20 +458,45 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               const action = parsed.action;
               executedActions = [{
                 action: action.acao,
-                success: true,
+                success: action.success ?? true,
                 resumo_evento: action.resumo_evento,
-                data: action
+                data: action.eventData || action,
+                eventData: action.eventData
               }];
               
-              // Handle confirmation action from image analysis - show inline in chat, no modal
-              if (action.acao === 'solicitar_confirmacao' && action.resumo_evento) {
+              // Handle criar_evento action from image analysis (optimistic flow)
+              if (action.acao === 'criar_evento' && action.eventData) {
+                console.log('[ChatPage] Event created from image, showing card');
+                const eventData = action.eventData;
+                finalEventData = {
+                  id: eventData.id,
+                  title: eventData.title,
+                  event_date: eventData.event_date,
+                  event_time: eventData.event_time,
+                  location: eventData.location,
+                  category: eventData.category || 'evento',
+                  notification_enabled: eventData.notification_enabled ?? true,
+                  call_alert_enabled: eventData.call_alert_enabled ?? false,
+                };
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { 
+                    ...m, 
+                    content: assistantContent,
+                    eventData: finalEventData
+                  } : m
+                ));
+                // Trigger event refresh
+                onEventCreated?.();
+              }
+              // Legacy: Handle confirmation action (kept for compatibility)
+              else if (action.acao === 'solicitar_confirmacao' && action.resumo_evento) {
                 console.log('[ChatPage] Showing inline confirmation for image analysis');
                 setMessages(prev => prev.map(m => 
                   m.id === assistantId ? { 
                     ...m, 
                     content: assistantContent,
                     confirmationData: action.resumo_evento,
-                    pendingImageEvent: action // Store full action for when user confirms
+                    pendingImageEvent: action
                   } : m
                 ));
               }

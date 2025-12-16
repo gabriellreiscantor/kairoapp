@@ -332,47 +332,89 @@ serve(async (req) => {
     console.log('OpenAI API key found, length:', OPENAI_API_KEY.length);
 
     // === SPECIAL HANDLING FOR IMAGE ANALYSIS ===
-    // When an image is analyzed, use the analysis result directly instead of GPT
+    // When an image is analyzed and event is detected, CREATE THE EVENT AUTOMATICALLY (optimistic)
     if (imageAnalysis && imageAnalysis.tipo === 'evento_detectado') {
-      console.log('Image detected event, responding directly with analysis');
+      console.log('Image detected event - creating automatically (optimistic flow)');
       
-      // Format date for display
-      const formatDateDisplay = (dateStr: string) => {
-        if (!dateStr) return '';
-        const [year, month, day] = dateStr.split('-');
-        return `${day}/${month}/${year}`;
-      };
-
-      // Build response with event confirmation request
-      const responseText = imageAnalysis.pergunta_usuario || 
-        `Vi que é um ingresso! Quer que eu crie um lembrete para ${imageAnalysis.titulo}?`;
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        throw new Error('Authorization required for event creation');
+      }
       
-      const eventPreview = {
-        titulo: imageAnalysis.titulo || 'Evento',
-        data: imageAnalysis.data_detectada,
-        hora: imageAnalysis.hora_detectada,
-        local: imageAnalysis.local_detectado,
-        notificacao: '30 min antes'
-      };
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const imageSupabase = createClient(supabaseUrl, supabaseKey);
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await imageSupabase.auth.getUser(token);
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-      // Return as SSE stream with confirmation action
+      // Create the event directly in database
+      const { data: createdEvent, error: createError } = await imageSupabase
+        .from('events')
+        .insert({
+          user_id: user.id,
+          title: imageAnalysis.titulo || 'Evento',
+          description: imageAnalysis.descricao || null,
+          event_date: imageAnalysis.data_detectada,
+          event_time: imageAnalysis.hora_detectada || null,
+          location: imageAnalysis.local_detectado || null,
+          duration_minutes: 120, // Default for movies/events
+          priority: 'medium',
+          category: 'evento',
+          status: 'pending',
+          notification_enabled: true
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating event from image:', createError);
+        throw createError;
+      }
+
+      console.log('Event created from image:', createdEvent);
+
+      // Build response text
+      const responseText = `Pronto! Criei o evento "${imageAnalysis.titulo}" para ${imageAnalysis.data_detectada}${imageAnalysis.hora_detectada ? ` às ${imageAnalysis.hora_detectada}` : ''}. Se precisar mudar algo, é só me falar!`;
+
+      // Build action with created event data
       const actionData = {
-        acao: 'solicitar_confirmacao',
+        acao: 'criar_evento',
+        success: true,
         resposta_usuario: responseText,
-        resumo_evento: eventPreview,
-        // Store extracted data for when user confirms
-        titulo: imageAnalysis.titulo,
-        data: imageAnalysis.data_detectada,
-        hora: imageAnalysis.hora_detectada,
-        local: imageAnalysis.local_detectado,
-        descricao: imageAnalysis.descricao,
-        prioridade: 'medium',
-        categoria: 'evento',
-        duracao_minutos: 120, // Default for movies/events
-        idioma_detectado: 'pt'
+        titulo: createdEvent.title,
+        hora: createdEvent.event_time,
+        local: createdEvent.location,
+        descricao: createdEvent.description,
+        prioridade: createdEvent.priority,
+        categoria: createdEvent.category,
+        duracao_minutos: createdEvent.duration_minutes,
+        idioma_detectado: 'pt',
+        // Include the full event data for EventCreatedCard
+        eventData: {
+          id: createdEvent.id,
+          title: createdEvent.title,
+          event_date: createdEvent.event_date,
+          event_time: createdEvent.event_time,
+          location: createdEvent.location,
+          category: createdEvent.category,
+          notification_enabled: createdEvent.notification_enabled,
+          call_alert_enabled: createdEvent.call_alert_enabled
+        },
+        resumo_evento: {
+          titulo: createdEvent.title,
+          data: createdEvent.event_date,
+          hora: createdEvent.event_time || 'Dia inteiro',
+          local: createdEvent.location || '',
+          notificacao: '30 min antes'
+        }
       };
 
-      console.log('Image analysis action data:', JSON.stringify(actionData));
+      console.log('Image event action data:', JSON.stringify(actionData));
 
       // Build SSE response
       let ssePayload = `data: {"text": "${responseText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}\n\n`;
