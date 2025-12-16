@@ -1,4 +1,4 @@
-import { ChevronLeft, Zap, Crown, MessageSquare, Phone, Infinity, Clock } from "lucide-react";
+import { ChevronLeft, Crown, MessageSquare, Infinity, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const FEATURES = [
@@ -6,12 +6,6 @@ const FEATURES = [
     icon: MessageSquare,
     title: "WhatsApp Ilimitado",
     description: "Crie e gerencie eventos via WhatsApp sem limites",
-    premium: true,
-  },
-  {
-    icon: Phone,
-    title: "Me Ligue",
-    description: "Receba chamadas simuladas para nunca perder compromissos",
     premium: true,
   },
   {
@@ -112,7 +106,7 @@ const SpecialFeaturesPage = () => {
             </div>
             <div className="grid grid-cols-3 px-4 py-3 border-b border-border/10">
               <span className="text-foreground text-sm">Me Ligue</span>
-              <span className="text-muted-foreground text-sm text-center">—</span>
+              <span className="text-foreground text-sm text-center">✓</span>
               <span className="text-foreground text-sm text-center">✓</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-3">
