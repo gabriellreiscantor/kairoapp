@@ -13,6 +13,7 @@ import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
+import EventDeletedCard from "@/components/chat/EventDeletedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
 import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
@@ -37,6 +38,7 @@ interface Message {
   actions?: ExecutedAction[];
   imagePreview?: string;
   eventData?: any; // For showing event cards
+  deletedEventData?: any; // For showing deleted event cards
   isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
   eventsListData?: Array<{ // For showing list of events
@@ -70,6 +72,7 @@ interface ExecutedAction {
     notificacao: string;
   };
   evento_atualizado?: any; // Full updated event in Supabase format
+  evento_deletado?: any; // Full deleted event in Supabase format
   eventos?: Array<{
     id: string;
     titulo: string;
@@ -219,6 +222,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       content: m.content,
       createdAt: new Date(m.created_at),
       eventData,
+      deletedEventData: m.metadata?.deletedEventData,
       eventsListData: m.metadata?.eventsListData,
     };
   };
@@ -395,6 +399,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       const assistantId = Date.now().toString();
       let hasConfirmationCard = false; // Track if we have a confirmation card
       let finalEventData: any = undefined; // Track event data for persistence
+      let finalDeletedEventData: any = undefined; // Track deleted event data for persistence
       let finalEventsListData: any[] | undefined = undefined; // Track events list for persistence
 
       setMessages(prev => [...prev, {
@@ -548,6 +553,24 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     finalEventsListData = listedEvents;
                   }
                   
+                  // Check if event was DELETED
+                  const deleteAction = executedActions.find(a => a.action === 'deletar_evento' && a.success);
+                  const deletedEvent = deleteAction?.evento_deletado || deleteAction?.data?.evento_deletado;
+                  let deletedEventData = undefined;
+                  
+                  if (deleteAction && deletedEvent) {
+                    deletedEventData = {
+                      id: deletedEvent.id,
+                      title: deletedEvent.title,
+                      event_date: deletedEvent.event_date,
+                      event_time: deletedEvent.event_time,
+                      location: deletedEvent.location,
+                      category: deletedEvent.category,
+                    };
+                    console.log('[ChatPage] Delete action detected:', deletedEventData);
+                    finalDeletedEventData = deletedEventData; // Store for persistence
+                  }
+                  
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
                     listedEvents: listedEvents?.length || 0 
@@ -560,6 +583,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       actions: executedActions,
                       isCreatingEvent: !!eventAction && !showCreatedCard,
                       eventData,
+                      deletedEventData,
                       eventsListData: listedEvents,
                       confirmationData: confirmationResumo,
                     } : m
@@ -621,9 +645,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
       });
       
-      if (assistantContent || finalEventData || finalEventsListData) {
-        const metadata = (finalEventData || finalEventsListData) 
-          ? { eventData: finalEventData, eventsListData: finalEventsListData }
+      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData) {
+        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData) 
+          ? { eventData: finalEventData, deletedEventData: finalDeletedEventData, eventsListData: finalEventsListData }
           : undefined;
         
         console.log('[ChatPage] Constructed metadata for save:', metadata);
@@ -1060,6 +1084,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           event={message.eventData} 
                           type={message.eventData.isUpdate ? 'updated' : 'created'}
                         />
+                      </div>
+                    )}
+                    
+                    {/* Deleted Event Card */}
+                    {message.deletedEventData && (
+                      <div className="pl-9 animate-fade-in">
+                        <EventDeletedCard event={message.deletedEventData} />
                       </div>
                     )}
                     

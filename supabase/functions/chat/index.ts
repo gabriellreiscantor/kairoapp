@@ -55,6 +55,7 @@ interface KairoAction {
   };
   _alreadyExecuted?: boolean; // Flag to skip executeAction when action was already processed
   evento_atualizado?: any; // Full updated event in Supabase format for EventCreatedCard
+  evento_deletado?: any; // Full deleted event data for EventDeletedCard
 }
 
 interface UserProfile {
@@ -715,7 +716,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "update_event",
-          description: "SOMENTE use quando usuario EXPLICITAMENTE usar palavras de edicao como: 'mudar', 'muda', 'alterar', 'altera', 'editar', 'edita', 'trocar', 'troca', 'cancelar', 'cancela' seguido do NOME de um evento existente. NUNCA use para novas atividades! Ex CORRETO: 'muda barbearia pras 16h'. Ex ERRADO: 'vou no salao hoje' (isso e NOVO evento).",
+          description: "SOMENTE use quando usuario EXPLICITAMENTE usar palavras de edicao como: 'mudar', 'muda', 'alterar', 'altera', 'editar', 'edita', 'trocar', 'troca' seguido do NOME de um evento existente. NUNCA use para novas atividades! Ex CORRETO: 'muda barbearia pras 16h'. Ex ERRADO: 'vou no salao hoje' (isso e NOVO evento).",
           parameters: {
             type: "object",
             properties: {
@@ -725,6 +726,21 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
               novo_horario: { type: ["string", "null"], description: "Novo horario HH:MM se usuario quiser mudar" },
               novo_local: { type: ["string", "null"], description: "Novo local se usuario quiser mudar" },
               resposta_usuario: { type: "string", description: "Confirmacao da alteracao" }
+            },
+            required: ["busca_evento", "resposta_usuario"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "delete_event",
+          description: "Use SOMENTE quando usuario quiser CANCELAR/REMOVER/DELETAR um evento. Palavras-chave: 'cancelar', 'cancela', 'remover', 'remove', 'deletar', 'deleta', 'apagar', 'apaga', 'tirar', 'tira'. Ex: 'cancela a reuniao', 'remove o evento da barbearia', 'apaga o cinema'.",
+          parameters: {
+            type: "object",
+            properties: {
+              busca_evento: { type: "string", description: "Nome ou parte do titulo do evento a deletar" },
+              resposta_usuario: { type: "string", description: "Confirmacao AMIGAVEL da remocao. Ex: 'Beleza, removi a reuniao das 15h do seu calendario!', 'Pronto, tirei o evento da barbearia pra voce!'" }
             },
             required: ["busca_evento", "resposta_usuario"]
           }
@@ -850,11 +866,20 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         console.log(`Greeting detected, prioritizing chat_response. Found: ${chatResponseCall ? 'yes' : 'no'}`);
       } else {
         // CRITICAL: Check if first tool is update_event but message has NO explicit edit words
-        const explicitEditWords = /\b(muda|mudar|altera|alterar|edita|editar|troca|trocar|cancela|cancelar)\b/i;
+        // Words that indicate editing (NOT deleting)
+        const explicitEditWords = /\b(muda|mudar|altera|alterar|edita|editar|troca|trocar)\b/i;
+        // Words that indicate deletion
+        const explicitDeleteWords = /\b(cancela|cancelar|remove|remover|deleta|deletar|apaga|apagar|tira|tirar)\b/i;
         const hasExplicitEditWord = explicitEditWords.test(lastUserMessage);
+        const hasExplicitDeleteWord = explicitDeleteWords.test(lastUserMessage);
         
         const firstTool = message.tool_calls[0];
-        if (firstTool.function.name === 'update_event' && !hasExplicitEditWord) {
+        // If deletion word detected, prioritize delete_event
+        if (hasExplicitDeleteWord) {
+          const deleteCall = message.tool_calls.find((tc: any) => tc.function.name === 'delete_event');
+          toolCall = deleteCall || firstTool;
+          console.log(`Delete word detected in "${lastUserMessage}". Using ${toolCall.function.name}.`);
+        } else if (firstTool.function.name === 'update_event' && !hasExplicitEditWord) {
           // AI incorrectly chose update_event - find create_event or chat_response instead
           const createCall = message.tool_calls.find((tc: any) => tc.function.name === 'create_event');
           const chatCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
@@ -996,6 +1021,64 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             resposta_usuario: args.resposta_usuario
           };
         }
+      } else if (functionName === "delete_event") {
+        // Delete event - search and delete
+        console.log('Delete event requested:', args);
+        
+        if (userId && supabase && args.busca_evento) {
+          // Search for matching event
+          const { data: eventos } = await supabase
+            .from('events')
+            .select('*')
+            .eq('user_id', userId)
+            .ilike('title', `%${args.busca_evento}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (eventos && eventos.length > 0) {
+            const eventoParaDeletar = eventos[0];
+            
+            // Delete the event
+            const { error } = await supabase
+              .from('events')
+              .delete()
+              .eq('id', eventoParaDeletar.id);
+            
+            if (!error) {
+              // Build friendly confirmation message
+              const timeStr = eventoParaDeletar.event_time 
+                ? ` das ${eventoParaDeletar.event_time}` 
+                : '';
+              const humanResponse = args.resposta_usuario || 
+                `Beleza, removi o "${eventoParaDeletar.title}"${timeStr} do seu calendário!`;
+              
+              action = {
+                acao: 'deletar_evento',
+                evento_id: eventoParaDeletar.id,
+                resposta_usuario: humanResponse,
+                evento_deletado: eventoParaDeletar, // Full event data for card
+                _alreadyExecuted: true
+              };
+              console.log('Event deleted successfully:', eventoParaDeletar);
+            } else {
+              console.error('Delete error:', error);
+              action = {
+                acao: 'conversar',
+                resposta_usuario: 'Ops, não consegui remover o evento. Tenta de novo?'
+              };
+            }
+          } else {
+            action = {
+              acao: 'conversar',
+              resposta_usuario: `Não encontrei nenhum evento com "${args.busca_evento}". Quer que eu liste seus eventos?`
+            };
+          }
+        } else {
+          action = {
+            acao: 'conversar',
+            resposta_usuario: args.resposta_usuario || 'Qual evento você quer remover?'
+          };
+        }
       } else {
         // chat_response
         action = {
@@ -1063,6 +1146,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       error: executionResult.error,
       resumo_evento: action.resumo_evento,
       evento_atualizado: action.evento_atualizado, // CRITICAL: Include for update card persistence
+      evento_deletado: action.evento_deletado, // CRITICAL: Include for delete card persistence
       eventos: listedEvents // Include structured events for list action
     };
     
