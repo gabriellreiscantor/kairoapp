@@ -534,16 +534,26 @@ APOS criar o evento, envie confirmacao com resumo visual.
 
 {"acao": "criar_evento", "titulo": "...", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "...", "data": "Hoje", "hora": "Dia inteiro", "local": "", "notificacao": "30 min antes"}, "idioma_detectado": "pt", "resposta_usuario": "Criado! Quer editar algo?"}
 
-=== MODO EDICAO (SOMENTE APOS EVENTO EXISTIR) ===
+=== MODO EDICAO (CRITICO) ===
 
-"coletar_informacoes" so existe para MODO EDICAO.
-NUNCA use para coleta inicial. SEMPRE crie o evento primeiro.
+DETECTAR MODO EDICAO:
+Se a ultima mensagem do sistema foi "Quer editar algo?" ou "Criado! Quer editar algo?"
+E o usuario responde "sim", "quero", "vou", "editar", "s":
+→ Use edit_event para perguntar O QUE quer mudar
+→ NAO crie outro evento!
 
-Se usuario diz "nao", "errado", "muda", "nao e isso", "corrige", "editar":
-Voce esta em MODO EDICAO.
+Se usuario diz "nao", "errado", "muda", "nao e isso", "corrige":
+→ Use edit_event para perguntar O QUE quer mudar
 
-Pergunte APENAS o que precisa mudar:
-{"acao": "coletar_informacoes", "contexto_coletado": "evento existente", "informacao_faltante": "data|hora|local", "idioma_detectado": "pt", "resposta_usuario": "O que quer mudar?"}
+Exemplo CORRETO:
+Sistema: "Criado! Quer editar algo?"
+Usuario: "sim"
+→ edit_event com resposta_usuario: "O que voce quer mudar? Titulo, data, hora ou local?"
+
+Exemplo ERRADO (NAO FACA):
+Sistema: "Criado! Quer editar algo?"
+Usuario: "sim"
+→ create_event (ERRADO! NAO crie novo evento!)
 
 === REGRAS DE LOCAL (RELAXADAS) ===
 
@@ -617,7 +627,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "create_event",
-          description: "SEMPRE use esta funcao quando usuario mencionar QUALQUER atividade, compromisso ou evento. Exemplos: lanchonete, cinema, barbearia, shopping, medico, reuniao, etc. Use mesmo sem data/hora especificada - use padroes.",
+          description: "SEMPRE use esta funcao quando usuario mencionar QUALQUER atividade, compromisso ou evento. Exemplos: lanchonete, cinema, barbearia, shopping, medico, reuniao, etc. Use mesmo sem data/hora especificada - use padroes. NAO use se usuario disse 'sim' apos 'Quer editar algo?' - nesse caso use edit_event.",
           parameters: {
             type: "object",
             properties: {
@@ -630,6 +640,20 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
               resposta_usuario: { type: "string", description: "Mensagem curta confirmando criacao. Ex: Pronto! Criei o evento X para hoje." }
             },
             required: ["titulo", "data", "prioridade", "categoria", "resposta_usuario"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "edit_event",
+          description: "OBRIGATORIO quando usuario responder 'sim', 'quero', 'vou', 'editar' apos mensagem 'Quer editar algo?' ou 'Criado! Quer editar algo?'. Pergunte O QUE deseja mudar. NAO crie novo evento!",
+          parameters: {
+            type: "object",
+            properties: {
+              resposta_usuario: { type: "string", description: "Pergunte o que quer mudar. Ex: 'O que voce quer mudar? Titulo, data, hora ou local?'" }
+            },
+            required: ["resposta_usuario"]
           }
         }
       },
@@ -719,14 +743,32 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     
     const isGreeting = greetings.some(g => lastUserMessage === g || lastUserMessage === g + '!');
     
-    console.log(`Last user message: "${lastUserMessage}", isGreeting: ${isGreeting}`);
+    // Check if previous AI message asked about editing
+    const previousAssistantMessages = messages.filter((m: any) => m.role === 'assistant').slice(-2);
+    const askedAboutEditing = previousAssistantMessages.some((m: any) => 
+      m.content?.toLowerCase()?.includes('quer editar') || 
+      m.content?.toLowerCase()?.includes('quer mudar')
+    );
+    
+    // Words that indicate user wants to edit after being asked
+    const editConfirmations = ['sim', 's', 'quero', 'vou', 'editar', 'yes', 'yeah', 'y'];
+    const wantsToEdit = askedAboutEditing && editConfirmations.some(e => lastUserMessage === e || lastUserMessage === e + '!');
+    
+    console.log(`Last user message: "${lastUserMessage}", isGreeting: ${isGreeting}, askedAboutEditing: ${askedAboutEditing}, wantsToEdit: ${wantsToEdit}`);
     
     // Process tool calls
     if (message?.tool_calls && message.tool_calls.length > 0) {
       let toolCall;
       
-      // If last message is greeting, prioritize chat_response
-      if (isGreeting && message.tool_calls.length > 1) {
+      // If user wants to edit, prioritize edit_event tool
+      if (wantsToEdit) {
+        const editCall = message.tool_calls.find((tc: any) => tc.function.name === 'edit_event');
+        const chatCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
+        toolCall = editCall || chatCall || message.tool_calls[0];
+        console.log(`Edit mode detected, prioritizing edit_event. Found edit_event: ${editCall ? 'yes' : 'no'}`);
+      }
+      // If last message is greeting and NOT in edit context, prioritize chat_response
+      else if (isGreeting && message.tool_calls.length > 1) {
         const chatResponseCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
         toolCall = chatResponseCall || message.tool_calls[0];
         console.log(`Greeting detected, prioritizing chat_response. Found: ${chatResponseCall ? 'yes' : 'no'}`);
@@ -765,6 +807,13 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
           limite: args.limite || 10,
           resposta_usuario: args.resposta_usuario
         };
+      } else if (functionName === "edit_event") {
+        // User wants to edit - ask what to change
+        action = {
+          acao: 'conversar',
+          resposta_usuario: args.resposta_usuario || "O que você quer mudar? Título, data, hora ou local?"
+        };
+        console.log('Edit mode: asking user what to change');
       } else {
         // chat_response
         action = {
