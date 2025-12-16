@@ -166,7 +166,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header with safe area */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-3 safe-area-top">
+      <header className="flex items-center justify-between px-4 pb-3 safe-area-top">
         <button 
           onClick={onNavigateToCalendar}
           className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
