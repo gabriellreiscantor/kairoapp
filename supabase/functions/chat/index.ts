@@ -52,6 +52,7 @@ interface KairoAction {
     local: string;
     notificacao: string;
   };
+  _alreadyExecuted?: boolean; // Flag to skip executeAction when action was already processed
 }
 
 interface UserProfile {
@@ -900,7 +901,11 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         console.log('Edit mode: asking user what to change');
       } else if (functionName === "update_event") {
         // Natural language update - search for event and update it
+        // This is handled INLINE and should NOT go through executeAction again
         console.log('Update event requested:', args);
+        
+        let updateSuccess = false;
+        let updatedEventData: any = null;
         
         if (userId && supabase && args.busca_evento) {
           // Search for matching event
@@ -930,17 +935,35 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
                 .single();
               
               if (!error && updatedEvent) {
+                updateSuccess = true;
+                updatedEventData = updatedEvent;
+                
+                // Build a human, friendly message describing what changed
+                const changes: string[] = [];
+                if (args.novo_horario) changes.push(`horário pra ${updatedEvent.event_time}`);
+                if (args.nova_data) changes.push(`data pra ${updatedEvent.event_date}`);
+                if (args.novo_titulo) changes.push(`nome pra "${updatedEvent.title}"`);
+                if (args.novo_local) changes.push(`local pra ${updatedEvent.location}`);
+                
+                const changesText = changes.length > 0 
+                  ? changes.join(' e ') 
+                  : 'os detalhes';
+                
+                const humanResponse = `Pronto, mudei o ${changesText} do "${evento.title}". Tá certinho agora!`;
+                
+                // Mark action as already executed so executeAction won't be called
                 action = {
                   acao: 'editar_evento',
                   evento_id: evento.id,
-                  resposta_usuario: args.resposta_usuario || `Pronto! Atualizei o evento "${evento.title}".`,
+                  resposta_usuario: humanResponse,
                   resumo_evento: {
                     titulo: updatedEvent.title,
                     data: updatedEvent.event_date,
                     hora: updatedEvent.event_time || 'Dia inteiro',
                     local: updatedEvent.location || '',
                     notificacao: '30 min antes'
-                  }
+                  },
+                  _alreadyExecuted: true // Flag to skip executeAction
                 };
                 console.log('Event updated successfully:', updatedEvent);
               } else {
@@ -985,9 +1008,14 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     let executionResult: { success: boolean; data?: any; error?: string } = { success: true };
     
-    if (userId && supabase && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
+    // Skip executeAction if action was already processed inline (e.g., update_event)
+    if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
       executionResult = await executeAction(supabase, userId, action, userProfile);
       console.log('Execution result:', executionResult);
+    } else if (action._alreadyExecuted) {
+      // Action was already executed inline, mark as success
+      executionResult = { success: true, data: action };
+      console.log('Action already executed inline, skipping executeAction');
     } else if (action.acao === 'solicitar_confirmacao') {
       // Pass through confirmation data
       executionResult = { success: true, data: action.resumo_evento };
