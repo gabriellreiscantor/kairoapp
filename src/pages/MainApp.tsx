@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Settings } from "lucide-react";
-import BottomNavPill from "@/components/BottomNavPill";
+import { Plus, Settings, Calendar as CalendarIcon, User } from "lucide-react";
 import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
-import ChatInterface from "@/components/ChatInterface";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventCard from "@/components/EventCard";
+import ChatPage from "@/components/ChatPage";
 
 interface Event {
   id: string;
@@ -19,9 +18,8 @@ interface Event {
 }
 
 const MainApp = () => {
-  const [activeView, setActiveView] = useState<'list' | 'calendar'>('list');
+  const [activeView, setActiveView] = useState<'chat' | 'list' | 'calendar'>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
@@ -41,6 +39,23 @@ const MainApp = () => {
     setIsCreateModalOpen(true);
   };
 
+  // Chat Page (Home)
+  if (activeView === 'chat') {
+    return (
+      <>
+        <ChatPage 
+          onNavigateToCalendar={() => setActiveView('list')}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+        <SettingsDrawer
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      </>
+    );
+  }
+
+  // Calendar/List Views
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -125,17 +140,51 @@ const MainApp = () => {
       )}
 
       {/* Bottom Navigation */}
-      <BottomNavPill
-        activeView={activeView}
-        onViewChange={setActiveView}
-        onChatOpen={() => setIsChatOpen(true)}
-      />
+      <div className="fixed bottom-4 left-0 right-0 px-4 safe-area-bottom z-50">
+        <div className="flex items-center justify-between">
+          {/* View Toggle Pill */}
+          <div className="bg-kairo-surface-2/90 backdrop-blur-sm rounded-full p-1 flex items-center gap-0.5">
+            <button
+              onClick={() => setActiveView('chat')}
+              className="px-3 py-2 rounded-full text-muted-foreground"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setActiveView('list')}
+              className={`px-3 py-2 rounded-full transition-all duration-150 ${
+                activeView === 'list' 
+                  ? 'bg-foreground text-background' 
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setActiveView('calendar')}
+              className={`px-3 py-2 rounded-full transition-all duration-150 ${
+                activeView === 'calendar' 
+                  ? 'bg-foreground text-background' 
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </button>
+          </div>
 
-      {/* Chat Interface */}
-      <ChatInterface
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />
+          {/* Profile Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-11 h-11 rounded-full bg-kairo-surface-2/90 backdrop-blur-sm border border-border/20 flex items-center justify-center transition-all duration-150 active:scale-95"
+          >
+            <User className="w-5 h-5 text-foreground" />
+          </button>
+        </div>
+      </div>
 
       {/* Settings Drawer */}
       <SettingsDrawer
