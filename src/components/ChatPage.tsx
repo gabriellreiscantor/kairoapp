@@ -389,6 +389,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     if (updatedEvent) {
                       // Already in correct Supabase format for EventCreatedCard
                       eventData = {
+                        id: updatedEvent.id, // CRITICAL: Include id for toggle to work
                         title: updatedEvent.title,
                         event_date: updatedEvent.event_date,
                         event_time: updatedEvent.event_time,
@@ -399,7 +400,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         isUpdate: true
                       };
                     } else if (updateResumo) {
-                      // Fallback: convert from Portuguese format
+                      // Fallback: convert from Portuguese format (no id available)
                       eventData = {
                         title: updateResumo.titulo,
                         event_date: updateResumo.data,
@@ -412,13 +413,30 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       };
                     }
                   } else if (showCreatedCard) {
-                    eventData = { ...eventAction.data, resumo_evento: eventResumo };
+                    // For CREATE: explicitly extract all fields including id
+                    const eventFromDb = eventAction.data;
+                    console.log('[ChatPage] eventFromDb for create:', eventFromDb);
+                    eventData = {
+                      id: eventFromDb?.id, // CRITICAL: Include id for toggle to work
+                      title: eventFromDb?.title || eventResumo?.titulo,
+                      event_date: eventFromDb?.event_date || eventResumo?.data,
+                      event_time: eventFromDb?.event_time || (eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora),
+                      location: eventFromDb?.location || eventResumo?.local,
+                      category: eventFromDb?.category || 'geral',
+                      notification_enabled: eventFromDb?.notification_enabled ?? true,
+                      call_alert_enabled: eventFromDb?.call_alert_enabled ?? false,
+                      resumo_evento: eventResumo
+                    };
                   }
                   
-                  // Store for persistence
+                  // Store for persistence - MUST include id for toggle to work
                   if (eventData) {
                     finalEventData = eventData;
-                    console.log('[ChatPage] Storing finalEventData for persistence:', finalEventData);
+                    console.log('[ChatPage] Storing finalEventData for persistence:', {
+                      id: finalEventData?.id,
+                      title: finalEventData?.title,
+                      hasId: !!finalEventData?.id
+                    });
                   }
                   
                   // Check if events were LISTED
