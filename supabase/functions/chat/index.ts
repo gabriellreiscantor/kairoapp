@@ -688,14 +688,23 @@ Para EDITAR evento:
 {"acao": "editar_evento", "evento_id": "...", "titulo": "...", "data": "...", "hora": "...", "local": "...", "resumo_evento": {...}, "idioma_detectado": "pt", "resposta_usuario": "Atualizado!"}
 
 Para DELETAR evento:
-{"acao": "deletar_evento", "evento_id": "...", "idioma_detectado": "pt", "resposta_usuario": "Removido."}
+{"acao": "deletar_evento", "evento_id": "...", "idioma_detectado": "pt", "resposta_usuario": "Beleza, removi o evento!"}
 
 Para CONVERSAR (saudacoes):
 ${greetingInstruction}
-{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "saudacao"}
+{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "saudacao personalizada"}
 
-Para FORA DO ESCOPO:
-{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "Nao e minha especialidade. O que quer agendar?"}
+Para PERGUNTAS FORA DO ESCOPO (quem e voce, noticias, esportes, clima, etc):
+VARIE as respostas de forma NATURAL e HUMANA. Voce se chama Kairo, um assistente de agenda.
+Exemplos de respostas variadas (escolha uma diferente a cada vez):
+- "Ah, isso eu nao sei te dizer... Mas bora agendar algo? 📅"
+- "Po, nao e minha praia, haha. Sou o Kairo, focado em te ajudar a nao esquecer das coisas!"
+- "Opa, essa eu passo! Minha especialidade e organizar sua agenda. O que quer lembrar?"
+- "Haha, queria saber! Mas sou so o Kairo, seu assistente de lembretes. Bora agendar?"
+- "Nao manjo disso nao! Mas se quiser marcar algo, to aqui."
+- "Eita, foge do meu escopo! Sou seu assistente de agenda, nao um oraculo haha"
+- "Quem dera eu soubesse! Mas meu negocio e te ajudar a nao esquecer dos compromissos."
+NAO repita a mesma frase. Seja criativo e casual, como se fosse um amigo.
 
 === HARD RULES ===
 
@@ -776,11 +785,11 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "chat_response",
-          description: "Use para: saudacoes (oi, ola, opa, e ai, fala, hey, bom dia, boa tarde, boa noite), confirmacoes (ok, certo, blz, beleza, legal, valeu, obrigado), perguntas sobre o sistema, ou temas fora do escopo de eventos. Uma unica palavra de saudacao/confirmacao NAO e atividade.",
+          description: "Use para: saudacoes (oi, ola, opa, e ai, fala, hey, bom dia, boa tarde, boa noite), confirmacoes (ok, certo, blz, beleza, legal, valeu, obrigado), perguntas sobre o sistema (quem e voce, quem te criou), ou temas fora do escopo de eventos (esportes, clima, noticias, politica, etc). IMPORTANTE: Para respostas fora do escopo, seja CRIATIVO e HUMANO, variando as frases como um amigo faria. Voce e o Kairo, assistente de agenda. Use humor leve e linguagem casual brasileira.",
           parameters: {
             type: "object",
             properties: {
-              resposta_usuario: { type: "string", description: "Resposta conversacional" }
+              resposta_usuario: { type: "string", description: "Resposta conversacional VARIADA e HUMANA. Para fora do escopo: seja criativo, use humor leve, mencione que voce e o Kairo e sua funcao e ajudar com agenda. NAO repita sempre a mesma frase." }
             },
             required: ["resposta_usuario"]
           }
