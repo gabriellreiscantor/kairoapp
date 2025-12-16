@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Calendar, Bell, Phone, MapPin, CheckCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -34,7 +34,8 @@ const getCategoryEmoji = (category?: string) => {
   return emojis[category || "geral"] || "🔴";
 };
 
-const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) => {
+const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
+  ({ event, type = 'created' }, ref) => {
   const [callAlertEnabled, setCallAlertEnabled] = useState(event.call_alert_enabled || false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -93,7 +94,7 @@ const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) =>
   const isAllDay = !event.event_time;
 
   return (
-    <div className="w-full max-w-[320px] animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+    <div ref={ref} className="w-full max-w-[320px] animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
       {/* Header text with success icon */}
       <div className="flex items-center gap-2 mb-3">
         <CheckCircle className="w-4 h-4 text-green-500" />
@@ -129,7 +130,7 @@ const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) =>
             checked={callAlertEnabled} 
             onCheckedChange={handleToggleCallAlert}
             disabled={!event.id || isUpdating}
-            className="data-[state=unchecked]:bg-muted data-[state=checked]:bg-green-500" 
+            className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
           />
         </div>
         
@@ -151,6 +152,8 @@ const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) =>
       </div>
     </div>
   );
-};
+});
+
+EventCreatedCard.displayName = 'EventCreatedCard';
 
 export default EventCreatedCard;
