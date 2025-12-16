@@ -53,6 +53,7 @@ interface KairoAction {
     notificacao: string;
   };
   _alreadyExecuted?: boolean; // Flag to skip executeAction when action was already processed
+  evento_atualizado?: any; // Full updated event in Supabase format for EventCreatedCard
 }
 
 interface UserProfile {
@@ -963,6 +964,8 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
                     local: updatedEvent.location || '',
                     notificacao: '30 min antes'
                   },
+                  // Include full Supabase-format event for EventCreatedCard
+                  evento_atualizado: updatedEvent,
                   _alreadyExecuted: true // Flag to skip executeAction
                 };
                 console.log('Event updated successfully:', updatedEvent);

@@ -69,6 +69,7 @@ interface ExecutedAction {
     local: string;
     notificacao: string;
   };
+  evento_atualizado?: any; // Full updated event in Supabase format
   eventos?: Array<{
     id: string;
     titulo: string;
@@ -383,7 +384,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   // Determine eventData - prioritize update over create
                   let eventData = undefined;
                   if (showUpdatedCard) {
-                    eventData = { ...updateAction.data, resumo_evento: updateResumo, isUpdate: true };
+                    // For UPDATE: use evento_atualizado (Supabase format) if available
+                    const updatedEvent = updateAction.evento_atualizado || updateAction.data?.evento_atualizado;
+                    if (updatedEvent) {
+                      // Already in correct Supabase format for EventCreatedCard
+                      eventData = {
+                        title: updatedEvent.title,
+                        event_date: updatedEvent.event_date,
+                        event_time: updatedEvent.event_time,
+                        location: updatedEvent.location,
+                        category: updatedEvent.category || 'geral',
+                        notification_enabled: updatedEvent.notification_enabled ?? true,
+                        call_alert_enabled: updatedEvent.call_alert_enabled ?? false,
+                        isUpdate: true
+                      };
+                    } else if (updateResumo) {
+                      // Fallback: convert from Portuguese format
+                      eventData = {
+                        title: updateResumo.titulo,
+                        event_date: updateResumo.data,
+                        event_time: updateResumo.hora === 'Dia inteiro' ? undefined : updateResumo.hora,
+                        location: updateResumo.local || undefined,
+                        category: 'geral',
+                        notification_enabled: true,
+                        call_alert_enabled: false,
+                        isUpdate: true
+                      };
+                    }
                   } else if (showCreatedCard) {
                     eventData = { ...eventAction.data, resumo_evento: eventResumo };
                   }
@@ -391,6 +418,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   // Store for persistence
                   if (eventData) {
                     finalEventData = eventData;
+                    console.log('[ChatPage] Storing finalEventData for persistence:', finalEventData);
                   }
                   
                   // Check if events were LISTED
