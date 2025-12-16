@@ -78,8 +78,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 pt-10 pb-3">
+      {/* Header with safe area */}
+      <header className="flex items-center justify-between px-4 pt-4 pb-3 safe-area-top">
         <button 
           onClick={onNavigateToCalendar}
           className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
@@ -103,7 +103,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
               <div className="mb-4">
                 {/* Show suggestions after first AI message */}
                 {index === 0 && (
-                  <div className="bg-kairo-surface-2 rounded-2xl p-3 mb-3">
+                  <div className="bg-kairo-ai-bubble rounded-2xl p-3 mb-3">
                     <div className="flex items-start gap-2 mb-3">
                       <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
                         <FoxIcon size={16} className="text-white" />
@@ -138,7 +138,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
                 {message.timestamp && (
                   <p className="text-[10px] text-muted-foreground mb-1">{message.timestamp}</p>
                 )}
-                <div className="bg-kairo-surface-2 rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]">
+                <div className="bg-kairo-user-bubble rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]">
                   <p className="text-sm text-foreground">{message.content}</p>
                 </div>
               </div>
@@ -147,9 +147,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
         ))}
       </div>
 
-      {/* Input */}
-      <div className="px-4 pb-6 pt-2 safe-area-bottom">
-        <div className="bg-kairo-surface-2 rounded-2xl px-3 py-2">
+      {/* Input with safe area */}
+      <div className="px-4 pb-4 pt-2 safe-area-bottom">
+        <div className="bg-kairo-ai-bubble rounded-2xl px-3 py-2">
           <input
             type="text"
             value={inputValue}
