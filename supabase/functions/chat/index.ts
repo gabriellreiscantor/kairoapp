@@ -308,11 +308,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, imageAnalysis } = body;
+    const { messages, imageAnalysis, isOnboarding, onboardingStep } = body;
     
     console.log('Received messages count:', messages?.length || 0);
     console.log('Has image analysis:', !!imageAnalysis);
-    
+    console.log('Is onboarding:', isOnboarding, 'Step:', onboardingStep);
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
     if (!OPENAI_API_KEY) {
@@ -428,6 +428,18 @@ serve(async (req) => {
       ? `Sempre cumprimente o usuário pelo nome "${userName}". Exemplo: "E aí ${userName}! O que vamos agendar hoje?"`
       : `Use uma saudação casual como "E aí! O que vamos agendar hoje?"`;
 
+    // Onboarding context for guiding users
+    const onboardingContext = isOnboarding ? `
+## 🎯 MODO ONBOARDING ATIVO
+Este é um novo usuário que está criando seu primeiro evento.
+- Seja amigável e encorajador
+- Se o usuário descrever algo que pode ser um lembrete, SEMPRE interprete como criação de evento
+- Para a resposta_usuario quando criar evento, use algo curto como "Perfeito, estou organizando isso pra você..."
+- Não faça perguntas extras, apenas crie o evento com as informações disponíveis
+- Use valores padrão razoáveis: categoria "geral", prioridade "medium", duração 60 minutos
+- Se o usuário só disse "escovar os dentes" sem hora, sugira um horário razoável (ex: 22:00 para higiene noturna, 08:00 para manhã)
+` : '';
+
     // MASTER PROMPT - System prompt for INTERPRETATION ONLY
     const systemPrompt = `Você é Kairo, uma IA de interpretação para um aplicativo de agenda inteligente.
 
@@ -488,6 +500,8 @@ Data de hoje: ${todayStr} (${todayISO})
 - médico, hospital, emergência, doctor, emergency = "high"
 - trabalho, reunião, meeting, work = "medium"
 - café, lazer, coffee, personal = "low"
+
+${onboardingContext}
 
 ${userContext}
 
