@@ -2,6 +2,7 @@ import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCir
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface SettingsDrawerProps {
@@ -36,8 +37,21 @@ const SettingItem = ({ icon, label, value, valueIcon = 'chevron', onClick, dange
   </button>
 );
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  'pt-BR': 'Português',
+  'en-US': 'English',
+  'es-ES': 'Español',
+  'fr-FR': 'Français',
+  'de-DE': 'Deutsch',
+  'it-IT': 'Italiano',
+  'ja-JP': '日本語',
+  'ko-KR': '한국어',
+  'zh-CN': '中文',
+};
+
 const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const usedEvents = 0;
   const maxEvents = 14;
   const progress = (usedEvents / maxEvents) * 100;
@@ -51,9 +65,9 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="bg-kairo-surface-1 border-border/20 max-h-[90vh]" aria-describedby="settings-description">
         <DrawerHeader className="sr-only">
-          <DrawerTitle>Configurações</DrawerTitle>
+          <DrawerTitle>{t('settings.title')}</DrawerTitle>
           <DrawerDescription id="settings-description">
-            Configurações do aplicativo Kairo
+            {t('settings.title')}
           </DrawerDescription>
         </DrawerHeader>
 
@@ -96,9 +110,9 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white font-semibold text-left">Plano gratuito</p>
+                  <p className="text-white font-semibold text-left">{t('plan.free')}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-white/80 text-sm">Eventos agendados</span>
+                    <span className="text-white/80 text-sm">{t('plan.eventsScheduled')}</span>
                   </div>
                 </div>
                 <button 
@@ -108,7 +122,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     handleNavigate('/settings/plan');
                   }}
                 >
-                  Atualizar
+                  {t('plan.upgradeNow')}
                 </button>
               </div>
               
@@ -127,27 +141,27 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
           {/* Kairo Section */}
           <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">Kairo</h4>
+            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.kairo')}</h4>
             <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
               <SettingItem 
                 icon={<Calendar className="w-5 h-5" />} 
-                label="Calendários"
+                label={t('settings.calendars')}
                 value="Kairo"
                 onClick={() => handleNavigate('/settings/calendars')}
               />
               <SettingItem 
                 icon={<Bell className="w-5 h-5" />} 
-                label="Notificação de Evento"
+                label={t('settings.notifications')}
                 onClick={() => handleNavigate('/settings/notifications')}
               />
               <SettingItem 
                 icon={<Sparkles className="w-5 h-5" />} 
-                label="Tarefas Inteligentes"
+                label={t('settings.smartTasks')}
                 onClick={() => handleNavigate('/settings/smart-tasks')}
               />
               <SettingItem 
                 icon={<Zap className="w-5 h-5" />} 
-                label="Recursos Especiais"
+                label={t('settings.specialFeatures')}
                 onClick={() => handleNavigate('/settings/features')}
               />
             </div>
@@ -155,24 +169,24 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
           {/* General Section */}
           <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">Geral</h4>
+            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.general')}</h4>
             <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
               <SettingItem 
                 icon={<User className="w-5 h-5" />} 
-                label="Conta"
+                label={t('settings.account')}
                 onClick={() => handleNavigate('/settings/account')}
               />
               <SettingItem 
                 icon={<div className="w-5 h-5 rounded-full border-2 border-muted-foreground flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /></div>} 
-                label="Aparência"
+                label={t('settings.appearance')}
                 value="Sistema"
                 valueIcon="updown"
                 onClick={() => handleNavigate('/settings/appearance')}
               />
               <SettingItem 
                 icon={<Globe className="w-5 h-5" />} 
-                label="Idioma"
-                value="português"
+                label={t('settings.language')}
+                value={LANGUAGE_NAMES[language] || language}
                 valueIcon="external"
                 onClick={() => handleNavigate('/settings/language')}
               />
@@ -181,21 +195,21 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
           {/* Others Section */}
           <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">Outros</h4>
+            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.others')}</h4>
             <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
               <SettingItem 
                 icon={<MessageCircle className="w-5 h-5" />} 
-                label="Comentários"
+                label={t('settings.feedback')}
                 onClick={() => handleNavigate('/settings/help')}
               />
               <SettingItem 
                 icon={<Info className="w-5 h-5" />} 
-                label="Sobre"
+                label={t('settings.about')}
                 onClick={() => handleNavigate('/settings/about')}
               />
               <SettingItem 
                 icon={<LogOut className="w-5 h-5" />} 
-                label="Sair"
+                label={t('settings.logout')}
                 valueIcon="chevron"
                 danger
               />
