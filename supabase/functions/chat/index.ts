@@ -592,9 +592,15 @@ Data de hoje: ${todayStr} (${todayISO})
 Idiomas suportados: pt, en, es, fr, de, it, ja, ko, zh
 
 === REGRA ABSOLUTA FINAL ===
-Se detectar QUALQUER atividade (lanchonete, cinema, barbearia, shopping, mercado, etc):
+SAUDACOES/CONFIRMACOES (NAO sao atividades - use chat_response):
+- oi, ola, opa, e ai, fala, hey, blz, beleza, ok, certo, valeu, obrigado, bom dia, boa tarde, boa noite, show, legal
+
+ATIVIDADES (CRIE evento - use create_event):
+- lanchonete, cinema, barbearia, shopping, mercado, medico, reuniao, etc
+- Qualquer LUGAR ou ACAO especifica = atividade
+
+Se detectar atividade:
 - acao DEVE ser "criar_evento"
-- NUNCA use "conversar" ou "coletar_informacoes" para atividades
 - Mesmo que informacao esteja incompleta, CRIE com padroes
 
 ${onboardingContext}
@@ -631,7 +637,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "chat_response",
-          description: "Use APENAS para: saudacoes iniciais (oi, ola), perguntas sobre o sistema, ou temas completamente fora do escopo de eventos. NUNCA use para atividades - use create_event.",
+          description: "Use para: saudacoes (oi, ola, opa, e ai, fala, hey, bom dia, boa tarde, boa noite), confirmacoes (ok, certo, blz, beleza, legal, valeu, obrigado), perguntas sobre o sistema, ou temas fora do escopo de eventos. Uma unica palavra de saudacao/confirmacao NAO e atividade.",
           parameters: {
             type: "object",
             properties: {
