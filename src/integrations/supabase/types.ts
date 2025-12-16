@@ -14,7 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          call_alert_enabled: boolean | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          event_date: string
+          event_time: string | null
+          id: string
+          location: string | null
+          notification_enabled: boolean | null
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          call_alert_enabled?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          notification_enabled?: boolean | null
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          call_alert_enabled?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          notification_enabled?: boolean | null
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          auto_reschedule_enabled: boolean | null
+          avatar_url: string | null
+          context_aware_enabled: boolean | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          learn_patterns_enabled: boolean | null
+          phone: string | null
+          preferred_times: Json | null
+          smart_suggestions_enabled: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_reschedule_enabled?: boolean | null
+          avatar_url?: string | null
+          context_aware_enabled?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          id: string
+          learn_patterns_enabled?: boolean | null
+          phone?: string | null
+          preferred_times?: Json | null
+          smart_suggestions_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_reschedule_enabled?: boolean | null
+          avatar_url?: string | null
+          context_aware_enabled?: boolean | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          learn_patterns_enabled?: boolean | null
+          phone?: string | null
+          preferred_times?: Json | null
+          smart_suggestions_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_patterns: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          pattern_data: Json
+          pattern_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern_data: Json
+          pattern_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern_data?: Json
+          pattern_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

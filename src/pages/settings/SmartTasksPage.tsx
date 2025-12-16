@@ -1,26 +1,87 @@
 import { ChevronLeft, Sparkles, Brain, Clock, Repeat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const SmartTasksPage = () => {
   const navigate = useNavigate();
+  const { user, profile, refreshProfile } = useAuth();
+  
   const [smartSuggestions, setSmartSuggestions] = useState(true);
   const [autoReschedule, setAutoReschedule] = useState(true);
   const [contextAware, setContextAware] = useState(true);
   const [learnPatterns, setLearnPatterns] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load preferences from profile
+  useEffect(() => {
+    if (profile) {
+      setSmartSuggestions(profile.smart_suggestions_enabled ?? true);
+      setAutoReschedule(profile.auto_reschedule_enabled ?? true);
+      setContextAware(profile.context_aware_enabled ?? true);
+      setLearnPatterns(profile.learn_patterns_enabled ?? true);
+    }
+  }, [profile]);
+
+  const updatePreference = async (field: string, value: boolean) => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [field]: value })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error updating preference:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível salvar a preferência",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSmartSuggestions = (checked: boolean) => {
+    setSmartSuggestions(checked);
+    updatePreference('smart_suggestions_enabled', checked);
+  };
+
+  const handleAutoReschedule = (checked: boolean) => {
+    setAutoReschedule(checked);
+    updatePreference('auto_reschedule_enabled', checked);
+  };
+
+  const handleContextAware = (checked: boolean) => {
+    setContextAware(checked);
+    updatePreference('context_aware_enabled', checked);
+  };
+
+  const handleLearnPatterns = (checked: boolean) => {
+    setLearnPatterns(checked);
+    updatePreference('learn_patterns_enabled', checked);
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
+      <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
         <button 
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center z-10 relative"
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="text-xl font-bold text-foreground">Tarefas Inteligentes</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Tarefas Inteligentes</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
@@ -49,7 +110,11 @@ const SmartTasksPage = () => {
                   <p className="text-xs text-muted-foreground">Sugestões baseadas no seu histórico</p>
                 </div>
               </div>
-              <Switch checked={smartSuggestions} onCheckedChange={setSmartSuggestions} />
+              <Switch 
+                checked={smartSuggestions} 
+                onCheckedChange={handleSmartSuggestions}
+                disabled={isSaving}
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/10">
@@ -60,7 +125,11 @@ const SmartTasksPage = () => {
                   <p className="text-xs text-muted-foreground">Sugere novos horários para tarefas perdidas</p>
                 </div>
               </div>
-              <Switch checked={autoReschedule} onCheckedChange={setAutoReschedule} />
+              <Switch 
+                checked={autoReschedule} 
+                onCheckedChange={handleAutoReschedule}
+                disabled={isSaving}
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/10">
@@ -71,7 +140,11 @@ const SmartTasksPage = () => {
                   <p className="text-xs text-muted-foreground">Entende localização e duração</p>
                 </div>
               </div>
-              <Switch checked={contextAware} onCheckedChange={setContextAware} />
+              <Switch 
+                checked={contextAware} 
+                onCheckedChange={handleContextAware}
+                disabled={isSaving}
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5">
@@ -82,14 +155,18 @@ const SmartTasksPage = () => {
                   <p className="text-xs text-muted-foreground">Melhora com o tempo</p>
                 </div>
               </div>
-              <Switch checked={learnPatterns} onCheckedChange={setLearnPatterns} />
+              <Switch 
+                checked={learnPatterns} 
+                onCheckedChange={handleLearnPatterns}
+                disabled={isSaving}
+              />
             </div>
           </div>
         </div>
 
         {/* Privacy Note */}
         <p className="text-xs text-muted-foreground px-1">
-          Seus dados são processados localmente e nunca compartilhados. A IA aprende apenas com suas interações dentro do app.
+          Seus dados são processados de forma segura. A IA aprende apenas com suas interações dentro do app para melhorar sua experiência.
         </p>
       </div>
     </div>
