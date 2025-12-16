@@ -213,6 +213,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             type: m.role as 'user' | 'assistant',
             content: m.content,
             createdAt: new Date(m.created_at),
+            eventData: m.metadata?.eventData,
+            eventsListData: m.metadata?.eventsListData,
           }));
           setMessages(loadedMessages);
         }
@@ -226,7 +228,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     loadHistory();
   }, [user]);
 
-  const saveMessage = async (role: 'user' | 'assistant', content: string) => {
+  const saveMessage = async (role: 'user' | 'assistant', content: string, metadata?: any) => {
     if (!user) return;
 
     try {
@@ -234,6 +236,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         user_id: user.id,
         role,
         content,
+        metadata,
       });
     } catch (error) {
       console.error('Error saving message:', error);
@@ -290,6 +293,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let assistantContent = "";
       const assistantId = Date.now().toString();
       let hasConfirmationCard = false; // Track if we have a confirmation card
+      let finalEventData: any = undefined; // Track event data for persistence
+      let finalEventsListData: any[] | undefined = undefined; // Track events list for persistence
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -383,9 +388,19 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     eventData = { ...eventAction.data, resumo_evento: eventResumo };
                   }
                   
+                  // Store for persistence
+                  if (eventData) {
+                    finalEventData = eventData;
+                  }
+                  
                   // Check if events were LISTED
                   const listAction = executedActions.find(a => a.action === 'listar_eventos' && a.success);
                   const listedEvents = listAction?.eventos || listAction?.data?.eventos;
+                  
+                  // Store for persistence
+                  if (listedEvents) {
+                    finalEventsListData = listedEvents;
+                  }
                   
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
@@ -447,9 +462,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         }
       }
 
-      // Save assistant message after streaming completes
-      if (assistantContent) {
-        await saveMessage('assistant', assistantContent);
+      // Save assistant message after streaming completes with metadata for cards
+      if (assistantContent || finalEventData || finalEventsListData) {
+        const metadata = (finalEventData || finalEventsListData) 
+          ? { eventData: finalEventData, eventsListData: finalEventsListData }
+          : undefined;
+        await saveMessage('assistant', assistantContent || '', metadata);
       }
 
       // Handle executed actions
