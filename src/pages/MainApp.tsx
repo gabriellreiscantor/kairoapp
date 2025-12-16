@@ -6,7 +6,6 @@ import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
-import EventCard from "@/components/EventCard";
 import ChatPage from "@/components/ChatPage";
 
 interface Event {
@@ -20,6 +19,7 @@ interface Event {
 const MainApp = () => {
   const [activeView, setActiveView] = useState<'chat' | 'list' | 'calendar'>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
@@ -32,7 +32,7 @@ const MainApp = () => {
     ],
   });
 
-  const todayEvents = events[format(selectedDate, 'yyyy-MM-dd')] || [];
+  
 
   const handleAddEvent = (date?: Date) => {
     setCreateEventDate(date || selectedDate);
@@ -62,7 +62,7 @@ const MainApp = () => {
       <header className="px-4 safe-area-top pb-2 flex items-center justify-between">
         <button className="flex items-center gap-1">
           <h1 className="text-2xl font-bold text-foreground capitalize">
-            {format(selectedDate, 'MMMM', { locale: ptBR })}
+            {format(currentMonth, 'MMMM', { locale: ptBR })}
           </h1>
           <ChevronDown className="w-5 h-5 text-muted-foreground" />
         </button>
@@ -79,6 +79,8 @@ const MainApp = () => {
         <CalendarView 
           selectedDate={selectedDate}
           onDateSelect={setSelectedDate}
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
         />
       ) : (
         <DayListView
@@ -87,44 +89,6 @@ const MainApp = () => {
           onAddEvent={handleAddEvent}
           events={events}
         />
-      )}
-
-      {/* Events for selected date (when in calendar view) */}
-      {activeView === 'calendar' && (
-        <div className="px-4 mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-medium text-foreground">
-              {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-            </h2>
-            <button 
-              onClick={() => handleAddEvent()}
-              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95"
-            >
-              <Plus className="w-4 h-4 text-primary-foreground" />
-            </button>
-          </div>
-          
-          {todayEvents.length > 0 ? (
-            <div className="space-y-1.5">
-              {todayEvents.map((event) => (
-                <EventCard
-                  key={event.id}
-                  id={event.id}
-                  title={event.title}
-                  time={event.time}
-                  priority={event.priority}
-                />
-              ))}
-            </div>
-          ) : (
-            <button 
-              onClick={() => handleAddEvent()}
-              className="w-full py-4 rounded-xl border border-dashed border-border/40 text-center"
-            >
-              <p className="text-muted-foreground text-xs">Sem planos. Toque para adicionar</p>
-            </button>
-          )}
-        </div>
       )}
 
       {/* FAB for list view */}

@@ -1,19 +1,32 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isSameDay, 
+  isToday, 
+  startOfWeek, 
+  endOfWeek,
+  addMonths,
+  subMonths,
+  isSameMonth
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CalendarViewProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  currentMonth: Date;
+  onMonthChange: (date: Date) => void;
 }
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const MONTHS = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
 
-const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange }: CalendarViewProps) => {
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(currentMonth.getFullYear());
 
@@ -23,10 +36,15 @@ const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
   const calendarEnd = endOfWeek(monthEnd);
   
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  const today = new Date();
+  
+  // Group days into weeks for better layout
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
 
   const handleMonthSelect = (monthIndex: number) => {
-    setCurrentMonth(new Date(pickerYear, monthIndex, 1));
+    onMonthChange(new Date(pickerYear, monthIndex, 1));
     setYearPickerOpen(false);
   };
 
@@ -34,95 +52,93 @@ const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
   const handleNextYear = () => setPickerYear(prev => prev + 1);
 
   return (
-    <div className="px-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <Popover open={yearPickerOpen} onOpenChange={setYearPickerOpen}>
-          <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <span className="capitalize">{format(currentMonth, 'MMMM', { locale: ptBR })}</span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-3 bg-kairo-surface-2 border-border/30 rounded-xl" align="start">
-            {/* Year Navigation */}
-            <div className="flex items-center justify-between mb-3">
-              <button 
-                onClick={handlePrevYear}
-                className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-              </button>
-              <span className="text-foreground font-semibold text-sm">{pickerYear}</span>
-              <button 
-                onClick={handleNextYear}
-                className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-            
-            {/* Month Grid */}
-            <div className="grid grid-cols-4 gap-1">
-              {MONTHS.map((month, index) => {
-                const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
-                return (
-                  <button
-                    key={month}
-                    onClick={() => handleMonthSelect(index)}
-                    className={`py-1.5 px-1 rounded-lg text-xs font-medium transition-colors ${
-                      isCurrentMonth 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'text-foreground hover:bg-kairo-surface-3'
-                    }`}
-                  >
-                    {month}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Today indicator */}
-        <div className="flex items-center gap-1.5 bg-primary/15 rounded-lg px-2 py-1">
-          <span className="text-primary font-bold text-sm tabular-nums">{format(today, 'd')}</span>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-[calc(100vh-140px)]">
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="grid grid-cols-7 px-4 border-b border-border/20">
         {WEEKDAYS.map((day, index) => (
-          <div key={index} className="text-center text-[10px] text-muted-foreground font-medium py-1">
+          <div key={index} className="text-center text-xs text-muted-foreground font-medium py-2">
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-0.5">
-        {days.map((day, index) => {
-          const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-          const isTodayDate = isToday(day);
-          const isSelected = isSameDay(day, selectedDate);
-          
-          return (
-            <button
-              key={index}
-              onClick={() => onDateSelect(day)}
-              className={`
-                aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all
-                ${!isCurrentMonth ? 'text-muted-foreground/25' : 'text-foreground'}
-                ${isTodayDate ? 'bg-primary text-primary-foreground' : ''}
-                ${isSelected && !isTodayDate ? 'bg-kairo-surface-3 ring-1 ring-primary/40' : ''}
-                ${isCurrentMonth && !isTodayDate && !isSelected ? 'hover:bg-kairo-surface-2' : ''}
-              `}
-            >
-              {format(day, 'd')}
-            </button>
-          );
-        })}
+      {/* Calendar Grid - Full Height */}
+      <div className="flex-1 flex flex-col">
+        {weeks.map((week, weekIndex) => (
+          <div 
+            key={weekIndex} 
+            className="flex-1 grid grid-cols-7 border-b border-border/10"
+          >
+            {week.map((day, dayIndex) => {
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              const isTodayDate = isToday(day);
+              const isSelected = isSameDay(day, selectedDate);
+              
+              return (
+                <button
+                  key={dayIndex}
+                  onClick={() => onDateSelect(day)}
+                  className="flex items-start justify-center pt-2 transition-all"
+                >
+                  <span
+                    className={`
+                      w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium
+                      ${!isCurrentMonth ? 'text-muted-foreground/30' : 'text-foreground'}
+                      ${isTodayDate ? 'bg-primary text-primary-foreground' : ''}
+                      ${isSelected && !isTodayDate ? 'ring-2 ring-primary/50' : ''}
+                    `}
+                  >
+                    {format(day, 'd')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
+
+      {/* Month Picker Popover */}
+      <Popover open={yearPickerOpen} onOpenChange={setYearPickerOpen}>
+        <PopoverTrigger className="hidden" />
+        <PopoverContent className="w-64 p-3 bg-kairo-surface-2 border-border/30 rounded-xl" align="start">
+          {/* Year Navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <button 
+              onClick={handlePrevYear}
+              className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <span className="text-foreground font-semibold text-sm">{pickerYear}</span>
+            <button 
+              onClick={handleNextYear}
+              className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+          
+          {/* Month Grid */}
+          <div className="grid grid-cols-3 gap-1">
+            {MONTHS.map((month, index) => {
+              const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
+              return (
+                <button
+                  key={month}
+                  onClick={() => handleMonthSelect(index)}
+                  className={`py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                    isCurrentMonth 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-foreground hover:bg-kairo-surface-3'
+                  }`}
+                >
+                  {month}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 };
