@@ -209,9 +209,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar">
         {/* Show suggestions when chat is empty */}
         {messages.length === 0 && (
-          <div className="pt-8">
+          <div className="pt-4">
+            {/* Timestamp */}
+            <p className="text-center text-[10px] text-muted-foreground mb-4">
+              {formatMessageTime(new Date())}
+            </p>
+            
             {/* Welcome message */}
-            <div className="flex items-start gap-3 mb-6">
+            <div className="flex items-start gap-3 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
                 <img src={kairoFoxWhite} alt="Kairo" className="w-full h-full object-cover" />
               </div>
@@ -222,20 +227,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               </div>
             </div>
             
-            {/* Suggestion carousel - horizontal scroll */}
-            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4">
-              <div className="flex gap-2 pb-2">
-                {SUGGESTIONS.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSuggestionClick(suggestion.text)}
-                    className="flex-shrink-0 w-64 flex items-start gap-2.5 bg-kairo-surface-2 hover:bg-kairo-surface-3 border border-border/20 rounded-2xl px-4 py-3 text-left transition-all duration-300 hover:border-primary/20"
-                  >
-                    <span className="text-lg">{suggestion.emoji}</span>
-                    <span className="text-xs text-foreground/90 leading-relaxed line-clamp-2">{suggestion.text}</span>
-                  </button>
-                ))}
-              </div>
+            {/* Suggestions - vertical stack, left aligned */}
+            <div className="flex flex-col gap-2 pl-11">
+              {SUGGESTIONS.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestionClick(suggestion.text)}
+                  className="flex items-start gap-2.5 bg-kairo-surface-2 hover:bg-kairo-surface-3 border border-border/20 rounded-2xl px-4 py-3 text-left transition-all duration-300 hover:border-primary/20 w-fit max-w-[85%]"
+                >
+                  <span className="text-lg">{suggestion.emoji}</span>
+                  <span className="text-xs text-foreground/90 leading-relaxed">{suggestion.text}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
