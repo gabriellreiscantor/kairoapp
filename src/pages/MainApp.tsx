@@ -334,6 +334,7 @@ const MainApp = () => {
             onDateSelect={handleDateSelect}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
+            events={events}
           />
         ) : (
           <div className="h-full overflow-y-auto hide-scrollbar">
