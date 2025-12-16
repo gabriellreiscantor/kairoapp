@@ -164,9 +164,9 @@ const MainApp = () => {
         <ChatPage 
           onNavigateToCalendar={() => setActiveView('list')}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          activeView={activeView}
+          onViewChange={setActiveView}
         />
-        
-        <FloatingDock />
         
         <SettingsDrawer
           isOpen={isSettingsOpen}
