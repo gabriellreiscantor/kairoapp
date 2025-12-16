@@ -810,12 +810,33 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     if (message?.tool_calls && message.tool_calls.length > 0) {
       let toolCall;
       
+      // CRITICAL: Detect if message describes a NEW event (not an edit)
+      // Patterns like "vou no/na", "tenho", "marcar", "agendar" + place/activity = NEW EVENT
+      const newEventPatterns = [
+        /\b(vou|vamos|ir)\s+(no|na|ao|à|em|pra|para)\b/i,  // "vou no salão"
+        /\b(tenho|temos)\s+(um|uma|que|.*?(às|as|\d))/i,    // "tenho reunião"
+        /\b(marcar|agendar|criar)\s+(um|uma)/i,             // "marcar uma consulta"
+        /\bhoje\s+(às|as)\s+\d/i,                           // "hoje às 15h"
+        /\b(amanhã|amanha)\s+(às|as)\s+\d/i,                // "amanhã às 10h"
+      ];
+      const isNewEventDescription = newEventPatterns.some(p => p.test(lastUserMessage));
+      
       // If user wants to edit, prioritize edit_event tool
       if (wantsToEdit) {
         const editCall = message.tool_calls.find((tc: any) => tc.function.name === 'edit_event');
         const chatCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
         toolCall = editCall || chatCall || message.tool_calls[0];
         console.log(`Edit mode detected, prioritizing edit_event. Found edit_event: ${editCall ? 'yes' : 'no'}`);
+      }
+      // CRITICAL FIX: If message describes a NEW event, ALWAYS prioritize create_event
+      else if (isNewEventDescription && message.tool_calls.length > 1) {
+        const createCall = message.tool_calls.find((tc: any) => tc.function.name === 'create_event');
+        if (createCall) {
+          toolCall = createCall;
+          console.log(`New event description detected: "${lastUserMessage}". Prioritizing create_event over other tools.`);
+        } else {
+          toolCall = message.tool_calls[0];
+        }
       }
       // If last message is greeting and NOT in edit context, prioritize chat_response
       else if (isGreeting && message.tool_calls.length > 1) {
