@@ -13,6 +13,7 @@ interface EventCreatedCardProps {
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
   };
+  type?: 'created' | 'updated';
 }
 
 const getCategoryEmoji = (category?: string) => {
@@ -30,7 +31,7 @@ const getCategoryEmoji = (category?: string) => {
   return emojis[category || "geral"] || "🔴";
 };
 
-const EventCreatedCard = ({ event }: EventCreatedCardProps) => {
+const EventCreatedCard = ({ event, type = 'created' }: EventCreatedCardProps) => {
   const formatDate = (dateStr: string) => {
     try {
       const date = parseISO(dateStr);
@@ -66,7 +67,9 @@ const EventCreatedCard = ({ event }: EventCreatedCardProps) => {
       {/* Header text with success icon */}
       <div className="flex items-center gap-2 mb-3">
         <CheckCircle className="w-4 h-4 text-green-500" />
-        <p className="text-sm text-muted-foreground">Evento Criado</p>
+        <p className="text-sm text-muted-foreground">
+          {type === 'updated' ? 'Evento Atualizado' : 'Evento Criado'}
+        </p>
       </div>
       
       {/* Event Card */}

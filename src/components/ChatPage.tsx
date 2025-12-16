@@ -339,7 +339,29 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   // For optimistic creation, we show the card directly after creation
                   const showCreatedCard = !!eventAction && !!eventResumo;
                   
-                  console.log('[ChatPage] Event processing:', { eventAction: !!eventAction, eventResumo: !!eventResumo, showCreatedCard });
+                  // Check if event was UPDATED
+                  const updateAction = executedActions.find(a => a.action === 'editar_evento' && a.success);
+                  const updateResumo = updateAction 
+                    ? (updateAction.resumo_evento || updateAction.data?.resumo_evento)
+                    : undefined;
+                  const showUpdatedCard = !!updateAction && !!updateResumo;
+                  
+                  console.log('[ChatPage] Event processing:', { 
+                    eventAction: !!eventAction, 
+                    eventResumo: !!eventResumo, 
+                    showCreatedCard,
+                    updateAction: !!updateAction,
+                    updateResumo: !!updateResumo,
+                    showUpdatedCard
+                  });
+                  
+                  // Determine eventData - prioritize update over create
+                  let eventData = undefined;
+                  if (showUpdatedCard) {
+                    eventData = { ...updateAction.data, resumo_evento: updateResumo, isUpdate: true };
+                  } else if (showCreatedCard) {
+                    eventData = { ...eventAction.data, resumo_evento: eventResumo };
+                  }
                   
                   setMessages(prev => prev.map(m => 
                     m.id === assistantId ? { 
@@ -347,7 +369,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       content: confirmationResumo ? '' : assistantContent,
                       actions: executedActions,
                       isCreatingEvent: !!eventAction && !showCreatedCard,
-                      eventData: showCreatedCard ? { ...eventAction.data, resumo_evento: eventResumo } : undefined,
+                      eventData,
                       confirmationData: confirmationResumo,
                     } : m
                   ));
@@ -807,7 +829,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {/* Event Card */}
                     {message.eventData && !message.isCreatingEvent && (
                       <div className="pl-9 animate-fade-in">
-                        <EventCreatedCard event={message.eventData} />
+                        <EventCreatedCard 
+                          event={message.eventData} 
+                          type={message.eventData.isUpdate ? 'updated' : 'created'}
+                        />
                       </div>
                     )}
                     
