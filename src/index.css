@@ -7,13 +7,17 @@
 @layer base {
   :root {
     /* Core backgrounds */
-    --background: 0 0% 0%;
+    --background: 40 2% 15%;
     --foreground: 0 0% 98%;
     
     /* Surfaces - layered dark */
-    --kairo-surface-1: 0 0% 7%;
-    --kairo-surface-2: 0 0% 11%;
-    --kairo-surface-3: 0 0% 15%;
+    --kairo-surface-1: 40 2% 17%;
+    --kairo-surface-2: 0 0% 22%;
+    --kairo-surface-3: 0 0% 26%;
+    
+    /* Message colors */
+    --kairo-ai-bubble: 0 0% 22%;
+    --kairo-user-bubble: 0 0% 12%;
     
     /* Primary - Coral/Orange accent */
     --primary: 18 100% 60%;
@@ -32,16 +36,16 @@
     --accent-foreground: 0 0% 98%;
     
     /* Card */
-    --card: 0 0% 9%;
+    --card: 0 0% 12%;
     --card-foreground: 0 0% 98%;
     
     /* Popover */
-    --popover: 0 0% 9%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 98%;
     
     /* Border */
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
     --ring: 18 100% 60%;
     
     /* Kairo accent colors */
@@ -71,20 +75,20 @@
     --success-foreground: 0 0% 100%;
     
     /* Sidebar */
-    --sidebar-background: 0 0% 7%;
+    --sidebar-background: 40 2% 17%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 18 100% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 18%;
+    --sidebar-border: 0 0% 20%;
     --sidebar-ring: 18 100% 60%;
     
     --radius: 1rem;
   }
   
   .dark {
-    --background: 0 0% 0%;
+    --background: 40 2% 15%;
     --foreground: 0 0% 98%;
   }
 }
@@ -248,11 +252,19 @@
   
   /* Safe area padding for mobile */
   .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    padding-bottom: max(env(safe-area-inset-bottom, 1rem), 1rem);
   }
   
   .safe-area-top {
-    padding-top: env(safe-area-inset-top, 0);
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+  
+  .bg-kairo-ai-bubble {
+    background-color: hsl(var(--kairo-ai-bubble));
+  }
+  
+  .bg-kairo-user-bubble {
+    background-color: hsl(var(--kairo-user-bubble));
   }
 }
 
