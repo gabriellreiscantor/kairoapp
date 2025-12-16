@@ -199,18 +199,22 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
 
       try {
-        const { data, error } = await supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true })
-          .limit(100);
+      // Fetch most recent 100 messages (DESC) then reverse for chronological display
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      // Reverse to get chronological order (oldest first for display)
+      const sortedData = data ? [...data].reverse() : [];
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (data) {
-          console.log('[ChatPage] Loading history - total messages:', data.length);
-          const loadedMessages: Message[] = data.map((m: any) => {
+      if (sortedData.length > 0) {
+        console.log('[ChatPage] Loading history - total messages:', sortedData.length);
+        const loadedMessages: Message[] = sortedData.map((m: any) => {
             // DEBUG: Log each message's metadata
             console.log('[ChatPage] Loading message:', {
               id: m.id,
