@@ -1,6 +1,7 @@
 import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Palette, Globe, HelpCircle, Info, LogOut, Pencil } from "lucide-react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -32,13 +33,19 @@ const SettingItem = ({ icon, label, value, onClick, showChevron = true }: Settin
 );
 
 const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
+  const navigate = useNavigate();
   const usedEvents = 3;
   const maxEvents = 14;
   const progress = (usedEvents / maxEvents) * 100;
 
+  const handleNavigate = (path: string) => {
+    onClose();
+    navigate(path);
+  };
+
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-kairo-surface-1 border-border/20 max-h-[85vh]">
+      <DrawerContent className="bg-kairo-surface-1 border-border/20 max-h-[85vh]" aria-describedby="settings-description">
         <DrawerHeader className="px-4 pt-3 pb-0">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-foreground text-sm font-semibold">Configurações</DrawerTitle>
@@ -49,35 +56,38 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
+          <DrawerDescription id="settings-description" className="sr-only">
+            Configurações do aplicativo Kairo
+          </DrawerDescription>
         </DrawerHeader>
 
         <div className="px-4 py-3 overflow-y-auto">
           {/* Profile Section */}
-          <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => handleNavigate('/settings/account')} className="flex items-center gap-3 mb-4 w-full">
             <div className="relative">
               <div className="w-12 h-12 rounded-full bg-kairo-surface-3 flex items-center justify-center">
                 <User className="w-6 h-6 text-muted-foreground" />
               </div>
-              <button className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                 <Pencil className="w-2.5 h-2.5 text-primary-foreground" />
-              </button>
+              </div>
             </div>
-            <div>
+            <div className="text-left">
               <h3 className="text-foreground text-sm font-semibold">Usuário</h3>
               <p className="text-xs text-muted-foreground">usuario@email.com</p>
             </div>
-          </div>
+          </button>
 
           {/* Plan Card */}
-          <div className="gradient-plan rounded-2xl p-3.5 mb-4">
+          <button onClick={() => handleNavigate('/settings/features')} className="w-full gradient-plan rounded-2xl p-3.5 mb-4 text-left">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-white/70 text-[10px]">Plano atual</p>
                 <h3 className="text-white font-semibold text-sm">Gratuito</h3>
               </div>
-              <button className="bg-white/20 hover:bg-white/30 text-white font-medium px-3 py-1.5 rounded-lg text-xs transition-colors">
+              <span className="bg-white/20 text-white font-medium px-3 py-1.5 rounded-lg text-xs">
                 Atualizar
-              </button>
+              </span>
             </div>
             
             <div>
@@ -87,7 +97,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
               </div>
               <Progress value={progress} className="h-1.5 bg-white/20" />
             </div>
-          </div>
+          </button>
 
           {/* Settings Sections */}
           <div className="space-y-4">
@@ -95,10 +105,10 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             <div>
               <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Kairo</h4>
               <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
-                <SettingItem icon={<Calendar className="w-4 h-4" />} label="Calendários" />
-                <SettingItem icon={<Bell className="w-4 h-4" />} label="Notificações" />
-                <SettingItem icon={<Sparkles className="w-4 h-4" />} label="Tarefas Inteligentes" />
-                <SettingItem icon={<Zap className="w-4 h-4" />} label="Recursos Especiais" />
+                <SettingItem icon={<Calendar className="w-4 h-4" />} label="Calendários" onClick={() => handleNavigate('/settings/calendars')} />
+                <SettingItem icon={<Bell className="w-4 h-4" />} label="Notificações" onClick={() => handleNavigate('/settings/notifications')} />
+                <SettingItem icon={<Sparkles className="w-4 h-4" />} label="Tarefas Inteligentes" onClick={() => handleNavigate('/settings/smart-tasks')} />
+                <SettingItem icon={<Zap className="w-4 h-4" />} label="Recursos Especiais" onClick={() => handleNavigate('/settings/features')} />
               </div>
             </div>
 
@@ -106,9 +116,9 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             <div>
               <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Geral</h4>
               <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
-                <SettingItem icon={<User className="w-4 h-4" />} label="Conta" />
-                <SettingItem icon={<Palette className="w-4 h-4" />} label="Aparência" value="Sistema" />
-                <SettingItem icon={<Globe className="w-4 h-4" />} label="Idioma" value="PT" />
+                <SettingItem icon={<User className="w-4 h-4" />} label="Conta" onClick={() => handleNavigate('/settings/account')} />
+                <SettingItem icon={<Palette className="w-4 h-4" />} label="Aparência" value="Escuro" onClick={() => handleNavigate('/settings/appearance')} />
+                <SettingItem icon={<Globe className="w-4 h-4" />} label="Idioma" value="PT-BR" onClick={() => handleNavigate('/settings/language')} />
               </div>
             </div>
 
@@ -116,8 +126,8 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             <div>
               <h4 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 px-3">Outros</h4>
               <div className="bg-kairo-surface-2 rounded-xl overflow-hidden">
-                <SettingItem icon={<HelpCircle className="w-4 h-4" />} label="Ajuda" />
-                <SettingItem icon={<Info className="w-4 h-4" />} label="Sobre" />
+                <SettingItem icon={<HelpCircle className="w-4 h-4" />} label="Ajuda" onClick={() => handleNavigate('/settings/help')} />
+                <SettingItem icon={<Info className="w-4 h-4" />} label="Sobre" onClick={() => handleNavigate('/settings/about')} />
                 <SettingItem 
                   icon={<LogOut className="w-4 h-4 text-kairo-red" />} 
                   label="Sair" 
