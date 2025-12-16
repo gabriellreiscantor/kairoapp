@@ -1,14 +1,10 @@
-import { ChevronLeft, Check, Loader2 } from "lucide-react";
+import { ChevronLeft, Check, Loader2, Sparkles, Zap, Crown, Clock, Calendar, MessageSquare, Shield, HelpCircle, ChevronDown, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useSubscription } from "@/hooks/useSubscription";
+import { cn } from "@/lib/utils";
+
+type PlanType = 'free' | 'plus' | 'super';
 
 const MyPlanPage = () => {
   const navigate = useNavigate();
@@ -18,71 +14,94 @@ const MyPlanPage = () => {
   const maxEvents = limits?.max_events_per_week || 14;
   const progress = maxEvents > 0 ? (usedEvents / maxEvents) * 100 : 0;
   
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
-  const [selectedPlan, setSelectedPlan] = useState<'plus' | 'super'>('plus');
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('plus');
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
-  const planNames: Record<string, string> = {
-    free: 'Grátis',
-    plus: 'Plus',
-    super: 'Super'
-  };
-
-  const plans = {
+  const planData: Record<PlanType, {
+    name: string;
+    icon: typeof Sparkles;
+    tagline: string;
+    monthlyPrice: string;
+    yearlyPrice: string;
+    color: string;
+    features: { icon: typeof Clock; text: string; highlight?: string }[];
+  }> = {
+    free: {
+      name: 'Grátis',
+      icon: Sparkles,
+      tagline: 'Para começar',
+      monthlyPrice: 'R$ 0',
+      yearlyPrice: 'R$ 0',
+      color: 'muted-foreground',
+      features: [
+        { icon: Calendar, text: 'eventos por semana', highlight: '14' },
+        { icon: Calendar, text: 'calendários externos', highlight: '2' },
+        { icon: MessageSquare, text: 'Kairo Chat básico' },
+        { icon: Shield, text: 'Suporte por email' },
+      ]
+    },
     plus: {
+      name: 'Plus',
+      icon: Zap,
+      tagline: 'Mais escolhido',
       monthlyPrice: 'R$ 14,90',
       yearlyPrice: 'R$ 148,40',
-      tagline: 'Perfeito para o uso diário',
+      color: 'primary',
       features: [
-        { highlight: '50', text: 'eventos por semana' },
-        { highlight: '', text: 'Lembretes ilimitados', isHighlight: true },
-        { highlight: '15', text: 'calendários do Google/Apple' },
-        { highlight: '', text: 'Cancele a qualquer momento' },
+        { icon: Calendar, text: 'eventos por semana', highlight: '50' },
+        { icon: Calendar, text: 'calendários externos', highlight: '15' },
+        { icon: MessageSquare, text: 'Kairo Chat 5× capacidade' },
+        { icon: Shield, text: 'Detecção de conflitos' },
+        { icon: Clock, text: 'Visão geral diária' },
       ]
     },
     super: {
+      name: 'Super',
+      icon: Crown,
+      tagline: 'Produtividade máxima',
       monthlyPrice: 'R$ 29,90',
       yearlyPrice: 'R$ 297,80',
-      tagline: 'Agende como um profissional',
+      color: 'kairo-amber',
       features: [
-        { highlight: '280', text: 'eventos por semana' },
-        { highlight: '', text: 'Lembretes ilimitados', isHighlight: true },
-        { highlight: '25', text: 'calendários do Google/Apple' },
-        { highlight: '', text: 'Cancele a qualquer momento' },
+        { icon: Calendar, text: 'eventos por semana', highlight: '280' },
+        { icon: Calendar, text: 'calendários externos', highlight: '25' },
+        { icon: MessageSquare, text: 'Kairo Chat 20× capacidade' },
+        { icon: Shield, text: 'Detecção de conflitos' },
+        { icon: Clock, text: 'Visão geral diária' },
+        { icon: Sparkles, text: 'Suporte prioritário' },
       ]
     }
   };
 
-  const comparisonData = [
-    { feature: 'Eventos por semana', free: '14', plus: '50', super: '280' },
-    { feature: 'Notificações', free: 'ilimitados', plus: 'ilimitados', super: 'ilimitados' },
-    { feature: 'calendários do Google/Apple', free: '2', plus: '15', super: '25' },
-    { feature: 'Calendários Kairo', free: '3', plus: '5', super: '30' },
-    { feature: 'Detecção de conflito de agendamento', free: '–', plus: true, super: true },
-    { feature: 'Visão geral da agenda diária', free: '–', plus: true, super: true },
-    { feature: 'Kairo Chat', free: 'Limitado', plus: '5× capacidade', super: '20× capacidade' },
-  ];
-
   const faqs = [
-    { question: 'Como funciona o período de teste?', answer: 'Você tem 7 dias grátis para experimentar todos os recursos premium. Após esse período, será cobrado automaticamente.' },
-    { question: 'Posso acessar meu Kairo Premium de outro dispositivo?', answer: 'Sim! Sua assinatura está vinculada à sua conta e funciona em qualquer dispositivo.' },
-    { question: 'Como faço para solicitar um cancelamento ou reembolso para o Kairo Premium?', answer: 'Você pode cancelar a qualquer momento nas configurações da App Store ou Google Play.' },
-    { question: 'Como transfiro minha assinatura do Kairo Premium para uma nova conta?', answer: 'Entre em contato com nosso suporte para transferir sua assinatura.' },
+    { 
+      icon: Clock,
+      question: 'Como funciona o teste gratuito?', 
+      answer: 'São 7 dias completos para explorar todos os recursos premium. Cancele antes do fim e não será cobrado nada.' 
+    },
+    { 
+      icon: Calendar,
+      question: 'Posso usar em vários dispositivos?', 
+      answer: 'Sim! Sua conta sincroniza automaticamente em todos os seus dispositivos.' 
+    },
+    { 
+      icon: Shield,
+      question: 'Como cancelo a assinatura?', 
+      answer: 'Vá nas configurações da App Store ou Google Play. O cancelamento é imediato, sem burocracia.' 
+    },
+    { 
+      icon: RotateCcw,
+      question: 'E se eu mudar de plano?', 
+      answer: 'Você pode fazer upgrade ou downgrade a qualquer momento. O valor é ajustado proporcionalmente.' 
+    },
   ];
 
-  // Calculate reset time (end of current week)
   const getResetTime = () => {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const daysUntilSunday = 7 - dayOfWeek;
-    const nextSunday = new Date(now);
-    nextSunday.setDate(now.getDate() + daysUntilSunday);
-    nextSunday.setHours(23, 59, 0, 0);
-    return nextSunday.toLocaleDateString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      day: 'numeric',
-      month: 'short'
-    });
+    return `${daysUntilSunday} dia${daysUntilSunday !== 1 ? 's' : ''}`;
   };
 
   if (loading) {
@@ -93,303 +112,344 @@ const MyPlanPage = () => {
     );
   }
 
+  const currentPlanData = planData[currentPlan];
+  const selectedPlanData = planData[selectedPlan];
+  const CurrentPlanIcon = currentPlanData.icon;
+
   return (
     <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 py-4 safe-area-top flex items-center border-b border-border/10">
         <button 
           onClick={() => navigate('/')}
-          className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center z-10 relative"
+          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Meu plano</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-10">Planos</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="px-4 pb-32">
-          {/* Premium Banner */}
-          <div className="gradient-plan rounded-3xl p-6 mb-6">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-md bg-primary text-primary-foreground text-xs font-bold">PLUS</span>
-              <span className="px-3 py-1 rounded-md bg-yellow-500 text-black text-xs font-bold">SUPER</span>
+        <div className="px-4 pb-40 pt-4">
+          
+          {/* Current Plan Compact Banner */}
+          <div className="flex items-center gap-3 p-4 bg-kairo-surface-1 rounded-2xl mb-6">
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center",
+              currentPlan === 'free' && "bg-muted",
+              currentPlan === 'plus' && "bg-primary/20",
+              currentPlan === 'super' && "bg-kairo-amber/20"
+            )}>
+              <CurrentPlanIcon className={cn(
+                "w-5 h-5",
+                currentPlan === 'free' && "text-muted-foreground",
+                currentPlan === 'plus' && "text-primary",
+                currentPlan === 'super' && "text-kairo-amber"
+              )} />
             </div>
-            <h2 className="text-white font-bold text-2xl text-center mb-1">Planos Kairo Premium</h2>
-            <p className="text-white/80 text-center text-sm">Experimente grátis por 7 dias</p>
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Plano atual</p>
+              <p className="text-foreground font-semibold">{currentPlanData.name}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Esta semana</p>
+              <p className="text-foreground font-medium">{usedEvents}/{maxEvents}</p>
+            </div>
+            {/* Mini progress bar */}
+            <div className="w-16 h-1.5 bg-kairo-surface-3 rounded-full overflow-hidden">
+              <div 
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  progress > 80 ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
           </div>
 
-          {/* Current Plan Section */}
-          <div className="mb-6">
-            <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1">
-              MEU PLANO
-            </h2>
-            <div className="bg-kairo-surface-2 rounded-2xl p-5">
-              <h3 className="text-foreground font-bold text-2xl mb-4">{planNames[currentPlan]}</h3>
-              
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-muted-foreground">Eventos esta semana</span>
-                <span className="text-foreground font-semibold">{usedEvents} / {maxEvents}</span>
-              </div>
-              <Progress value={progress} className="h-1.5 bg-kairo-surface-3" />
-            </div>
-            
-            <p className="text-muted-foreground text-sm mt-3 px-1">
-              O uso será redefinido em {getResetTime()}
-            </p>
-          </div>
-
-          {/* Upgrade Button */}
-          <button className="w-full py-4 rounded-2xl bg-kairo-surface-2 mb-8">
-            <span className="text-primary font-semibold text-lg">Atualizar agora</span>
-          </button>
-
-          {/* Billing Toggle */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="bg-kairo-surface-2 rounded-full p-1 flex mb-2">
+          {/* Billing Period Toggle - Prominent Position */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative bg-kairo-surface-2 rounded-2xl p-1 flex w-full max-w-xs">
+              <div 
+                className={cn(
+                  "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-foreground rounded-xl transition-transform duration-300",
+                  billingPeriod === 'yearly' && "translate-x-[calc(100%+8px)]"
+                )}
+              />
               <button
                 onClick={() => setBillingPeriod('monthly')}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
-                  billingPeriod === 'monthly' 
-                    ? 'bg-foreground text-background' 
-                    : 'text-muted-foreground'
-                }`}
+                className={cn(
+                  "flex-1 py-3 rounded-xl text-sm font-medium transition-colors relative z-10",
+                  billingPeriod === 'monthly' ? "text-background" : "text-muted-foreground"
+                )}
               >
                 Mensal
               </button>
               <button
                 onClick={() => setBillingPeriod('yearly')}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
-                  billingPeriod === 'yearly' 
-                    ? 'bg-foreground text-background' 
-                    : 'text-muted-foreground'
-                }`}
+                className={cn(
+                  "flex-1 py-3 rounded-xl text-sm font-medium transition-colors relative z-10 flex items-center justify-center gap-1.5",
+                  billingPeriod === 'yearly' ? "text-background" : "text-muted-foreground"
+                )}
               >
                 Anual
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                  billingPeriod === 'yearly' ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"
+                )}>
+                  -17%
+                </span>
               </button>
             </div>
-            <p className="text-muted-foreground text-sm">Economize 17% com a cobrança anual</p>
           </div>
 
-          {/* Plan Cards */}
-          <div className="space-y-4 mb-8">
-            {/* PLUS Plan */}
-            <button
-              onClick={() => setSelectedPlan('plus')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative cursor-pointer ${
-                selectedPlan === 'plus' ? 'ring-2 ring-primary' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-md bg-primary text-primary-foreground text-xs font-bold">PLUS</span>
-                  <span className="text-primary text-sm font-medium">{plans.plus.tagline}</span>
-                </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  selectedPlan === 'plus' ? 'bg-foreground border-foreground' : 'border-muted-foreground'
-                }`}>
-                  {selectedPlan === 'plus' && <Check className="w-4 h-4 text-background" />}
-                </div>
-              </div>
+          {/* Plan Selector Tabs */}
+          <div className="flex gap-2 mb-6">
+            {(['free', 'plus', 'super'] as PlanType[]).map((plan) => {
+              const data = planData[plan];
+              const Icon = data.icon;
+              const isSelected = selectedPlan === plan;
+              const isRecommended = plan === 'plus';
               
-              <div className="mb-4">
-                <span className="text-foreground text-3xl font-bold">
-                  {billingPeriod === 'monthly' ? plans.plus.monthlyPrice : plans.plus.yearlyPrice}
-                </span>
-                <span className="text-muted-foreground text-sm">/{billingPeriod === 'monthly' ? 'mês' : 'ano'}</span>
-              </div>
-              
-              <ul className="space-y-2">
-                {plans.plus.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">•</span>
-                    {feature.highlight && <span className="text-primary font-semibold">{feature.highlight}</span>}
-                    <span className={feature.isHighlight ? 'text-primary font-medium' : 'text-foreground'}>
-                      {feature.text}
+              return (
+                <button
+                  key={plan}
+                  onClick={() => setSelectedPlan(plan)}
+                  className={cn(
+                    "flex-1 py-3 px-2 rounded-xl transition-all duration-300 relative",
+                    isSelected 
+                      ? plan === 'super' 
+                        ? "bg-kairo-amber/20 border-2 border-kairo-amber" 
+                        : plan === 'plus'
+                          ? "bg-primary/20 border-2 border-primary plan-glow-plus"
+                          : "bg-kairo-surface-3 border-2 border-border"
+                      : "bg-kairo-surface-2 border-2 border-transparent"
+                  )}
+                >
+                  {isRecommended && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] px-2 py-0.5 bg-primary text-primary-foreground rounded-full font-medium whitespace-nowrap">
+                      Recomendado
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </button>
-
-            {/* SUPER Plan */}
-            <button
-              onClick={() => setSelectedPlan('super')}
-              className={`w-full bg-kairo-surface-2 rounded-2xl p-5 text-left relative cursor-pointer ${
-                selectedPlan === 'super' ? 'ring-2 ring-yellow-500' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-md bg-yellow-500 text-black text-xs font-bold">SUPER</span>
-                  <span className="text-primary text-sm font-medium">{plans.super.tagline}</span>
-                </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  selectedPlan === 'super' ? 'bg-foreground border-foreground' : 'border-muted-foreground'
-                }`}>
-                  {selectedPlan === 'super' && <Check className="w-4 h-4 text-background" />}
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <span className="text-foreground text-3xl font-bold">
-                  {billingPeriod === 'monthly' ? plans.super.monthlyPrice : plans.super.yearlyPrice}
-                </span>
-                <span className="text-muted-foreground text-sm">/{billingPeriod === 'monthly' ? 'mês' : 'ano'}</span>
-              </div>
-              
-              <ul className="space-y-2">
-                {plans.super.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">•</span>
-                    {feature.highlight && <span className="text-primary font-semibold">{feature.highlight}</span>}
-                    <span className={feature.isHighlight ? 'text-primary font-medium' : 'text-foreground'}>
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </button>
+                  )}
+                  <Icon className={cn(
+                    "w-4 h-4 mx-auto mb-1",
+                    isSelected && plan === 'plus' && "text-primary",
+                    isSelected && plan === 'super' && "text-kairo-amber",
+                    !isSelected && "text-muted-foreground"
+                  )} />
+                  <p className={cn(
+                    "text-xs font-semibold",
+                    isSelected ? "text-foreground" : "text-muted-foreground"
+                  )}>
+                    {data.name}
+                  </p>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Comparison Table */}
-          <h3 className="text-foreground font-semibold text-lg text-center mb-6">Recursos Premium</h3>
-          
-          <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden mb-8">
-            {/* Table Header */}
-            <div className="grid grid-cols-4 gap-2 p-4 border-b border-border/20">
-              <div></div>
-              <div className="text-center">
-                <span className="px-2 py-0.5 rounded bg-muted-foreground/30 text-foreground text-xs font-bold">FREE</span>
+          {/* Selected Plan Details */}
+          <div className={cn(
+            "rounded-3xl p-6 mb-8 transition-all duration-300",
+            selectedPlan === 'plus' && "bg-gradient-to-br from-primary/10 via-kairo-surface-2 to-kairo-surface-2 border border-primary/30",
+            selectedPlan === 'super' && "bg-gradient-to-br from-kairo-amber/10 via-kairo-surface-2 to-kairo-surface-2 border border-kairo-amber/30",
+            selectedPlan === 'free' && "bg-kairo-surface-2 border border-border/30"
+          )}>
+            {/* Plan Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className={cn(
+                  "text-sm font-medium mb-1",
+                  selectedPlan === 'plus' && "text-primary",
+                  selectedPlan === 'super' && "text-kairo-amber",
+                  selectedPlan === 'free' && "text-muted-foreground"
+                )}>
+                  {selectedPlanData.tagline}
+                </p>
+                <h2 className="text-3xl font-bold text-foreground">
+                  {billingPeriod === 'monthly' ? selectedPlanData.monthlyPrice : selectedPlanData.yearlyPrice}
+                  {selectedPlan !== 'free' && (
+                    <span className="text-base font-normal text-muted-foreground">
+                      /{billingPeriod === 'monthly' ? 'mês' : 'ano'}
+                    </span>
+                  )}
+                </h2>
               </div>
-              <div className="text-center bg-kairo-surface-3 rounded-t-lg py-2 -mt-2 -mb-2">
-                <span className="px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold">PLUS</span>
-              </div>
-              <div className="text-center">
-                <span className="px-2 py-0.5 rounded bg-yellow-500 text-black text-xs font-bold">SUPER</span>
-              </div>
+              {selectedPlan !== 'free' && (
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center",
+                  selectedPlan === 'plus' && "bg-primary/20",
+                  selectedPlan === 'super' && "bg-kairo-amber/20"
+                )}>
+                  {selectedPlan === 'plus' ? (
+                    <Zap className="w-6 h-6 text-primary" />
+                  ) : (
+                    <Crown className="w-6 h-6 text-kairo-amber" />
+                  )}
+                </div>
+              )}
             </div>
-            
-            {/* Table Rows */}
-            {comparisonData.map((row, idx) => (
-              <div key={idx} className="grid grid-cols-4 gap-2 p-4 border-b border-border/10 last:border-0">
-                <div className="text-muted-foreground text-sm">{row.feature}</div>
-                <div className="text-center text-muted-foreground text-sm">{row.free}</div>
-                <div className="text-center bg-kairo-surface-3 py-2 -my-4 flex items-center justify-center">
-                  {typeof row.plus === 'boolean' ? (
-                    <Check className="w-4 h-4 text-foreground" />
-                  ) : (
-                    <span className="text-foreground text-sm font-medium">{row.plus}</span>
-                  )}
-                </div>
-                <div className="text-center text-sm">
-                  {typeof row.super === 'boolean' ? (
-                    <Check className="w-4 h-4 text-foreground mx-auto" />
-                  ) : (
-                    <span className="text-foreground">{row.super}</span>
-                  )}
-                </div>
-              </div>
-            ))}
+
+            {/* Features List */}
+            <div className="space-y-3">
+              {selectedPlanData.features.map((feature, idx) => {
+                const FeatureIcon = feature.icon;
+                return (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center",
+                      selectedPlan === 'plus' && "bg-primary/10",
+                      selectedPlan === 'super' && "bg-kairo-amber/10",
+                      selectedPlan === 'free' && "bg-muted"
+                    )}>
+                      <FeatureIcon className={cn(
+                        "w-4 h-4",
+                        selectedPlan === 'plus' && "text-primary",
+                        selectedPlan === 'super' && "text-kairo-amber",
+                        selectedPlan === 'free' && "text-muted-foreground"
+                      )} />
+                    </div>
+                    <p className="text-foreground text-sm">
+                      {feature.highlight && (
+                        <span className={cn(
+                          "font-bold mr-1",
+                          selectedPlan === 'plus' && "text-primary",
+                          selectedPlan === 'super' && "text-kairo-amber"
+                        )}>
+                          {feature.highlight}
+                        </span>
+                      )}
+                      {feature.text}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Cancel anytime note */}
+            {selectedPlan !== 'free' && (
+              <p className="text-xs text-muted-foreground mt-6 text-center">
+                Cancele a qualquer momento • Sem compromisso
+              </p>
+            )}
           </div>
 
-          {/* FAQ Section */}
-          <h3 className="text-foreground font-semibold text-lg text-center mb-4">Perguntas e Respostas</h3>
-          
-          <Accordion type="single" collapsible className="space-y-2 mb-8">
-            {faqs.map((faq, idx) => (
-              <AccordionItem 
-                key={idx} 
-                value={`faq-${idx}`}
-                className="border-b border-border/20"
-              >
-                <AccordionTrigger className="text-foreground text-left py-4 hover:no-underline">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          {/* FAQ Section - Card Style */}
+          <div className="mb-8">
+            <h3 className="text-foreground font-semibold text-lg mb-4 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-muted-foreground" />
+              Perguntas frequentes
+            </h3>
+            
+            <div className="space-y-2">
+              {faqs.map((faq, idx) => {
+                const FaqIcon = faq.icon;
+                const isExpanded = expandedFaq === idx;
+                
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setExpandedFaq(isExpanded ? null : idx)}
+                    className="w-full text-left bg-kairo-surface-2 rounded-2xl overflow-hidden transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-3 p-4">
+                      <div className="w-8 h-8 rounded-lg bg-kairo-surface-3 flex items-center justify-center shrink-0">
+                        <FaqIcon className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <p className="flex-1 text-foreground text-sm font-medium">{faq.question}</p>
+                      <ChevronDown className={cn(
+                        "w-4 h-4 text-muted-foreground transition-transform duration-300",
+                        isExpanded && "rotate-180"
+                      )} />
+                    </div>
+                    <div className={cn(
+                      "overflow-hidden transition-all duration-300",
+                      isExpanded ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                    )}>
+                      <p className="px-4 pb-4 text-muted-foreground text-sm leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Legal Links */}
-          <div className="flex items-center justify-center gap-6 mb-8">
+          <div className="flex items-center justify-center gap-4 mb-6">
             <button 
               onClick={() => navigate('/legal/terms')}
-              className="text-muted-foreground text-sm"
+              className="text-muted-foreground text-xs hover:text-foreground transition-colors"
             >
-              Termos de Serviço
+              Termos
             </button>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
             <button 
               onClick={() => navigate('/legal/privacy')}
-              className="text-muted-foreground text-sm"
+              className="text-muted-foreground text-xs hover:text-foreground transition-colors"
             >
-              Política de Privacidade
+              Privacidade
+            </button>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+            <button className="text-muted-foreground text-xs hover:text-foreground transition-colors">
+              Restaurar compras
             </button>
           </div>
 
-          {/* Manage Subscription */}
-          <button className="w-full text-center text-muted-foreground py-4">
-            Gerenciar assinatura e pagamentos
-          </button>
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border/20 p-4 safe-area-bottom">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-muted-foreground text-sm">Economize 17% com a cobrança anual</span>
-          <div 
-            onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-            className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${
-              billingPeriod === 'yearly' ? 'bg-primary' : 'bg-kairo-surface-3'
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-              billingPeriod === 'yearly' ? 'translate-x-5' : 'translate-x-0'
-            }`} />
+      {/* Fixed Bottom CTA - Floating Pill Style */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 safe-area-bottom">
+        <div className="bg-kairo-surface-1/95 backdrop-blur-xl rounded-3xl p-4 border border-border/20 shadow-2xl">
+          {/* Price summary */}
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {selectedPlan === 'free' ? 'Plano atual' : 'Total'}
+              </p>
+              <p className="text-foreground font-bold text-lg">
+                {billingPeriod === 'monthly' ? selectedPlanData.monthlyPrice : selectedPlanData.yearlyPrice}
+                {selectedPlan !== 'free' && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    /{billingPeriod === 'monthly' ? 'mês' : 'ano'}
+                  </span>
+                )}
+              </p>
+            </div>
+            {selectedPlan !== 'free' && billingPeriod === 'yearly' && (
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground line-through">
+                  R$ {selectedPlan === 'plus' ? '178,80' : '358,80'}/ano
+                </p>
+                <p className="text-xs text-primary font-medium">
+                  Economia de R$ {selectedPlan === 'plus' ? '30,40' : '61,00'}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <button
-            onClick={() => setSelectedPlan('plus')}
-            className={`p-3 rounded-xl border-2 ${
-              selectedPlan === 'plus' ? 'border-primary bg-kairo-surface-2' : 'border-border bg-kairo-surface-2'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-bold">PLUS</span>
-              {selectedPlan === 'plus' && <Check className="w-4 h-4 text-primary" />}
-            </div>
-            <span className="text-foreground text-sm font-medium">
-              {billingPeriod === 'monthly' ? 'R$ 14,90/mês' : 'R$ 148,40/ano'}
-            </span>
-          </button>
           
-          <button
-            onClick={() => setSelectedPlan('super')}
-            className={`p-3 rounded-xl border-2 ${
-              selectedPlan === 'super' ? 'border-yellow-500 bg-kairo-surface-2' : 'border-border bg-kairo-surface-2'
-            }`}
+          {/* CTA Button */}
+          <button 
+            disabled={selectedPlan === 'free' && currentPlan === 'free'}
+            className={cn(
+              "w-full py-4 rounded-2xl font-semibold text-base transition-all duration-300",
+              selectedPlan === 'free' && currentPlan === 'free'
+                ? "bg-kairo-surface-3 text-muted-foreground cursor-not-allowed"
+                : selectedPlan === 'super'
+                  ? "bg-gradient-to-r from-kairo-amber to-kairo-amber/80 text-background"
+                  : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+            )}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="px-2 py-0.5 rounded bg-yellow-500 text-black text-xs font-bold">SUPER</span>
-              {selectedPlan === 'super' && <Check className="w-4 h-4 text-yellow-500" />}
-            </div>
-            <span className="text-foreground text-sm font-medium">
-              {billingPeriod === 'monthly' ? 'R$ 29,90/mês' : 'R$ 297,80/ano'}
-            </span>
+            {selectedPlan === 'free' && currentPlan === 'free' 
+              ? 'Plano atual'
+              : selectedPlan === 'free'
+                ? 'Mudar para Grátis'
+                : 'Começar 7 dias grátis'
+            }
           </button>
         </div>
-        
-        <button className="w-full py-4 rounded-2xl bg-foreground text-background font-semibold text-lg">
-          Experimente grátis por 7 dias
-        </button>
-        
-        <button className="w-full text-center text-muted-foreground text-sm py-3 hover:text-foreground transition-colors">
-          Restaurar compras
-        </button>
       </div>
     </div>
   );
