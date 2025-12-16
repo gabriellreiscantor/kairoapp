@@ -6,6 +6,7 @@ import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
+import DateDetailSheet from "@/components/DateDetailSheet";
 import ChatPage from "@/components/ChatPage";
 
 interface Event {
@@ -22,6 +23,7 @@ const MainApp = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
 
   // Sample events
@@ -32,11 +34,20 @@ const MainApp = () => {
     ],
   });
 
-  
-
   const handleAddEvent = (date?: Date) => {
     setCreateEventDate(date || selectedDate);
     setIsCreateModalOpen(true);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    if (activeView === 'calendar') {
+      setIsDateSheetOpen(true);
+    }
+  };
+
+  const getEventsForDate = (date: Date) => {
+    return events[format(date, 'yyyy-MM-dd')] || [];
   };
 
   // Chat Page (Home)
@@ -57,9 +68,12 @@ const MainApp = () => {
 
   // Calendar/List Views
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Gradient Overlay Top */}
+      <div className="fixed top-0 left-0 right-0 h-20 gradient-overlay-top pointer-events-none z-10" />
+      
       {/* Header - Toki style */}
-      <header className="px-4 safe-area-top pb-2 flex items-center justify-between">
+      <header className="px-4 safe-area-top pb-2 flex items-center justify-between relative z-20">
         <button className="flex items-center gap-1">
           <h1 className="text-2xl font-bold text-foreground capitalize">
             {format(currentMonth, 'MMMM', { locale: ptBR })}
@@ -75,21 +89,28 @@ const MainApp = () => {
       </header>
 
       {/* Main Content */}
-      {activeView === 'calendar' ? (
-        <CalendarView 
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          currentMonth={currentMonth}
-          onMonthChange={setCurrentMonth}
-        />
-      ) : (
-        <DayListView
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          onAddEvent={handleAddEvent}
-          events={events}
-        />
-      )}
+      <div className="flex-1 overflow-hidden hide-scrollbar">
+        {activeView === 'calendar' ? (
+          <CalendarView 
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+          />
+        ) : (
+          <div className="h-full overflow-y-auto hide-scrollbar pb-24">
+            <DayListView
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              onAddEvent={handleAddEvent}
+              events={events}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Gradient Overlay Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 h-24 gradient-overlay-bottom pointer-events-none z-10" />
 
       {/* FAB for list view */}
       {activeView === 'list' && (
@@ -144,6 +165,18 @@ const MainApp = () => {
           </button>
         </div>
       </div>
+
+      {/* Date Detail Sheet */}
+      <DateDetailSheet
+        isOpen={isDateSheetOpen}
+        onClose={() => setIsDateSheetOpen(false)}
+        selectedDate={selectedDate}
+        events={getEventsForDate(selectedDate)}
+        onAddEvent={() => {
+          setIsDateSheetOpen(false);
+          handleAddEvent(selectedDate);
+        }}
+      />
 
       {/* Settings Drawer */}
       <SettingsDrawer

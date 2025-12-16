@@ -9,8 +9,6 @@ import {
   isToday, 
   startOfWeek, 
   endOfWeek,
-  addMonths,
-  subMonths,
   isSameMonth
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,9 +50,9 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
   const handleNextYear = () => setPickerYear(prev => prev + 1);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)]">
+    <div className="flex flex-col flex-1 overflow-hidden">
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 px-4 border-b border-border/20">
+      <div className="grid grid-cols-7 px-4 border-b border-border/10">
         {WEEKDAYS.map((day, index) => (
           <div key={index} className="text-center text-xs text-muted-foreground font-medium py-2">
             {day}
@@ -67,25 +65,23 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
         {weeks.map((week, weekIndex) => (
           <div 
             key={weekIndex} 
-            className="flex-1 grid grid-cols-7 border-b border-border/10"
+            className="flex-1 grid grid-cols-7"
           >
             {week.map((day, dayIndex) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isTodayDate = isToday(day);
-              const isSelected = isSameDay(day, selectedDate);
               
               return (
                 <button
                   key={dayIndex}
                   onClick={() => onDateSelect(day)}
-                  className="flex items-start justify-center pt-2 transition-all"
+                  className="flex items-start justify-center pt-3 transition-all active:bg-kairo-surface-2/30"
                 >
                   <span
                     className={`
-                      w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium
-                      ${!isCurrentMonth ? 'text-muted-foreground/30' : 'text-foreground'}
+                      w-9 h-9 flex items-center justify-center rounded-full text-sm font-medium transition-colors
+                      ${!isCurrentMonth ? 'text-muted-foreground/25' : 'text-foreground'}
                       ${isTodayDate ? 'bg-primary text-primary-foreground' : ''}
-                      ${isSelected && !isTodayDate ? 'ring-2 ring-primary/50' : ''}
                     `}
                   >
                     {format(day, 'd')}
