@@ -65,11 +65,11 @@ const MyPlanPage = () => {
       <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
         <button 
           onClick={() => navigate('/')}
-          className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center z-10 relative"
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12">Meu plano</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Meu plano</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
