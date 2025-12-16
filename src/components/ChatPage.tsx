@@ -1,13 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send } from "lucide-react";
+import { Camera, Image, Mic, Send, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FoxIcon from "./icons/FoxIcon";
 import { toast } from "@/hooks/use-toast";
+import kairoLogo from "@/assets/kairo-logo.png";
+
+type ViewType = 'chat' | 'list' | 'calendar';
 
 interface ChatPageProps {
   onNavigateToCalendar: () => void;
   onOpenSettings: () => void;
+  activeView: ViewType;
+  onViewChange: (view: ViewType) => void;
 }
 
 interface Message {
@@ -44,7 +49,7 @@ const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): bool
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
+const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange }: ChatPageProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -163,8 +168,45 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Fixed Header Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl safe-area-top">
+        <div className="flex items-center justify-center gap-2 px-4 py-3">
+          {/* List View */}
+          <button
+            onClick={() => onViewChange('list')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+              activeView === 'list' 
+                ? 'bg-primary/20 text-primary' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2'
+            }`}
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          
+          {/* Center - Kairo Logo */}
+          <button
+            onClick={() => onViewChange('chat')}
+            className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
+          >
+            <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
+          </button>
+          
+          {/* Calendar View */}
+          <button
+            onClick={() => onViewChange('calendar')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+              activeView === 'calendar' 
+                ? 'bg-primary/20 text-primary' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2'
+            }`}
+          >
+            <CalendarIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
       {/* Messages - Timeline style */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-6 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar">
         {/* Show suggestions when chat is empty */}
         {messages.length === 0 && (
           <div className="pt-8">
