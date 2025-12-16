@@ -102,11 +102,22 @@ const EULAPage = () => {
             <p className="text-muted-foreground text-sm leading-relaxed mb-2">
               Se você baixou o aplicativo através da Apple App Store ou Google Play:
             </p>
-            <ul className="text-muted-foreground text-sm leading-relaxed list-disc list-inside space-y-1">
+            <ul className="text-muted-foreground text-sm leading-relaxed list-disc list-inside space-y-1 mb-4">
               <li>Este EULA é entre você e Kairo, não com Apple/Google</li>
               <li>Apple/Google não têm obrigação de fornecer suporte</li>
               <li>Apple/Google são beneficiários terceiros deste EULA</li>
             </ul>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-2">
+              Para usuários da Apple App Store, aplicam-se também os termos padrão da Apple:
+            </p>
+            <a 
+              href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary text-sm underline hover:opacity-80 transition-opacity"
+            >
+              Apple Standard EULA (Terms of Use)
+            </a>
           </section>
 
           <section className="mb-6">
