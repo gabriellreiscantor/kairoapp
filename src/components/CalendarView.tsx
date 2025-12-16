@@ -202,7 +202,16 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     setTranslate({ x: 0, y: 0 });
   }, [currentMonth]);
 
-  const MAX_VISIBLE_EVENTS = 2;
+  // Dynamic config based on zoom
+  const getEventConfig = () => {
+    if (scale >= 2) return { titleLength: 20, fontSize: 'text-xs', showLocation: true, maxEvents: 4 };
+    if (scale >= 1.5) return { titleLength: 12, fontSize: 'text-[11px]', showLocation: true, maxEvents: 3 };
+    return { titleLength: 6, fontSize: 'text-[10px]', showLocation: false, maxEvents: 2 };
+  };
+  
+  const eventConfig = getEventConfig();
+
+  const MAX_VISIBLE_EVENTS = eventConfig.maxEvents;
 
   return (
     <div 
@@ -284,12 +293,21 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                           key={event.id || idx}
                           className="w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5 truncate"
                         >
-                          <span className="text-[10px] font-medium text-foreground truncate block leading-tight">
-                            {event.title.length > 6 ? event.title.slice(0, 6) + '...' : event.title}
+                          <span className={`${eventConfig.fontSize} font-medium text-foreground truncate block leading-tight`}>
+                            {event.title.length > eventConfig.titleLength 
+                              ? event.title.slice(0, eventConfig.titleLength) + '...' 
+                              : event.title}
                           </span>
-                          <span className="text-[9px] text-primary truncate block leading-tight">
+                          <span className={`${scale >= 1.5 ? 'text-[10px]' : 'text-[9px]'} text-primary truncate block leading-tight`}>
                             {formatEventTime(event)}
                           </span>
+                          {eventConfig.showLocation && event.location && (
+                            <span className="text-[9px] text-muted-foreground truncate block leading-tight">
+                              {event.location.length > eventConfig.titleLength 
+                                ? event.location.slice(0, eventConfig.titleLength) + '...' 
+                                : event.location}
+                            </span>
+                          )}
                         </div>
                       ))}
                       
