@@ -331,6 +331,96 @@ serve(async (req) => {
     
     console.log('OpenAI API key found, length:', OPENAI_API_KEY.length);
 
+    // === SPECIAL HANDLING FOR IMAGE ANALYSIS ===
+    // When an image is analyzed, use the analysis result directly instead of GPT
+    if (imageAnalysis && imageAnalysis.tipo === 'evento_detectado') {
+      console.log('Image detected event, responding directly with analysis');
+      
+      // Format date for display
+      const formatDateDisplay = (dateStr: string) => {
+        if (!dateStr) return '';
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+      };
+
+      // Build response with event confirmation request
+      const responseText = imageAnalysis.pergunta_usuario || 
+        `Vi que é um ingresso! Quer que eu crie um lembrete para ${imageAnalysis.titulo}?`;
+      
+      const eventPreview = {
+        titulo: imageAnalysis.titulo || 'Evento',
+        data: imageAnalysis.data_detectada,
+        hora: imageAnalysis.hora_detectada,
+        local: imageAnalysis.local_detectado,
+        notificacao: '30 min antes'
+      };
+
+      // Return as SSE stream with confirmation action
+      const actionData = {
+        acao: 'solicitar_confirmacao',
+        resposta_usuario: responseText,
+        resumo_evento: eventPreview,
+        // Store extracted data for when user confirms
+        titulo: imageAnalysis.titulo,
+        data: imageAnalysis.data_detectada,
+        hora: imageAnalysis.hora_detectada,
+        local: imageAnalysis.local_detectado,
+        descricao: imageAnalysis.descricao,
+        prioridade: 'medium',
+        categoria: 'evento',
+        duracao_minutos: 120, // Default for movies/events
+        idioma_detectado: 'pt'
+      };
+
+      console.log('Image analysis action data:', JSON.stringify(actionData));
+
+      // Build SSE response
+      let ssePayload = `data: {"text": "${responseText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}\n\n`;
+      ssePayload += `data: {"action": ${JSON.stringify(actionData)}}\n\n`;
+      ssePayload += `data: [DONE]\n\n`;
+
+      return new Response(ssePayload, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+
+    // Handle other image analysis types (health, generic, not identified)
+    if (imageAnalysis && imageAnalysis.tipo !== 'evento_detectado') {
+      console.log('Image analysis type:', imageAnalysis.tipo);
+      
+      let responseText = imageAnalysis.pergunta_usuario || 'Analisei a imagem. O que você quer lembrar sobre isso?';
+      
+      if (imageAnalysis.tipo === 'saude') {
+        responseText = imageAnalysis.pergunta_usuario || 'Vi que parece ser algo de saúde. Quer que eu crie um lembrete de medicamento?';
+      } else if (imageAnalysis.tipo === 'generico') {
+        responseText = imageAnalysis.pergunta_usuario || 'O que você quer lembrar sobre essa imagem?';
+      } else if (imageAnalysis.tipo === 'nao_identificado') {
+        responseText = imageAnalysis.pergunta_usuario || 'Não consegui identificar bem a imagem. Pode me dizer o que quer agendar?';
+      }
+
+      const actionData = {
+        acao: 'conversar',
+        resposta_usuario: responseText,
+        idioma_detectado: 'pt'
+      };
+
+      let ssePayload = `data: {"text": "${responseText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}\n\n`;
+      ssePayload += `data: {"action": ${JSON.stringify(actionData)}}\n\n`;
+      ssePayload += `data: [DONE]\n\n`;
+
+      return new Response(ssePayload, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+
     const authHeader = req.headers.get('authorization');
     let userContext = "";
     let userId: string | null = null;

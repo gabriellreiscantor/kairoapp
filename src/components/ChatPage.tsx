@@ -891,8 +891,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       const analysisResult = await response.json();
       console.log('Image analysis result:', analysisResult);
 
-      // Send analysis to chat for response
-      await streamChat(analysisResult.pergunta_usuario || 'Analisei a imagem', newMessages, analysisResult);
+      // Send neutral message - the edge function will use imageAnalysis to respond
+      await streamChat('📷 imagem enviada', newMessages, analysisResult);
 
     } catch (error) {
       console.error('Image analysis error:', error);
