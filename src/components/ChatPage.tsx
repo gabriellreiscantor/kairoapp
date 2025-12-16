@@ -4,8 +4,10 @@ import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
+import kairoFoxColor from "@/assets/kairo-fox-color.jpg";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -52,6 +54,8 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange }: ChatPageProps) => {
   const { user, session } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -278,7 +282,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             {/* Welcome message */}
             <div className="flex items-start gap-3 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
-                <img src={kairoFoxWhite} alt="Kairo" className="w-full h-full object-cover" />
+                <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -325,7 +329,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 {message.type === 'assistant' ? (
                   <div className="flex items-start gap-3 mb-4 pl-1">
                     <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                      <img src={kairoFoxWhite} alt="Kairo" className="w-full h-full object-cover" />
+                      <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 pt-0.5">
                       <p className="text-sm text-foreground leading-relaxed">
