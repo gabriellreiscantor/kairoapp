@@ -30,7 +30,6 @@ interface CreateEventModalProps {
   }) => void;
 }
 
-type AlertType = 'notification' | 'call';
 type ScreenView = 'main' | 'location' | 'emoji';
 
 interface Alert {
@@ -81,7 +80,8 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
   const [endTime, setEndTime] = useState("06:00");
   const [repeat, setRepeat] = useState("never");
   const [showRepeatDropdown, setShowRepeatDropdown] = useState(false);
-  const [alertType, setAlertType] = useState<AlertType>('notification');
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [callAlertEnabled, setCallAlertEnabled] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([{ id: 1, time: '15min', daysBefore: 0 }]);
   const [notes, setNotes] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("📅");
@@ -94,7 +94,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
       date: format(startDate, 'yyyy-MM-dd'),
       time: startTime,
       priority: 'medium',
-      alertType,
+      alertType: notificationEnabled && callAlertEnabled ? 'both' : notificationEnabled ? 'notification' : callAlertEnabled ? 'call' : 'none',
       repeat,
       notes,
     });
@@ -375,42 +375,51 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
         {/* Alerts Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          {/* Alert Type Selection */}
-          <div className="flex items-center justify-around py-6 border-b border-border/10">
-            <button 
-              onClick={() => setAlertType('notification')}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                alertType === 'notification' ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
+          {/* Notification Toggle */}
+          <button 
+            onClick={() => setNotificationEnabled(!notificationEnabled)}
+            className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                notificationEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
               }`}>
-                <Bell className={`w-6 h-6 ${alertType === 'notification' ? 'text-white' : 'text-muted-foreground'}`} />
+                <Bell className={`w-5 h-5 ${notificationEnabled ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
-              <span className="text-sm text-foreground">Notificação</span>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                alertType === 'notification' ? 'border-primary bg-primary' : 'border-muted-foreground'
-              }`}>
-                {alertType === 'notification' && <Check className="w-3 h-3 text-background" />}
+              <div className="text-left">
+                <span className="text-foreground">Notificação Push</span>
+                <p className="text-xs text-muted-foreground">Receber alerta no celular</p>
               </div>
-            </button>
+            </div>
+            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+              notificationEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'
+            }`}>
+              {notificationEnabled && <Check className="w-4 h-4 text-background" />}
+            </div>
+          </button>
 
-            <button 
-              onClick={() => setAlertType('call')}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                alertType === 'call' ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
+          {/* Call Alert Toggle */}
+          <button 
+            onClick={() => setCallAlertEnabled(!callAlertEnabled)}
+            className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                callAlertEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'
               }`}>
-                <Phone className={`w-6 h-6 ${alertType === 'call' ? 'text-white' : 'text-muted-foreground'}`} />
+                <Phone className={`w-5 h-5 ${callAlertEnabled ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
-              <span className="text-sm text-foreground">Alerta de chamada</span>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                alertType === 'call' ? 'border-primary bg-primary' : 'border-muted-foreground'
-              }`}>
-                {alertType === 'call' && <Check className="w-3 h-3 text-background" />}
+              <div className="text-left">
+                <span className="text-foreground">Alerta de Chamada</span>
+                <p className="text-xs text-muted-foreground">Receber ligação simulada</p>
               </div>
-            </button>
-          </div>
+            </div>
+            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+              callAlertEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'
+            }`}>
+              {callAlertEnabled && <Check className="w-4 h-4 text-background" />}
+            </div>
+          </button>
 
           {/* Alert List */}
           {alerts.map((alert, index) => (
