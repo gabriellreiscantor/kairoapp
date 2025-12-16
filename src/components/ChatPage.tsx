@@ -264,6 +264,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let textBuffer = "";
       let assistantContent = "";
       const assistantId = Date.now().toString();
+      let hasConfirmationCard = false; // Track if we have a confirmation card
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -334,8 +335,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       } : m
                     ));
 
-                    // If confirmation is requested, open modal
+                    // If confirmation is requested, open modal and mark flag
                     if (confirmationResumo) {
+                      hasConfirmationCard = true;
                       setConfirmationModal({
                         isOpen: true,
                         resumo: confirmationResumo,
@@ -360,10 +362,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   console.error('[ChatPage] Error parsing actions:', e);
                 }
               } else {
-                assistantContent += content;
-                setMessages(prev => prev.map(m => 
-                  m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions.length > 0 ? executedActions : undefined } : m
-                ));
+                // Skip text content if we already have a confirmation card
+                if (!hasConfirmationCard) {
+                  assistantContent += content;
+                  setMessages(prev => prev.map(m => 
+                    m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions.length > 0 ? executedActions : undefined } : m
+                  ));
+                }
               }
             }
           } catch (parseError) {

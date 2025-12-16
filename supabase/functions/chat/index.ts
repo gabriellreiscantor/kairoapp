@@ -693,7 +693,8 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     const actionContent = `<!--KAIRO_ACTIONS:${actionJson}-->`;
     chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:actionContent}}]})}\n\n`);
 
-    if (finalResponse) {
+    // Don't send text response for confirmation - the card handles the display
+    if (finalResponse && action.acao !== 'solicitar_confirmacao') {
       chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:finalResponse}}]})}\n\n`);
     }
     
