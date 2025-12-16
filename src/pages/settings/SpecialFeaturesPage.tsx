@@ -28,14 +28,14 @@ const SpecialFeaturesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
+      <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center">
         <button 
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-kairo-surface-2 flex items-center justify-center z-10 relative"
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />
         </button>
-        <h1 className="text-xl font-bold text-foreground">Recursos Especiais</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Recursos Especiais</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
