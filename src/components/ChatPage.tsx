@@ -297,15 +297,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           />
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <button className="p-2 text-muted-foreground hover:text-primary transition-colors duration-300">
-                <Camera className="w-5 h-5" />
-              </button>
-              <button className="p-2 text-muted-foreground hover:text-primary transition-colors duration-300">
-                <Image className="w-5 h-5" />
-              </button>
-            </div>
-            
+            {/* Mic button on left */}
             {inputValue ? (
               <button 
                 onClick={() => handleSend()}
@@ -319,6 +311,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 <Mic className="w-4 h-4 text-foreground" />
               </button>
             )}
+            
+            {/* Camera and Image buttons on right - always orange */}
+            <div className="flex items-center gap-1">
+              <button className="p-2 text-primary hover:text-primary/80 transition-colors duration-300">
+                <Camera className="w-5 h-5" />
+              </button>
+              <button className="p-2 text-primary hover:text-primary/80 transition-colors duration-300">
+                <Image className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
