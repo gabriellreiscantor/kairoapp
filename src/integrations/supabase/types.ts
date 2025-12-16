@@ -138,8 +138,11 @@ export type Database = {
           context_aware_enabled: boolean | null
           created_at: string | null
           display_name: string | null
+          first_event_created: boolean | null
           id: string
           learn_patterns_enabled: boolean | null
+          onboarding_completed: boolean | null
+          onboarding_step: string | null
           phone: string | null
           preferred_times: Json | null
           smart_suggestions_enabled: boolean | null
@@ -153,8 +156,11 @@ export type Database = {
           context_aware_enabled?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          first_event_created?: boolean | null
           id: string
           learn_patterns_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: string | null
           phone?: string | null
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null
@@ -168,8 +174,11 @@ export type Database = {
           context_aware_enabled?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          first_event_created?: boolean | null
           id?: string
           learn_patterns_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: string | null
           phone?: string | null
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null

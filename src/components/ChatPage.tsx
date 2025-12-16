@@ -8,9 +8,12 @@ import { useTheme } from "next-themes";
 import { useToast } from "@/hooks/use-toast";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
+import EventCreatedCard from "@/components/chat/EventCreatedCard";
+import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -29,6 +32,8 @@ interface Message {
   createdAt: Date;
   actions?: ExecutedAction[];
   imagePreview?: string;
+  eventData?: any; // For showing event cards
+  suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
 }
 
 interface ExecutedAction {
@@ -42,6 +47,17 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const TRANSCRIBE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`;
 const ANALYZE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`;
 
+// Onboarding messages
+const ONBOARDING_WELCOME = `Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso.
+
+Assim você não precisa guardar tudo na cabeça.
+
+Pode ser qualquer coisa — me conta o que você gostaria de lembrar.`;
+
+const ONBOARDING_FIRST_EVENT_SUCCESS = `Excelente! Você acabou de criar seu primeiro lembrete no Kairo.
+
+A partir de agora, o Kairo cuida disso pra você.`;
+
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -49,6 +65,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const { toast } = useToast();
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const { captureFromCamera, selectFromGallery } = useImageCapture();
+  const { 
+    step: onboardingStep, 
+    isInOnboarding, 
+    isLoading: isOnboardingLoading,
+    setStep: setOnboardingStep,
+    markFirstEventCreated,
+    completeOnboarding 
+  } = useOnboarding();
   
   const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,11 +81,40 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [showWeeklySuggestion, setShowWeeklySuggestion] = useState(false);
+  const [showCalendarSuggestion, setShowCalendarSuggestion] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const dateLocale = getDateLocale();
 
-  const suggestions = [
+  // Get user display name for personalized messages
+  const [displayName, setDisplayName] = useState<string>('');
+  
+  useEffect(() => {
+    const loadDisplayName = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+        if (data?.display_name) {
+          setDisplayName(data.display_name);
+        }
+      } catch (error) {
+        console.error('Error loading display name:', error);
+      }
+    };
+    loadDisplayName();
+  }, [user]);
+
+  const suggestions = isInOnboarding ? [
+    { emoji: "🦷", text: "Lembrar de escovar os dentes às 22h" },
+    { emoji: "💊", text: "Tomar remédio todo dia às 8h" },
+    { emoji: "📞", text: "Ligar para minha mãe domingo" },
+    { emoji: "🏃", text: "Academia amanhã às 7h" },
+  ] : [
     { emoji: "🍖", text: t('chat.suggestion1') },
     { emoji: "🩺", text: t('chat.suggestion2') },
     { emoji: "☕", text: t('chat.suggestion3') },
@@ -92,7 +145,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
 
   // Load chat history on mount
   useEffect(() => {
@@ -158,6 +211,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     try {
       console.log('[ChatPage] Starting chat request to:', CHAT_URL);
       console.log('[ChatPage] Messages being sent:', apiMessages.length);
+      console.log('[ChatPage] Onboarding step:', onboardingStep);
       
       const response = await fetch(CHAT_URL, {
         method: "POST",
@@ -167,7 +221,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         },
         body: JSON.stringify({ 
           messages: apiMessages,
-          imageAnalysis 
+          imageAnalysis,
+          isOnboarding: isInOnboarding,
+          onboardingStep,
         }),
       });
 
@@ -204,7 +260,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         
         const chunk = decoder.decode(value, { stream: true });
         textBuffer += chunk;
-        console.log('[ChatPage] Received chunk, buffer length:', textBuffer.length);
 
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
@@ -216,7 +271,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           if (!line.startsWith("data: ")) continue;
 
           const jsonStr = line.slice(6).trim();
-          console.log('[ChatPage] Processing SSE data:', jsonStr.substring(0, 100));
           
           if (jsonStr === "[DONE]") {
             console.log('[ChatPage] Received [DONE] marker');
@@ -227,8 +281,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
-              console.log('[ChatPage] Content received:', content.substring(0, 50));
-              
               // Check for action metadata
               const actionMatch = content.match(/<!--KAIRO_ACTIONS:(.+?)-->/);
               if (actionMatch) {
@@ -238,8 +290,17 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   const cleanContent = content.replace(/<!--KAIRO_ACTIONS:.+?-->\n?/, '');
                   if (cleanContent) {
                     assistantContent += cleanContent;
+                    
+                    // Check if event was created to show event card
+                    const eventAction = executedActions.find(a => a.action === 'criar_evento' && a.success);
+                    
                     setMessages(prev => prev.map(m => 
-                      m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions } : m
+                      m.id === assistantId ? { 
+                        ...m, 
+                        content: assistantContent, 
+                        actions: executedActions,
+                        eventData: eventAction?.data 
+                      } : m
                     ));
                   }
                 } catch (e) {
@@ -247,7 +308,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 }
               } else {
                 assistantContent += content;
-                console.log('[ChatPage] Total assistant content:', assistantContent.length);
                 setMessages(prev => prev.map(m => 
                   m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions.length > 0 ? executedActions : undefined } : m
                 ));
@@ -271,6 +331,28 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         if (action.success) {
           if (action.action === 'criar_evento') {
             onEventCreated?.();
+            
+            // Check if this is first event during onboarding
+            if (isInOnboarding && (onboardingStep === 'welcome' || onboardingStep === 'guiding')) {
+              await markFirstEventCreated();
+              
+              // Show success message and event card
+              const eventCardMessage: Message = {
+                id: `event-card-${Date.now()}`,
+                type: 'assistant',
+                content: ONBOARDING_FIRST_EVENT_SUCCESS,
+                createdAt: new Date(),
+                eventData: action.data,
+              };
+              setMessages(prev => [...prev, eventCardMessage]);
+              await saveMessage('assistant', ONBOARDING_FIRST_EVENT_SUCCESS);
+              
+              // After a short delay, show weekly planning suggestion
+              setTimeout(() => {
+                setShowWeeklySuggestion(true);
+                setOnboardingStep('suggest_weekly');
+              }, 2000);
+            }
           } else if (action.action === 'deletar_evento') {
             onEventCreated?.();
           } else if (action.action === 'editar_evento') {
@@ -294,6 +376,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     const messageText = text || inputValue.trim();
     if (!messageText || isLoading) return;
     
+    // If in welcome step, move to guiding
+    if (onboardingStep === 'welcome') {
+      setOnboardingStep('guiding');
+    }
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
@@ -311,6 +398,40 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   const handleSuggestionClick = (text: string) => {
     handleSend(text);
+  };
+
+  // Handle weekly planning suggestion
+  const handleAcceptWeeklyPlanning = async () => {
+    setShowWeeklySuggestion(false);
+    await handleSend("Criar lembrete: Planejamento semanal toda segunda-feira às 9h");
+    
+    // After weekly planning, show calendar suggestion
+    setTimeout(() => {
+      setShowCalendarSuggestion(true);
+      setOnboardingStep('suggest_calendar');
+    }, 2000);
+  };
+
+  const handleSkipWeeklyPlanning = () => {
+    setShowWeeklySuggestion(false);
+    setShowCalendarSuggestion(true);
+    setOnboardingStep('suggest_calendar');
+  };
+
+  // Handle calendar connection suggestion
+  const handleAcceptCalendarConnection = () => {
+    setShowCalendarSuggestion(false);
+    // TODO: Implement calendar connection flow
+    toast({
+      title: "Em breve",
+      description: "A conexão com calendários estará disponível em breve!",
+    });
+    completeOnboarding();
+  };
+
+  const handleSkipCalendarConnection = () => {
+    setShowCalendarSuggestion(false);
+    completeOnboarding();
   };
 
   // AUDIO RECORDING
@@ -439,6 +560,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   const isProcessing = isLoading || isTranscribing || isAnalyzingImage;
 
+  // Get welcome message based on onboarding state
+  const getWelcomeMessage = () => {
+    if (isInOnboarding && messages.length === 0) {
+      return ONBOARDING_WELCOME;
+    }
+    // Regular greeting with name
+    const name = displayName ? `${displayName}! ` : '';
+    return `E aí ${name}O que vamos agendar hoje?`;
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Fixed Header Navigation */}
@@ -473,14 +604,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Messages - Timeline style */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-24 hide-scrollbar">
         {/* Loading history indicator */}
-        {isLoadingHistory && (
+        {(isLoadingHistory || isOnboardingLoading) && (
           <div className="flex justify-center py-4">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
         {/* Show suggestions when chat is empty */}
-        {!isLoadingHistory && messages.length === 0 && (
+        {!isLoadingHistory && !isOnboardingLoading && messages.length === 0 && (
           <div className="pt-4">
             {/* Timestamp */}
             <p className="text-center text-[10px] text-muted-foreground mb-4">
@@ -493,8 +624,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t('chat.greeting')}
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                  {getWelcomeMessage()}
                 </p>
               </div>
             </div>
@@ -512,6 +643,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 </button>
               ))}
             </div>
+
+            {/* Onboarding helper text */}
+            {isInOnboarding && (
+              <div className="mt-6 pl-11">
+                <p className="text-xs text-muted-foreground italic">
+                  Pode ser algo simples, como escovar os dentes. Ou algo importante, como uma reunião.
+                  Escreve do jeito que você falaria.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -535,15 +676,24 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 )}
                 
                 {message.type === 'assistant' ? (
-                  <div className="flex items-start gap-3 mb-4 pl-1">
-                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                      <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                  <div className="flex flex-col gap-3 mb-4">
+                    <div className="flex items-start gap-3 pl-1">
+                      <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+                        <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 pt-0.5">
+                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 pt-0.5">
-                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                        {message.content}
-                      </p>
-                    </div>
+                    
+                    {/* Event Card */}
+                    {message.eventData && (
+                      <div className="pl-9">
+                        <EventCreatedCard event={message.eventData} />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-end mb-4 pl-12">
@@ -578,6 +728,27 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               </div>
             </div>
           )}
+
+          {/* Onboarding Suggestion Cards */}
+          {showWeeklySuggestion && (
+            <div className="pl-9 mb-4">
+              <OnboardingSuggestionCard
+                type="weekly_planning"
+                onAccept={handleAcceptWeeklyPlanning}
+                onSkip={handleSkipWeeklyPlanning}
+              />
+            </div>
+          )}
+
+          {showCalendarSuggestion && (
+            <div className="pl-9 mb-4">
+              <OnboardingSuggestionCard
+                type="connect_calendar"
+                onAccept={handleAcceptCalendarConnection}
+                onSkip={handleSkipCalendarConnection}
+              />
+            </div>
+          )}
           
           <div ref={messagesEndRef} />
         </div>
@@ -591,7 +762,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isRecording ? "Gravando..." : t('chat.placeholder')}
+            placeholder={isRecording ? "Gravando..." : (isInOnboarding ? "Digite ou fale seu lembrete..." : t('chat.placeholder'))}
             disabled={isProcessing}
             className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
           />
