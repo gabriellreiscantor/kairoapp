@@ -1,8 +1,12 @@
-import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, ChevronsUpDown, ExternalLink } from "lucide-react";
+import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, ChevronsUpDown, ExternalLink, Loader2 } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface SettingsDrawerProps {
@@ -49,17 +53,66 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'zh-CN': '中文',
 };
 
+const PLAN_NAMES: Record<string, string> = {
+  free: 'Grátis',
+  plus: 'Plus',
+  super: 'Super',
+};
+
 const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const usedEvents = 0;
-  const maxEvents = 14;
-  const progress = (usedEvents / maxEvents) * 100;
+  const { user, signOut } = useAuth();
+  const { subscription, limits, usedEvents, loading: subscriptionLoading } = useSubscription();
+  
+  const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const currentPlan = subscription?.plan || 'free';
+  const maxEvents = limits?.max_events_per_week || 14;
+  const progress = maxEvents > 0 ? (usedEvents / maxEvents) * 100 : 0;
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        setProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchProfile();
+    }
+  }, [user, isOpen]);
 
   const handleNavigate = (path: string) => {
     onClose();
     navigate(path);
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    onClose();
+    navigate('/auth');
+  };
+
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Usuário';
+  const displayEmail = user?.email || '';
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -85,20 +138,36 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           {/* User Profile */}
           <div className="px-4 py-4 flex items-center gap-4">
             <div className="w-20 h-20 rounded-full bg-kairo-surface-2 overflow-hidden">
-              <img 
-                src={kairoLogo} 
-                alt="Avatar" 
-                className="w-full h-full object-cover"
-              />
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img 
+                  src={kairoLogo} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-foreground text-lg font-semibold">Usuário Kairo</span>
-                <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </div>
-              <span className="text-muted-foreground text-sm">usuario@kairo.app</span>
+            <div className="flex-1 min-w-0">
+              {profileLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground text-lg font-semibold truncate">{displayName}</span>
+                    <button onClick={() => handleNavigate('/settings/account')}>
+                      <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <span className="text-muted-foreground text-sm truncate block">{displayEmail}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -110,7 +179,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white font-semibold text-left">{t('plan.free')}</p>
+                  <p className="text-white font-semibold text-left">{PLAN_NAMES[currentPlan]}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-white/80 text-sm">{t('plan.eventsScheduled')}</span>
                   </div>
@@ -122,7 +191,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     handleNavigate('/settings/plan');
                   }}
                 >
-                  {t('plan.upgradeNow')}
+                  {currentPlan === 'free' ? t('plan.upgradeNow') : 'Gerenciar'}
                 </button>
               </div>
               
@@ -131,8 +200,14 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                   <Progress value={progress} className="h-1 bg-white/20" />
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-white font-bold">{usedEvents}</span>
-                  <span className="text-white/70 text-sm">/ {maxEvents}</span>
+                  {subscriptionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white/70" />
+                  ) : (
+                    <>
+                      <span className="text-white font-bold">{usedEvents}</span>
+                      <span className="text-white/70 text-sm">/ {maxEvents}</span>
+                    </>
+                  )}
                   <ChevronRight className="w-4 h-4 text-white/50" />
                 </div>
               </div>
@@ -212,6 +287,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                 label={t('settings.logout')}
                 valueIcon="chevron"
                 danger
+                onClick={handleLogout}
               />
             </div>
           </div>
