@@ -1,7 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
@@ -27,6 +29,7 @@ const SWIPE_THRESHOLD = 50;
 
 const MainApp = () => {
   const { t, getDateLocale } = useLanguage();
+  const { user } = useAuth();
   const dateLocale = getDateLocale();
   
   const [activeView, setActiveView] = useState<ViewType>('chat');
@@ -45,20 +48,70 @@ const MainApp = () => {
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  // Sample events
-  const [events] = useState<Record<string, Event[]>>({
-    [format(new Date(), 'yyyy-MM-dd')]: [
-      { 
-        id: '1', 
-        title: 'Teste', 
-        time: '09:00', 
-        priority: 'high',
-        location: 'Rua Razao e Lealdade, Cuiabá, MT, Brasil',
-        isAllDay: true,
-        emoji: '📅'
-      },
-    ],
-  });
+  // Real events from database
+  const [events, setEvents] = useState<Record<string, Event[]>>({});
+  const [eventsVersion, setEventsVersion] = useState(0);
+
+  // Fetch events from Supabase
+  const fetchEvents = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('event_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Group events by date
+      const grouped: Record<string, Event[]> = {};
+      data?.forEach((e) => {
+        const dateKey = e.event_date;
+        if (!grouped[dateKey]) grouped[dateKey] = [];
+        grouped[dateKey].push({
+          id: e.id,
+          title: e.title,
+          time: e.event_time || '',
+          priority: e.priority as 'high' | 'medium' | 'low',
+          description: e.description || undefined,
+          location: e.location || undefined,
+          isAllDay: !e.event_time,
+          emoji: getCategoryEmoji(e.category),
+        });
+      });
+
+      setEvents(grouped);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  }, [user]);
+
+  // Get emoji for category
+  const getCategoryEmoji = (category: string | null): string => {
+    const emojiMap: Record<string, string> = {
+      trabalho: '💼',
+      saúde: '🏥',
+      pessoal: '👤',
+      lazer: '🎮',
+      estudo: '📚',
+      exercício: '🏃',
+      reunião: '📋',
+      geral: '📅',
+    };
+    return emojiMap[category || 'geral'] || '📅';
+  };
+
+  // Fetch events on mount and when user changes
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents, eventsVersion]);
+
+  // Callback when event is created via chat
+  const handleEventCreated = useCallback(() => {
+    setEventsVersion(v => v + 1);
+  }, []);
 
   // Generate months using date-fns with current locale
   const getMonths = () => {
@@ -169,6 +222,7 @@ const MainApp = () => {
           onOpenSettings={() => setIsSettingsOpen(true)}
           activeView={activeView}
           onViewChange={setActiveView}
+          onEventCreated={handleEventCreated}
         />
         
         <SettingsDrawer

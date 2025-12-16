@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User } from "lucide-react";
+import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, CheckCircle2 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
+import { useToast } from "@/hooks/use-toast";
 import kairoLogo from "@/assets/kairo-logo.png";
 import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
@@ -16,6 +17,7 @@ interface ChatPageProps {
   onOpenSettings: () => void;
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
+  onEventCreated?: () => void;
 }
 
 interface Message {
@@ -23,14 +25,23 @@ interface Message {
   type: 'user' | 'assistant';
   content: string;
   createdAt: Date;
+  actions?: ExecutedAction[];
+}
+
+interface ExecutedAction {
+  action: string;
+  success: boolean;
+  data?: any;
+  error?: string;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange }: ChatPageProps) => {
+const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
   const { t, getDateLocale } = useLanguage();
+  const { toast } = useToast();
   const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -132,6 +143,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       content: m.content
     }));
 
+    let executedActions: ExecutedAction[] = [];
+
     try {
       const response = await fetch(CHAT_URL, {
         method: "POST",
@@ -182,10 +195,28 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
-              assistantContent += content;
-              setMessages(prev => prev.map(m => 
-                m.id === assistantId ? { ...m, content: assistantContent } : m
-              ));
+              // Check for action metadata
+              const actionMatch = content.match(/<!--KAIRO_ACTIONS:(.+?)-->/);
+              if (actionMatch) {
+                try {
+                  executedActions = JSON.parse(actionMatch[1]);
+                  // Don't add the metadata to visible content
+                  const cleanContent = content.replace(/<!--KAIRO_ACTIONS:.+?-->\n?/, '');
+                  if (cleanContent) {
+                    assistantContent += cleanContent;
+                    setMessages(prev => prev.map(m => 
+                      m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions } : m
+                    ));
+                  }
+                } catch (e) {
+                  console.error('Error parsing actions:', e);
+                }
+              } else {
+                assistantContent += content;
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions.length > 0 ? executedActions : undefined } : m
+                ));
+              }
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -197,6 +228,37 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       // Save assistant message after streaming completes
       if (assistantContent) {
         await saveMessage('assistant', assistantContent);
+      }
+
+      // Show toast and trigger callback for successful event actions
+      for (const action of executedActions) {
+        if (action.success) {
+          if (action.action === 'create_event') {
+            toast({
+              title: "✅ Evento criado!",
+              description: action.data?.title || "Seu evento foi adicionado ao calendário",
+            });
+            onEventCreated?.();
+          } else if (action.action === 'delete_event') {
+            toast({
+              title: "🗑️ Evento removido",
+              description: "O evento foi cancelado",
+            });
+            onEventCreated?.();
+          } else if (action.action === 'update_event') {
+            toast({
+              title: "✏️ Evento atualizado",
+              description: action.data?.title || "As alterações foram salvas",
+            });
+            onEventCreated?.();
+          }
+        } else if (action.error) {
+          toast({
+            title: "Erro",
+            description: action.error,
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Chat error:", error);
