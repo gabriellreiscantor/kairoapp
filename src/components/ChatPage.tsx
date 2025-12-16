@@ -333,7 +333,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     setMessages(prev => prev.map(m => 
                       m.id === assistantId ? { 
                         ...m, 
-                        content: (confirmationResumo || showCreatedCard) ? '' : assistantContent,
+                        content: confirmationResumo ? '' : assistantContent, // Keep text for created events
                         actions: executedActions,
                         isCreatingEvent: !!eventAction && !showCreatedCard, // Only show animation if no resumo
                         eventData: showCreatedCard ? { ...eventAction.data, resumo_evento: eventResumo } : undefined,
@@ -351,10 +351,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       });
                     }
                     
-                    // Mark flag if we have a created event card
-                    if (showCreatedCard) {
-                      hasConfirmationCard = true;
-                    }
+                    // Don't block text for created events - only for confirmation modal
+                    // hasConfirmationCard stays false for showCreatedCard so text continues
 
                     // If event was created WITHOUT resumo (legacy), show animation then reveal card
                     if (eventAction && !eventResumo) {

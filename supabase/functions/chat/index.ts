@@ -427,9 +427,9 @@ serve(async (req) => {
 MODO ONBOARDING ATIVO
 Este e um novo usuario que esta criando seu primeiro evento.
 - Seja amigavel e encorajador
-- Se o usuario descrever algo que pode ser um lembrete, interprete como intencao de criar evento
-- Mas SEMPRE pergunte as informacoes faltantes antes de criar
-- Use acao "coletar_informacoes" para perguntar de forma natural
+- CRIE O EVENTO IMEDIATAMENTE mesmo no onboarding
+- NAO pergunte informacoes - use padroes (hoje, dia inteiro)
+- Apos criar, o usuario pode corrigir se precisar
 ` : '';
 
     // KAIRO EVENT ENGINE v2 — CRIAÇÃO OTIMISTA
@@ -591,6 +591,12 @@ Data de hoje: ${todayStr} (${todayISO})
 
 Idiomas suportados: pt, en, es, fr, de, it, ja, ko, zh
 
+=== REGRA ABSOLUTA FINAL ===
+Se detectar QUALQUER atividade (lanchonete, cinema, barbearia, shopping, mercado, etc):
+- acao DEVE ser "criar_evento"
+- NUNCA use "conversar" ou "coletar_informacoes" para atividades
+- Mesmo que informacao esteja incompleta, CRIE com padroes
+
 ${onboardingContext}
 
 ${userContext}
@@ -611,7 +617,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
           { role: 'system', content: systemPrompt },
           ...messages,
         ],
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 1000,
       }),
     });
