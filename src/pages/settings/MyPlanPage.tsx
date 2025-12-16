@@ -19,8 +19,8 @@ const MyPlanPage = () => {
 
   const plans = {
     plus: {
-      monthlyPrice: 'R$ 19,90',
-      yearlyPrice: 'R$ 199,90',
+      monthlyPrice: 'R$ 14,90',
+      yearlyPrice: 'R$ 148,40',
       tagline: 'Perfeito para o uso diário',
       features: [
         { highlight: '3x', text: 'eventos por semana' },
@@ -30,8 +30,8 @@ const MyPlanPage = () => {
       ]
     },
     super: {
-      monthlyPrice: 'R$ 34,90',
-      yearlyPrice: 'R$ 349,90',
+      monthlyPrice: 'R$ 29,90',
+      yearlyPrice: 'R$ 297,80',
       tagline: 'Agende como um profissional',
       features: [
         { highlight: '20x', text: 'eventos por semana' },
@@ -329,7 +329,7 @@ const MyPlanPage = () => {
               {selectedPlan === 'plus' && <Check className="w-4 h-4 text-primary" />}
             </div>
             <span className="text-foreground text-sm font-medium">
-              {billingPeriod === 'monthly' ? 'R$ 19,90/mês' : 'R$ 199,90/ano'}
+              {billingPeriod === 'monthly' ? 'R$ 14,90/mês' : 'R$ 148,40/ano'}
             </span>
           </button>
           
@@ -344,7 +344,7 @@ const MyPlanPage = () => {
               {selectedPlan === 'super' && <Check className="w-4 h-4 text-yellow-500" />}
             </div>
             <span className="text-foreground text-sm font-medium">
-              {billingPeriod === 'monthly' ? 'R$ 34,90/mês' : 'R$ 349,90/ano'}
+              {billingPeriod === 'monthly' ? 'R$ 29,90/mês' : 'R$ 297,80/ano'}
             </span>
           </button>
         </div>
