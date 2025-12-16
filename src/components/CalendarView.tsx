@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { 
   format, 
   startOfMonth, 
@@ -11,8 +9,6 @@ import {
   endOfWeek,
   isSameMonth
 } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CalendarViewProps {
   selectedDate: Date;
@@ -22,12 +18,15 @@ interface CalendarViewProps {
 }
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-const MONTHS = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
 
-const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange }: CalendarViewProps) => {
-  const [yearPickerOpen, setYearPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(currentMonth.getFullYear());
+// Sample events for demo (dots)
+const DEMO_EVENTS: Record<string, string[]> = {
+  [format(new Date(), 'yyyy-MM-dd')]: ['primary'],
+  [format(new Date(Date.now() + 86400000 * 2), 'yyyy-MM-dd')]: ['emerald'],
+  [format(new Date(Date.now() + 86400000 * 5), 'yyyy-MM-dd')]: ['primary', 'emerald'],
+};
 
+const CalendarView = ({ selectedDate, onDateSelect, currentMonth }: CalendarViewProps) => {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart);
@@ -35,106 +34,84 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, onMonthChange 
   
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   
-  // Group days into weeks for better layout
+  // Group days into weeks
   const weeks: Date[][] = [];
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7));
   }
 
-  const handleMonthSelect = (monthIndex: number) => {
-    onMonthChange(new Date(pickerYear, monthIndex, 1));
-    setYearPickerOpen(false);
+  const getEventDots = (date: Date) => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    return DEMO_EVENTS[dateKey] || [];
   };
 
-  const handlePrevYear = () => setPickerYear(prev => prev - 1);
-  const handleNextYear = () => setPickerYear(prev => prev + 1);
-
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full px-2">
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 px-4 border-b border-border/10">
+      <div className="grid grid-cols-7 mb-2">
         {WEEKDAYS.map((day, index) => (
-          <div key={index} className="text-center text-xs text-muted-foreground font-medium py-2">
+          <div key={index} className="text-center text-xs text-muted-foreground font-medium py-3">
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar Grid - Full Height with equal rows */}
-      <div className="flex-1 grid grid-rows-6">
+      {/* Calendar Grid */}
+      <div className="flex-1 grid grid-rows-6 gap-1">
         {weeks.map((week, weekIndex) => (
           <div 
             key={weekIndex} 
-            className="grid grid-cols-7 border-b border-border/5 last:border-0"
+            className="grid grid-cols-7"
           >
             {week.map((day, dayIndex) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isTodayDate = isToday(day);
+              const isSelected = isSameDay(day, selectedDate);
+              const eventDots = getEventDots(day);
               
               return (
                 <button
                   key={dayIndex}
                   onClick={() => onDateSelect(day)}
-                  className="flex items-start justify-center pt-3 h-full transition-all active:bg-kairo-surface-2/30"
+                  className="relative flex flex-col items-center justify-start pt-2 h-full transition-all duration-300 active:scale-95 rounded-xl"
                 >
+                  {/* Day number */}
                   <span
                     className={`
-                      w-9 h-9 flex items-center justify-center rounded-full text-sm font-medium transition-colors
-                      ${!isCurrentMonth ? 'text-muted-foreground/25' : 'text-foreground'}
-                      ${isTodayDate ? 'bg-primary text-primary-foreground' : ''}
+                      calendar-number w-9 h-9 flex items-center justify-center rounded-full text-sm transition-all duration-300
+                      ${!isCurrentMonth ? 'text-muted-foreground/20' : 'text-foreground'}
+                      ${isTodayDate && !isSelected ? 'text-primary font-bold' : ''}
+                      ${isSelected ? 'bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/30' : ''}
                     `}
                   >
                     {format(day, 'd')}
                   </span>
+                  
+                  {/* Underline for today (when not selected) */}
+                  {isTodayDate && !isSelected && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />
+                  )}
+                  
+                  {/* Event dots */}
+                  {eventDots.length > 0 && isCurrentMonth && (
+                    <div className="flex items-center gap-0.5 mt-1">
+                      {eventDots.slice(0, 3).map((color, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`calendar-dot ${
+                            color === 'primary' ? 'bg-primary' : 
+                            color === 'emerald' ? 'bg-kairo-green' : 'bg-primary'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </button>
               );
             })}
           </div>
         ))}
       </div>
-
-      {/* Month Picker Popover */}
-      <Popover open={yearPickerOpen} onOpenChange={setYearPickerOpen}>
-        <PopoverTrigger className="hidden" />
-        <PopoverContent className="w-64 p-3 bg-kairo-surface-2 border-border/30 rounded-xl" align="start">
-          {/* Year Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <button 
-              onClick={handlePrevYear}
-              className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <span className="text-foreground font-semibold text-sm">{pickerYear}</span>
-            <button 
-              onClick={handleNextYear}
-              className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
-          
-          {/* Month Grid */}
-          <div className="grid grid-cols-3 gap-1">
-            {MONTHS.map((month, index) => {
-              const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
-              return (
-                <button
-                  key={month}
-                  onClick={() => handleMonthSelect(index)}
-                  className={`py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
-                    isCurrentMonth 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-foreground hover:bg-kairo-surface-3'
-                  }`}
-                >
-                  {month}
-                </button>
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
     </div>
   );
 };
