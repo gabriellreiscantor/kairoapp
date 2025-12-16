@@ -708,9 +708,32 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     let action: KairoAction;
     
+    // Get last user message to determine context
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase()?.trim() || '';
+    
+    // Greetings/confirmations that should NEVER create events
+    const greetings = ['opa', 'oi', 'ola', 'olá', 'e ai', 'eai', 'fala', 'hey', 'hi', 'hello',
+                       'blz', 'beleza', 'ok', 'certo', 'valeu', 'obrigado', 'obg', 'vlw',
+                       'bom dia', 'boa tarde', 'boa noite', 'show', 'legal', 'massa',
+                       'sim', 'nao', 'não', 's', 'n', 'yes', 'no', 'yeah', 'thanks'];
+    
+    const isGreeting = greetings.some(g => lastUserMessage === g || lastUserMessage === g + '!');
+    
+    console.log(`Last user message: "${lastUserMessage}", isGreeting: ${isGreeting}`);
+    
     // Process tool calls
     if (message?.tool_calls && message.tool_calls.length > 0) {
-      const toolCall = message.tool_calls[0];
+      let toolCall;
+      
+      // If last message is greeting, prioritize chat_response
+      if (isGreeting && message.tool_calls.length > 1) {
+        const chatResponseCall = message.tool_calls.find((tc: any) => tc.function.name === 'chat_response');
+        toolCall = chatResponseCall || message.tool_calls[0];
+        console.log(`Greeting detected, prioritizing chat_response. Found: ${chatResponseCall ? 'yes' : 'no'}`);
+      } else {
+        toolCall = message.tool_calls[0];
+      }
+      
       const functionName = toolCall.function.name;
       const args = JSON.parse(toolCall.function.arguments);
       
