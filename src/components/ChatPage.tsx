@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, Calendar, User } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FoxIcon from "./icons/FoxIcon";
+import { toast } from "@/hooks/use-toast";
 
 interface ChatPageProps {
   onNavigateToCalendar: () => void;
@@ -37,68 +38,129 @@ const formatMessageTime = (date: Date): string => {
 
 const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): boolean => {
   if (!prevMsg) return true;
-  
-  // Show timestamp if more than 5 minutes apart or different sender
   const minutesDiff = differenceInMinutes(currentMsg.createdAt, prevMsg.createdAt);
   return minutesDiff >= 5 || currentMsg.type !== prevMsg.type;
 };
 
-const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: 'Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso, assim você não precisa guardar tudo na cabeça. Pode ser lembrar de passar na padaria para pegar um pão de queijo fresquinho, buscar um remédio na farmácia depois do trabalho, ou avisar alguém que vai chegar um pouco mais tarde para o jantar em família. Me conta uma coisa que você gostaria de lembrar?',
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-  const handleSuggestionClick = (text: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: text,
-      createdAt: new Date()
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: '✅ Entendido! Vou criar esse evento para você.',
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, response]);
-    }, 1000);
+const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const streamChat = async (userMessage: string, allMessages: Message[]) => {
+    setIsLoading(true);
     
-    const newMessage: Message = {
+    const apiMessages = allMessages.map(m => ({
+      role: m.type === 'user' ? 'user' : 'assistant',
+      content: m.content
+    }));
+
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!response.ok || !response.body) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Falha ao conectar com a IA");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let assistantContent = "";
+      const assistantId = Date.now().toString();
+
+      // Add empty assistant message
+      setMessages(prev => [...prev, {
+        id: assistantId,
+        type: 'assistant',
+        content: '',
+        createdAt: new Date()
+      }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+              setMessages(prev => prev.map(m => 
+                m.id === assistantId ? { ...m, content: assistantContent } : m
+              ));
+            }
+          } catch {
+            // Incomplete JSON, wait for more data
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao enviar mensagem",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSend = async (text?: string) => {
+    const messageText = text || inputValue.trim();
+    if (!messageText || isLoading) return;
+    
+    const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content: messageText,
       createdAt: new Date()
     };
     
-    setMessages(prev => [...prev, newMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInputValue('');
     
-    // Simulate AI response
-    setTimeout(() => {
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: '✅ Entendido! Vou criar esse evento para você.',
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, response]);
-    }, 1000);
+    await streamChat(messageText, newMessages);
+  };
+
+  const handleSuggestionClick = (text: string) => {
+    handleSend(text);
   };
 
   return (
@@ -205,8 +267,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings }: ChatPageProps) => {
             
             {inputValue ? (
               <button 
-                onClick={handleSend}
-                className="w-9 h-9 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95"
+                onClick={() => handleSend()}
+                disabled={isLoading}
+                className="w-9 h-9 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95 disabled:opacity-50"
               >
                 <Send className="w-4 h-4 text-primary-foreground" />
               </button>
