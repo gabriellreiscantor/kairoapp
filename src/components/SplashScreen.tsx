@@ -24,12 +24,15 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      <div className="animate-scale-in flex flex-col items-center gap-8">
+      <div className="animate-scale-in flex flex-col items-center gap-6">
         <img 
           src={kairoLogo} 
           alt="Kairo" 
           className="w-32 h-32 rounded-3xl shadow-2xl"
         />
+        <h1 className="text-3xl font-bold text-foreground tracking-wide">
+          Kairo
+        </h1>
         <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     </div>
