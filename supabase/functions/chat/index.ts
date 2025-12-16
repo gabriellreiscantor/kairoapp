@@ -54,7 +54,7 @@ async function executeAction(
   supabase: any, 
   userId: string, 
   action: KairoAction
-): Promise<{ success: boolean; data?: any; error?: string }> {
+): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
 
   try {
@@ -62,6 +62,28 @@ async function executeAction(
       case 'criar_evento': {
         if (!action.titulo || !action.data) {
           return { success: false, error: 'Título e data são obrigatórios' };
+        }
+
+        // Check if user can create event (plan limits)
+        const { data: canCreate } = await supabase.rpc('can_create_event', {
+          _user_id: userId
+        });
+
+        if (!canCreate) {
+          // Get user's current plan to show appropriate message
+          const { data: planData } = await supabase.rpc('get_user_plan', {
+            _user_id: userId
+          });
+          
+          const planName = planData || 'free';
+          const limits: Record<string, number> = { free: 14, plus: 50, super: 280 };
+          const limit = limits[planName] || 14;
+          
+          return { 
+            success: false, 
+            limitReached: true,
+            error: `Você atingiu o limite de ${limit} eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos!`
+          };
         }
 
         const { data, error } = await supabase
