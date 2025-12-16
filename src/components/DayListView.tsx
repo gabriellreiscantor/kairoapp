@@ -1,6 +1,5 @@
 import { format, isToday, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus } from "lucide-react";
 
 interface Event {
   id: string;
@@ -37,51 +36,27 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
           <button
             key={day.toISOString()}
             onClick={() => hasEvents ? onDateSelect(day) : onAddEvent(day)}
-            className={`
-              w-full text-left px-3 py-2.5 rounded-lg transition-all
-              ${isTodayDate ? 'bg-primary/10' : 'hover:bg-kairo-surface-2/50'}
-            `}
+            className="w-full text-left py-3 border-b border-border/10 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`
-                  text-lg font-semibold tabular-nums
-                  ${isTodayDate ? 'text-primary' : 'text-foreground'}
-                `}>
-                  {format(day, 'd')}
-                </span>
-                <span className={`
-                  text-xs font-medium
-                  ${isTodayDate ? 'text-primary/80' : 'text-muted-foreground'}
-                `}>
-                  {format(day, 'EEE', { locale: ptBR })}
-                </span>
-              </div>
+            <div className="flex items-start justify-between">
+              <span className={`text-sm font-medium ${isTodayDate ? 'text-primary' : 'text-muted-foreground'}`}>
+                {format(day, 'd')} {format(day, 'EEE', { locale: ptBR })}.
+              </span>
               
               {hasEvents ? (
-                <div className="flex items-center gap-1.5">
-                  {dayEvents.slice(0, 2).map((event) => (
-                    <div
-                      key={event.id}
-                      className={`
-                        px-2 py-0.5 rounded-md text-[10px] font-semibold
-                        ${event.priority === 'high' ? 'bg-kairo-red/15 text-kairo-red' : ''}
-                        ${event.priority === 'medium' ? 'bg-kairo-amber/15 text-kairo-amber' : ''}
-                        ${event.priority === 'low' ? 'bg-kairo-green/15 text-kairo-green' : ''}
-                      `}
-                    >
-                      {event.time}
-                    </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  {dayEvents.map((event) => (
+                    <span key={event.id} className="text-sm text-foreground">
+                      {event.time} - {event.title}
+                    </span>
                   ))}
-                  {dayEvents.length > 2 && (
-                    <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 2}</span>
-                  )}
                 </div>
-              ) : (
-                <div className="flex items-center gap-1 text-muted-foreground/60">
-                  <Plus className="w-3 h-3" />
-                </div>
-              )}
+              ) : isTodayDate ? (
+                <span className="text-sm">
+                  <span className="text-muted-foreground">Sem planos ainda. </span>
+                  <span className="text-foreground font-semibold">Toque para adicionar!</span>
+                </span>
+              ) : null}
             </div>
           </button>
         );
