@@ -156,6 +156,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     let executedActions: ExecutedAction[] = [];
 
     try {
+      console.log('[ChatPage] Starting chat request to:', CHAT_URL);
+      console.log('[ChatPage] Messages being sent:', apiMessages.length);
+      
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -168,9 +171,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         }),
       });
 
+      console.log('[ChatPage] Response status:', response.status);
+      console.log('[ChatPage] Response ok:', response.ok);
+
       if (!response.ok || !response.body) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || t('chat.errorConnect'));
+        const errorText = await response.text();
+        console.error('[ChatPage] Error response:', errorText);
+        throw new Error(errorText || t('chat.errorConnect'));
       }
 
       const reader = response.body.getReader();
@@ -186,11 +193,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         createdAt: new Date()
       }]);
 
+      console.log('[ChatPage] Starting SSE stream processing');
+
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('[ChatPage] Stream ended');
+          break;
+        }
         
-        textBuffer += decoder.decode(value, { stream: true });
+        const chunk = decoder.decode(value, { stream: true });
+        textBuffer += chunk;
+        console.log('[ChatPage] Received chunk, buffer length:', textBuffer.length);
 
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
@@ -202,17 +216,25 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           if (!line.startsWith("data: ")) continue;
 
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
+          console.log('[ChatPage] Processing SSE data:', jsonStr.substring(0, 100));
+          
+          if (jsonStr === "[DONE]") {
+            console.log('[ChatPage] Received [DONE] marker');
+            break;
+          }
 
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
+              console.log('[ChatPage] Content received:', content.substring(0, 50));
+              
               // Check for action metadata
               const actionMatch = content.match(/<!--KAIRO_ACTIONS:(.+?)-->/);
               if (actionMatch) {
                 try {
                   executedActions = JSON.parse(actionMatch[1]);
+                  console.log('[ChatPage] Actions parsed:', executedActions);
                   const cleanContent = content.replace(/<!--KAIRO_ACTIONS:.+?-->\n?/, '');
                   if (cleanContent) {
                     assistantContent += cleanContent;
@@ -221,16 +243,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     ));
                   }
                 } catch (e) {
-                  console.error('Error parsing actions:', e);
+                  console.error('[ChatPage] Error parsing actions:', e);
                 }
               } else {
                 assistantContent += content;
+                console.log('[ChatPage] Total assistant content:', assistantContent.length);
                 setMessages(prev => prev.map(m => 
                   m.id === assistantId ? { ...m, content: assistantContent, actions: executedActions.length > 0 ? executedActions : undefined } : m
                 ));
               }
             }
-          } catch {
+          } catch (parseError) {
+            console.error('[ChatPage] JSON parse error:', parseError);
             textBuffer = line + "\n" + textBuffer;
             break;
           }
