@@ -1,4 +1,4 @@
-import FoxIcon from "./icons/FoxIcon";
+import kairoLogo from "@/assets/kairo-logo.png";
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -23,8 +23,8 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         <div className="relative mb-6">
           {/* Glow ring */}
           <div className="absolute inset-0 w-24 h-24 rounded-full bg-primary/20 blur-xl" />
-          <div className="w-24 h-24 rounded-full gradient-gold flex items-center justify-center relative shadow-2xl">
-            <FoxIcon size={52} className="text-primary-foreground" />
+          <div className="w-24 h-24 rounded-full overflow-hidden relative shadow-2xl">
+            <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
           </div>
         </div>
 
