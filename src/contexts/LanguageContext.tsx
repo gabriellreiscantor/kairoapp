@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ptBR, enUS, es, fr, de, it, ja, ko, zhCN, Locale } from "date-fns/locale";
 
 export type LanguageCode = 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE' | 'it-IT' | 'ja-JP' | 'ko-KR' | 'zh-CN';
 
@@ -6,9 +7,23 @@ interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
   t: (key: string) => string;
+  getDateLocale: () => Locale;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+// Date-fns locale mapping
+const DATE_LOCALES: Record<LanguageCode, Locale> = {
+  'pt-BR': ptBR,
+  'en-US': enUS,
+  'es-ES': es,
+  'fr-FR': fr,
+  'de-DE': de,
+  'it-IT': it,
+  'ja-JP': ja,
+  'ko-KR': ko,
+  'zh-CN': zhCN,
+};
 
 // Translations
 const translations: Record<LanguageCode, Record<string, string>> = {
@@ -71,12 +86,28 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     
     // Chat
     'chat.placeholder': 'Escreva uma mensagem...',
-    'chat.greeting': 'Olá! Como posso ajudar você hoje?',
+    'chat.greeting': 'Olá! Toque em qualquer exemplo abaixo para criar um compromisso rapidamente.',
+    'chat.today': 'Hoje',
+    'chat.yesterday': 'Ontem',
+    'chat.errorConnect': 'Falha ao conectar com a IA',
+    'chat.suggestion1': 'Organizar um churrasco com os amigos neste sábado às 13h.',
+    'chat.suggestion2': 'Consulta médica na quarta-feira às 9h.',
+    'chat.suggestion3': 'Café com a Sofia amanhã às 16h na padaria.',
+    'chat.suggestion4': 'Comprar ingressos para o jogo neste fim de semana.',
     
     // Calendar
     'calendar.today': 'Hoje',
     'calendar.tomorrow': 'Amanhã',
     'calendar.noEvents': 'Nenhum evento',
+    'calendar.todayIs': 'hoje é dia',
+    'calendar.allDay': 'Dia inteiro',
+    'calendar.weekdaySun': 'D',
+    'calendar.weekdayMon': 'S',
+    'calendar.weekdayTue': 'T',
+    'calendar.weekdayWed': 'Q',
+    'calendar.weekdayThu': 'Q',
+    'calendar.weekdayFri': 'S',
+    'calendar.weekdaySat': 'S',
     
     // About
     'about.title': 'Sobre',
@@ -144,12 +175,28 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     
     // Chat
     'chat.placeholder': 'Write a message...',
-    'chat.greeting': 'Hello! How can I help you today?',
+    'chat.greeting': 'Hello! Tap any example below to quickly create an appointment.',
+    'chat.today': 'Today',
+    'chat.yesterday': 'Yesterday',
+    'chat.errorConnect': 'Failed to connect to AI',
+    'chat.suggestion1': 'Organize a barbecue with friends this Saturday at 1pm.',
+    'chat.suggestion2': 'Doctor appointment on Wednesday at 9am.',
+    'chat.suggestion3': 'Coffee with Sofia tomorrow at 4pm at the bakery.',
+    'chat.suggestion4': 'Buy tickets for the game this weekend.',
     
     // Calendar
     'calendar.today': 'Today',
     'calendar.tomorrow': 'Tomorrow',
     'calendar.noEvents': 'No events',
+    'calendar.todayIs': 'today is',
+    'calendar.allDay': 'All day',
+    'calendar.weekdaySun': 'S',
+    'calendar.weekdayMon': 'M',
+    'calendar.weekdayTue': 'T',
+    'calendar.weekdayWed': 'W',
+    'calendar.weekdayThu': 'T',
+    'calendar.weekdayFri': 'F',
+    'calendar.weekdaySat': 'S',
     
     // About
     'about.title': 'About',
@@ -217,12 +264,28 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     
     // Chat
     'chat.placeholder': 'Escribe un mensaje...',
-    'chat.greeting': '¡Hola! ¿Cómo puedo ayudarte hoy?',
+    'chat.greeting': '¡Hola! Toca cualquier ejemplo abajo para crear una cita rápidamente.',
+    'chat.today': 'Hoy',
+    'chat.yesterday': 'Ayer',
+    'chat.errorConnect': 'Error al conectar con la IA',
+    'chat.suggestion1': 'Organizar una parrillada con amigos este sábado a las 13h.',
+    'chat.suggestion2': 'Cita médica el miércoles a las 9h.',
+    'chat.suggestion3': 'Café con Sofía mañana a las 16h en la panadería.',
+    'chat.suggestion4': 'Comprar entradas para el partido este fin de semana.',
     
     // Calendar
     'calendar.today': 'Hoy',
     'calendar.tomorrow': 'Mañana',
     'calendar.noEvents': 'Sin eventos',
+    'calendar.todayIs': 'hoy es',
+    'calendar.allDay': 'Todo el día',
+    'calendar.weekdaySun': 'D',
+    'calendar.weekdayMon': 'L',
+    'calendar.weekdayTue': 'M',
+    'calendar.weekdayWed': 'X',
+    'calendar.weekdayThu': 'J',
+    'calendar.weekdayFri': 'V',
+    'calendar.weekdaySat': 'S',
     
     // About
     'about.title': 'Acerca de',
@@ -265,10 +328,26 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.free': 'Gratuit',
     'plan.tryFree': 'Essayez gratuitement pendant 7 jours',
     'chat.placeholder': 'Écrivez un message...',
-    'chat.greeting': 'Bonjour ! Comment puis-je vous aider ?',
+    'chat.greeting': 'Bonjour ! Touchez un exemple ci-dessous pour créer rapidement un rendez-vous.',
+    'chat.today': 'Aujourd\'hui',
+    'chat.yesterday': 'Hier',
+    'chat.errorConnect': 'Échec de la connexion à l\'IA',
+    'chat.suggestion1': 'Organiser un barbecue avec des amis ce samedi à 13h.',
+    'chat.suggestion2': 'Rendez-vous médical mercredi à 9h.',
+    'chat.suggestion3': 'Café avec Sofia demain à 16h à la boulangerie.',
+    'chat.suggestion4': 'Acheter des billets pour le match ce week-end.',
     'calendar.today': 'Aujourd\'hui',
     'calendar.tomorrow': 'Demain',
     'calendar.noEvents': 'Aucun événement',
+    'calendar.todayIs': 'aujourd\'hui c\'est le',
+    'calendar.allDay': 'Toute la journée',
+    'calendar.weekdaySun': 'D',
+    'calendar.weekdayMon': 'L',
+    'calendar.weekdayTue': 'M',
+    'calendar.weekdayWed': 'M',
+    'calendar.weekdayThu': 'J',
+    'calendar.weekdayFri': 'V',
+    'calendar.weekdaySat': 'S',
     'about.title': 'À propos',
     'about.version': 'Version',
   },
@@ -291,8 +370,25 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.title': 'Mein Plan',
     'plan.free': 'Kostenlos',
     'chat.placeholder': 'Nachricht schreiben...',
+    'chat.greeting': 'Hallo! Tippen Sie auf ein Beispiel unten, um schnell einen Termin zu erstellen.',
+    'chat.today': 'Heute',
+    'chat.yesterday': 'Gestern',
+    'chat.errorConnect': 'Verbindung zur KI fehlgeschlagen',
+    'chat.suggestion1': 'Grillfest mit Freunden diesen Samstag um 13 Uhr organisieren.',
+    'chat.suggestion2': 'Arzttermin am Mittwoch um 9 Uhr.',
+    'chat.suggestion3': 'Kaffee mit Sofia morgen um 16 Uhr in der Bäckerei.',
+    'chat.suggestion4': 'Tickets für das Spiel am Wochenende kaufen.',
     'calendar.today': 'Heute',
     'calendar.tomorrow': 'Morgen',
+    'calendar.todayIs': 'heute ist der',
+    'calendar.allDay': 'Ganztägig',
+    'calendar.weekdaySun': 'S',
+    'calendar.weekdayMon': 'M',
+    'calendar.weekdayTue': 'D',
+    'calendar.weekdayWed': 'M',
+    'calendar.weekdayThu': 'D',
+    'calendar.weekdayFri': 'F',
+    'calendar.weekdaySat': 'S',
     'about.title': 'Über',
     'about.version': 'Version',
   },
@@ -314,8 +410,25 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.title': 'Il mio piano',
     'plan.free': 'Gratuito',
     'chat.placeholder': 'Scrivi un messaggio...',
+    'chat.greeting': 'Ciao! Tocca un esempio qui sotto per creare rapidamente un appuntamento.',
+    'chat.today': 'Oggi',
+    'chat.yesterday': 'Ieri',
+    'chat.errorConnect': 'Connessione all\'IA fallita',
+    'chat.suggestion1': 'Organizzare un barbecue con amici sabato alle 13.',
+    'chat.suggestion2': 'Appuntamento dal medico mercoledì alle 9.',
+    'chat.suggestion3': 'Caffè con Sofia domani alle 16 in panetteria.',
+    'chat.suggestion4': 'Comprare biglietti per la partita questo fine settimana.',
     'calendar.today': 'Oggi',
     'calendar.tomorrow': 'Domani',
+    'calendar.todayIs': 'oggi è il',
+    'calendar.allDay': 'Tutto il giorno',
+    'calendar.weekdaySun': 'D',
+    'calendar.weekdayMon': 'L',
+    'calendar.weekdayTue': 'M',
+    'calendar.weekdayWed': 'M',
+    'calendar.weekdayThu': 'G',
+    'calendar.weekdayFri': 'V',
+    'calendar.weekdaySat': 'S',
     'about.title': 'Informazioni',
   },
   'ja-JP': {
@@ -336,8 +449,25 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.title': 'マイプラン',
     'plan.free': '無料',
     'chat.placeholder': 'メッセージを入力...',
+    'chat.greeting': 'こんにちは！下の例をタップして、すぐに予定を作成できます。',
+    'chat.today': '今日',
+    'chat.yesterday': '昨日',
+    'chat.errorConnect': 'AIへの接続に失敗しました',
+    'chat.suggestion1': '今週土曜日の13時に友人とバーベキューを企画する。',
+    'chat.suggestion2': '水曜日の9時に医者の予約。',
+    'chat.suggestion3': '明日の16時にパン屋でソフィアとコーヒー。',
+    'chat.suggestion4': '今週末の試合のチケットを買う。',
     'calendar.today': '今日',
     'calendar.tomorrow': '明日',
+    'calendar.todayIs': '今日は',
+    'calendar.allDay': '終日',
+    'calendar.weekdaySun': '日',
+    'calendar.weekdayMon': '月',
+    'calendar.weekdayTue': '火',
+    'calendar.weekdayWed': '水',
+    'calendar.weekdayThu': '木',
+    'calendar.weekdayFri': '金',
+    'calendar.weekdaySat': '土',
     'about.title': '概要',
   },
   'ko-KR': {
@@ -358,8 +488,25 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.title': '내 플랜',
     'plan.free': '무료',
     'chat.placeholder': '메시지 입력...',
+    'chat.greeting': '안녕하세요! 아래 예시를 탭하여 빠르게 일정을 만드세요.',
+    'chat.today': '오늘',
+    'chat.yesterday': '어제',
+    'chat.errorConnect': 'AI 연결에 실패했습니다',
+    'chat.suggestion1': '이번 주 토요일 오후 1시에 친구들과 바비큐 파티 준비하기.',
+    'chat.suggestion2': '수요일 오전 9시 병원 예약.',
+    'chat.suggestion3': '내일 오후 4시에 빵집에서 소피아와 커피.',
+    'chat.suggestion4': '이번 주말 경기 티켓 구매하기.',
     'calendar.today': '오늘',
     'calendar.tomorrow': '내일',
+    'calendar.todayIs': '오늘은',
+    'calendar.allDay': '종일',
+    'calendar.weekdaySun': '일',
+    'calendar.weekdayMon': '월',
+    'calendar.weekdayTue': '화',
+    'calendar.weekdayWed': '수',
+    'calendar.weekdayThu': '목',
+    'calendar.weekdayFri': '금',
+    'calendar.weekdaySat': '토',
     'about.title': '정보',
   },
   'zh-CN': {
@@ -380,8 +527,25 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.title': '我的计划',
     'plan.free': '免费',
     'chat.placeholder': '输入消息...',
+    'chat.greeting': '你好！点击下面的示例快速创建日程。',
+    'chat.today': '今天',
+    'chat.yesterday': '昨天',
+    'chat.errorConnect': '连接AI失败',
+    'chat.suggestion1': '本周六下午1点和朋友们组织烧烤。',
+    'chat.suggestion2': '周三上午9点看医生。',
+    'chat.suggestion3': '明天下午4点在面包店和索菲亚喝咖啡。',
+    'chat.suggestion4': '买这个周末比赛的门票。',
     'calendar.today': '今天',
     'calendar.tomorrow': '明天',
+    'calendar.todayIs': '今天是',
+    'calendar.allDay': '全天',
+    'calendar.weekdaySun': '日',
+    'calendar.weekdayMon': '一',
+    'calendar.weekdayTue': '二',
+    'calendar.weekdayWed': '三',
+    'calendar.weekdayThu': '四',
+    'calendar.weekdayFri': '五',
+    'calendar.weekdaySat': '六',
     'about.title': '关于',
   },
 };
@@ -449,8 +613,12 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     return key;
   };
 
+  const getDateLocale = (): Locale => {
+    return DATE_LOCALES[language] || ptBR;
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getDateLocale }}>
       {children}
     </LanguageContext.Provider>
   );
