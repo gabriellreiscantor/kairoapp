@@ -14,6 +14,7 @@ import kairoFoxWhite from "@/assets/kairo-fox-white.png";
 import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
+import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
@@ -36,6 +37,13 @@ interface Message {
   eventData?: any; // For showing event cards
   isCreatingEvent?: boolean; // For showing creation animation
   suggestionCard?: 'weekly_planning' | 'connect_calendar'; // For onboarding suggestions
+  pendingConfirmation?: {
+    titulo: string;
+    data: string;
+    hora: string;
+    local: string;
+    notificacao: string;
+  };
 }
 
 interface ExecutedAction {
@@ -43,6 +51,13 @@ interface ExecutedAction {
   success: boolean;
   data?: any;
   error?: string;
+  resumo_evento?: {
+    titulo: string;
+    data: string;
+    hora: string;
+    local: string;
+    notificacao: string;
+  };
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -296,13 +311,17 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     // Check if event was created to show creation animation first
                     const eventAction = executedActions.find(a => a.action === 'criar_evento' && a.success);
                     
+                    // Check if confirmation is being requested
+                    const confirmationAction = executedActions.find(a => a.action === 'solicitar_confirmacao');
+                    
                     setMessages(prev => prev.map(m => 
                       m.id === assistantId ? { 
                         ...m, 
                         content: assistantContent, 
                         actions: executedActions,
                         isCreatingEvent: !!eventAction,
-                        eventData: undefined // Will be set after animation
+                        eventData: undefined,
+                        pendingConfirmation: confirmationAction?.resumo_evento || confirmationAction?.data?.resumo_evento || undefined
                       } : m
                     ));
 
@@ -415,6 +434,26 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   const handleSuggestionClick = (text: string) => {
     handleSend(text);
+  };
+
+  // Handle event confirmation from card
+  const handleConfirmEvent = (messageId: string) => {
+    // Clear the pending confirmation from the message
+    setMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, pendingConfirmation: undefined } : m
+    ));
+    // Send confirmation message
+    handleSend("confirmar");
+  };
+
+  // Handle edit request from confirmation card
+  const handleEditEvent = (messageId: string) => {
+    // Clear the pending confirmation
+    setMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, pendingConfirmation: undefined } : m
+    ));
+    // Send edit request
+    handleSend("editar");
   };
 
   // Handle weekly planning suggestion
@@ -716,6 +755,17 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.eventData && !message.isCreatingEvent && (
                       <div className="pl-9 animate-fade-in">
                         <EventCreatedCard event={message.eventData} />
+                      </div>
+                    )}
+                    
+                    {/* Confirmation Card */}
+                    {message.pendingConfirmation && !message.eventData && !message.isCreatingEvent && (
+                      <div className="pl-9 animate-fade-in">
+                        <EventConfirmationCard 
+                          resumo={message.pendingConfirmation}
+                          onConfirm={() => handleConfirmEvent(message.id)}
+                          onEdit={() => handleEditEvent(message.id)}
+                        />
                       </div>
                     )}
                   </div>

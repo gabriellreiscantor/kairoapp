@@ -8,29 +8,32 @@ const corsHeaders = {
 };
 
 /**
- * FERRAMENTA 2 - INTERPRETAÇÃO DE TEXTO (ChatGPT)
+ * KAIRO — ASSISTENTE DE AGENDA INTELIGENTE
  * 
- * Função EXATA:
- * - Entender a intenção do usuário
- * - Extrair informações estruturadas
- * - Retornar APENAS JSON
+ * Função da IA: INTERPRETAÇÃO EXCLUSIVA
+ * - Identifica intenção
+ * - Extrai dados estruturados
+ * - Detecta informações faltantes
+ * - Mantém contexto conversacional
  * 
- * Regras:
- * - ChatGPT NÃO cria eventos
- * - ChatGPT NÃO acessa banco
- * - ChatGPT NÃO executa lógica
- * - ChatGPT SÓ interpreta linguagem humana
+ * A IA NÃO:
+ * - Cria eventos
+ * - Edita eventos
+ * - Acessa banco de dados
+ * - Executa ações de negócio
  * 
- * Fluxo: Texto → ChatGPT → JSON → Backend executa
+ * Toda execução é responsabilidade do backend.
  */
 
 // JSON structure that AI will return - MASTER PROMPT CONTRACT
 interface KairoAction {
-  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes';
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao';
   titulo?: string;
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
   local?: string;
+  location_type?: 'commercial' | 'personal';
+  location_state?: 'missing_city' | 'missing_place_name' | 'complete';
   duracao_minutos?: number;
   prioridade?: 'low' | 'medium' | 'high';
   categoria?: string;
@@ -40,8 +43,15 @@ interface KairoAction {
   idioma_detectado?: 'pt' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh' | 'outro';
   observacoes?: string;
   resposta_usuario?: string;
-  informacao_faltante?: 'data' | 'hora' | 'local' | 'ambos'; // For coletar_informacoes
-  contexto_coletado?: string; // What user already said
+  informacao_faltante?: 'data' | 'hora' | 'local' | 'cidade' | 'nome_estabelecimento';
+  contexto_coletado?: string;
+  resumo_evento?: {
+    titulo: string;
+    data: string;
+    hora: string;
+    local: string;
+    notificacao: string;
+  };
 }
 
 interface UserProfile {
@@ -62,7 +72,6 @@ async function saveUserPattern(
   action: KairoAction,
   profile: UserProfile
 ): Promise<void> {
-  // Only save if learn_patterns_enabled
   if (!profile.learn_patterns_enabled) {
     console.log('Pattern learning disabled for user');
     return;
@@ -71,7 +80,6 @@ async function saveUserPattern(
   try {
     const patterns: Array<{ type: string; data: any }> = [];
 
-    // Pattern: preferred time
     if (action.hora) {
       patterns.push({
         type: 'preferred_time',
@@ -79,7 +87,6 @@ async function saveUserPattern(
       });
     }
 
-    // Pattern: common category
     if (action.categoria) {
       patterns.push({
         type: 'common_category',
@@ -87,7 +94,6 @@ async function saveUserPattern(
       });
     }
 
-    // Pattern: common duration
     if (action.duracao_minutos) {
       patterns.push({
         type: 'common_duration',
@@ -95,7 +101,6 @@ async function saveUserPattern(
       });
     }
 
-    // Pattern: common location
     if (action.local) {
       patterns.push({
         type: 'common_location',
@@ -103,9 +108,7 @@ async function saveUserPattern(
       });
     }
 
-    // Save each pattern (upsert logic)
     for (const pattern of patterns) {
-      // Check if pattern exists
       const { data: existing } = await supabase
         .from('user_patterns')
         .select('id, confidence, pattern_data')
@@ -114,7 +117,6 @@ async function saveUserPattern(
         .maybeSingle();
 
       if (existing) {
-        // Update confidence and merge data
         const newConfidence = Math.min(existing.confidence + 0.1, 1.0);
         const mergedData = { ...existing.pattern_data, ...pattern.data, count: (existing.pattern_data?.count || 1) + 1 };
         
@@ -127,7 +129,6 @@ async function saveUserPattern(
           })
           .eq('id', existing.id);
       } else {
-        // Create new pattern
         await supabase
           .from('user_patterns')
           .insert({
@@ -161,13 +162,11 @@ async function executeAction(
           return { success: false, error: 'Título e data são obrigatórios' };
         }
 
-        // Check if user can create event (plan limits)
         const { data: canCreate } = await supabase.rpc('can_create_event', {
           _user_id: userId
         });
 
         if (!canCreate) {
-          // Get user's current plan to show appropriate message
           const { data: planData } = await supabase.rpc('get_user_plan', {
             _user_id: userId
           });
@@ -179,7 +178,7 @@ async function executeAction(
           return { 
             success: false, 
             limitReached: true,
-            error: `Você atingiu o limite de ${limit} eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos!`
+            error: `Você atingiu o limite de ${limit} eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos.`
           };
         }
 
@@ -202,7 +201,6 @@ async function executeAction(
 
         if (error) throw error;
 
-        // Save patterns after successful event creation
         await saveUserPattern(supabase, userId, action, profile);
 
         return { success: true, data };
@@ -288,8 +286,8 @@ async function executeAction(
 
       case 'conversar':
       case 'coletar_informacoes':
-        // Conversation and info collection don't need database action
-        return { success: true, data: null };
+      case 'solicitar_confirmacao':
+        return { success: true, data: action.resumo_evento || null };
 
       default:
         return { success: false, error: `Ação desconhecida: ${action.acao}` };
@@ -332,7 +330,6 @@ serve(async (req) => {
     let userProfile: UserProfile = {};
     let userName = "";
 
-    // Get user context
     if (authHeader) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -354,16 +351,14 @@ serve(async (req) => {
           userProfile = profile;
           userName = profile.display_name || '';
           
-          userContext += `\n\n## 👤 CONTEXTO DO USUÁRIO`;
-          userContext += `\n- Nome: ${userName || 'Não informado'}`;
+          userContext += `\n\nCONTEXTO DO USUARIO`;
+          userContext += `\nNome: ${userName || 'Não informado'}`;
           
-          // Only include smart features context if enabled
           if (profile.context_aware_enabled && profile.preferred_times && profile.preferred_times.length > 0) {
-            userContext += `\n- Horários preferidos: ${JSON.stringify(profile.preferred_times)}`;
+            userContext += `\nHorarios preferidos: ${JSON.stringify(profile.preferred_times)}`;
           }
         }
         
-        // Get events
         const { data: events } = await supabase
           .from('events')
           .select('*')
@@ -373,12 +368,11 @@ serve(async (req) => {
           .limit(10);
         
         if (events && events.length > 0) {
-          userContext += `\n\n## 📅 PRÓXIMOS EVENTOS`;
+          userContext += `\n\nPROXIMOS EVENTOS`;
           events.forEach((e: any) => {
             userContext += `\n- [ID: ${e.id}] ${e.title} em ${e.event_date}${e.event_time ? ' às ' + e.event_time : ''}${e.location ? ' em ' + e.location : ''} (${e.priority})`;
           });
 
-          // Auto-reschedule suggestion for past events
           if (userProfile.auto_reschedule_enabled) {
             const today = new Date().toISOString().split('T')[0];
             const { data: pastEvents } = await supabase
@@ -390,7 +384,7 @@ serve(async (req) => {
               .limit(3);
 
             if (pastEvents && pastEvents.length > 0) {
-              userContext += `\n\n## ⏰ EVENTOS PERDIDOS (sugira reagendamento)`;
+              userContext += `\n\nEVENTOS PERDIDOS (sugira reagendamento)`;
               pastEvents.forEach((e: any) => {
                 userContext += `\n- [ID: ${e.id}] ${e.title} era em ${e.event_date}`;
               });
@@ -398,7 +392,6 @@ serve(async (req) => {
           }
         }
         
-        // Only include patterns if smart suggestions enabled
         if (userProfile.smart_suggestions_enabled) {
           const { data: patterns } = await supabase
             .from('user_patterns')
@@ -408,9 +401,9 @@ serve(async (req) => {
             .limit(5);
           
           if (patterns && patterns.length > 0) {
-            userContext += `\n\n## 🧠 PADRÕES APRENDIDOS (use para sugestões inteligentes)`;
+            userContext += `\n\nPADROES APRENDIDOS (use para sugestoes inteligentes)`;
             patterns.forEach((p: any) => {
-              userContext += `\n- ${p.pattern_type}: ${JSON.stringify(p.pattern_data)} (confiança: ${(p.confidence * 100).toFixed(0)}%)`;
+              userContext += `\n- ${p.pattern_type}: ${JSON.stringify(p.pattern_data)} (confianca: ${(p.confidence * 100).toFixed(0)}%)`;
             });
           }
         }
@@ -426,142 +419,193 @@ serve(async (req) => {
     });
     const todayISO = today.toISOString().split('T')[0];
 
-    // Greeting instruction based on user name
     const greetingInstruction = userName 
-      ? `Sempre cumprimente o usuário pelo nome "${userName}". Exemplo: "E aí ${userName}! O que vamos agendar hoje?"`
-      : `Use uma saudação casual como "E aí! O que vamos agendar hoje?"`;
+      ? `Cumprimente o usuario pelo nome "${userName}". Exemplo: "E ai ${userName}, o que vamos agendar hoje?"`
+      : `Use uma saudacao casual como "E ai, o que vamos agendar hoje?"`;
 
-    // Onboarding context for guiding users
     const onboardingContext = isOnboarding ? `
-## 🎯 MODO ONBOARDING ATIVO
-Este é um novo usuário que está criando seu primeiro evento.
-- Seja amigável e encorajador
-- Se o usuário descrever algo que pode ser um lembrete, interprete como intenção de criar evento
-- Mas SEMPRE pergunte as informações faltantes antes de criar
-- Use ação "coletar_informacoes" para perguntar de forma natural
-- Seja encorajador: "Boa ideia! Quando você quer fazer isso?"
+MODO ONBOARDING ATIVO
+Este e um novo usuario que esta criando seu primeiro evento.
+- Seja amigavel e encorajador
+- Se o usuario descrever algo que pode ser um lembrete, interprete como intencao de criar evento
+- Mas SEMPRE pergunte as informacoes faltantes antes de criar
+- Use acao "coletar_informacoes" para perguntar de forma natural
 ` : '';
 
-    // MASTER PROMPT - System prompt for INTERPRETATION ONLY
-    const systemPrompt = `Você é Kairo, uma IA de interpretação para um aplicativo de agenda inteligente.
+    // KAIRO — PROMPT DE ESPECIFICACAO FUNCIONAL (VERSAO PROFISSIONAL)
+    const systemPrompt = `Voce e Kairo, uma IA de interpretacao para um assistente de agenda inteligente.
 
-## 🧠 SUA FUNÇÃO ÚNICA
-Você existe APENAS para:
-- Entender pessoas (em qualquer idioma)
-- Organizar intenções
-- Devolver dados estruturados em JSON
+=== 1. FUNCAO DA IA ===
 
-## ❌ O QUE VOCÊ NUNCA FAZ
-- Criar eventos (backend faz isso)
-- Editar eventos (backend faz isso)
-- Cancelar eventos (backend faz isso)
-- Confirmar ações (backend faz isso)
-- Dizer que algo foi salvo
-- Acessar banco de dados
-- Executar lógica de negócio
-- Responder perguntas fora do escopo (esportes, notícias, política, receitas, piadas, jogos, etc.)
+Voce existe APENAS para:
+- Identificar intencao do usuario
+- Extrair dados estruturados
+- Detectar informacoes faltantes
+- Manter contexto conversacional
 
-## 🌍 SUPORTE MULTILÍNGUE
-- Detecte automaticamente o idioma do usuário
-- Entenda datas/horas no idioma original
-- Idiomas: pt, en, es, fr, de, it, ja, ko, zh, outro
+Voce NAO:
+- Cria eventos (backend faz isso)
+- Edita eventos (backend faz isso)
+- Cancela eventos (backend faz isso)
+- Acessa banco de dados
+- Executa logica de negocio
+- Responde perguntas fora do escopo (esportes, noticias, politica, receitas, piadas, jogos, etc.)
 
-## 📐 CONTRATO DE RESPOSTA (OBRIGATÓRIO)
-Sempre responda APENAS com JSON válido neste formato:
+=== 2. PRINCIPIOS FUNDAMENTAIS ===
 
-## 🔍 REGRAS OBRIGATÓRIAS ANTES DE CRIAR EVENTO
-Informações OBRIGATÓRIAS que o usuário DEVE fornecer:
-- DATA: Precisa ser explícita ("amanhã", "segunda", "dia 20", "hoje", etc.)
-- HORA: Precisa ser mencionada ("às 14h", "de manhã", "às 3 da tarde", "8h", etc.)
+- O usuario se comunica de forma natural
+- Respostas incompletas sao tratadas como estado parcial, NAO erro
+- O fluxo NUNCA e reiniciado
+- O sistema pergunta apenas informacoes faltantes
+- NENHUM evento e criado sem confirmacao explicita
+- Campos ja coletados NUNCA sao descartados
 
-Informações OPCIONAIS (use valores padrão se não especificado):
-- Local: deixar vazio se não especificado
-- Duração: usar 60 minutos
-- Prioridade: inferir pelo contexto
-- Categoria: inferir pelo contexto
+=== 3. MODELO LOGICO DE EVENTO ===
 
-⚠️ SE FALTAR DATA OU HORA: Use "coletar_informacoes" para perguntar!
+Campos obrigatorios:
+- titulo: string
+- data: YYYY-MM-DD
+- hora: HH:MM
 
-## 📍 REGRAS DE LOCALIZAÇÃO (MUITO IMPORTANTE!)
-PERGUNTE "Onde vai ser?" para QUALQUER evento que pode ter um local físico:
-- Eventos sociais: churrasco, festa, aniversário, encontro, casamento, reunião de família
-- Entretenimento: cinema, teatro, show, jogo, balada
-- Trabalho: reunião presencial, apresentação, entrevista
-- Saúde: médico, dentista, exame, consulta
-- Compras: shopping, mercado, loja
-- Alimentação: almoço, jantar, café, restaurante
+Campos opcionais:
+- local: string (pode ficar vazio)
+- duracao_minutos: number (padrao 60)
+- prioridade: low | medium | high
+- categoria: trabalho | pessoal | saude | lazer | geral
 
-NÃO precisa perguntar local para:
-- Tarefas pessoais: "tomar remédio", "pagar conta", "ligar para alguém"
-- Eventos online: "call", "reunião por zoom", "live"
-- Lembretes genéricos: "estudar", "ler", "descansar"
+=== 4. REGRAS DE LOCALIZACAO (CRITICAS) ===
 
-FLUXO OBRIGATÓRIO:
-1. Primeiro pergunte DATA (se não tiver)
-2. Depois pergunte HORA (se não tiver)
-3. Por último pergunte LOCAL (se o evento pode ter local)
-4. Só então crie o evento
+LOCAIS COMERCIAIS (cinema, shopping, restaurante, medico, hospital, academia, aeroporto, etc.):
 
-Exemplos:
-- "churrasco" → falta tudo → perguntar DATA primeiro
-- "churrasco amanhã" → falta HORA → perguntar hora
-- "churrasco amanhã 12h" → falta LOCAL → perguntar "Onde vai ser o churrasco?"
-- "churrasco amanhã 12h na casa do João" → COMPLETO → criar evento
+LOCAL COMPLETO = NOME DO ESTABELECIMENTO + CIDADE
 
-Se o usuário mencionar um NOME de lugar comercial (ex: "Pantanal Shopping"), pergunte a CIDADE:
-- "cinema no Pantanal Shopping amanhã 15h" → {"acao": "coletar_informacoes", "contexto_coletado": "cinema no Pantanal Shopping amanhã 15h", "informacao_faltante": "local", "resposta_usuario": "Pantanal Shopping! De qual cidade?"}
+Exemplos VALIDOS:
+- "Pantanal Shopping, Cuiaba"
+- "Cinemark Iguatemi, Sao Paulo"
+- "Hospital Sirio Libanes, Sao Paulo"
 
-Para COLETAR informações faltantes (use SEMPRE que faltar data, hora, ou local):
-{"acao": "coletar_informacoes", "contexto_coletado": "o que o usuário já disse", "informacao_faltante": "data|hora|local|ambos", "idioma_detectado": "...", "resposta_usuario": "pergunta amigável e natural"}
+Exemplos INVALIDOS:
+- "Cuiaba" (so cidade, falta nome)
+- "Na minha cidade" (sem nome)
+- "Cinema" (generico)
+- "Shopping" (generico)
+
+LOCAIS PESSOAIS (casa do Joao, meu apartamento, escritorio):
+- Aceitar como informado
+- NAO exigir cidade
+- NAO validar externamente
+
+=== 5. ESTADOS DE LOCALIZACAO ===
+
+O sistema deve tratar localizacao como estado progressivo:
+- missing_city: tem nome do estabelecimento mas falta cidade
+- missing_place_name: tem cidade mas falta nome especifico do estabelecimento
+- complete: tem nome + cidade (ou e local pessoal)
+
+O sistema NUNCA deve declarar erro. Deve solicitar apenas o dado faltante.
+
+=== 6. FLUXO DE COLETA DE DADOS ===
+
+Coletar de forma progressiva, sem ordem rigida:
+1. Identificar o evento (titulo)
+2. Identificar data
+3. Identificar hora
+4. Identificar tipo de local (comercial ou pessoal)
+5. Resolver estado de localizacao
+6. Gerar resumo final para CONFIRMACAO
+
+Campos ja coletados NUNCA devem ser descartados.
+
+=== 7. CONFIRMACAO FINAL (OBRIGATORIA) ===
+
+Antes de criar o evento, SEMPRE apresentar resumo estruturado e pedir confirmacao.
+Use a acao "solicitar_confirmacao" com o resumo do evento.
+A criacao so ocorre APOS confirmacao explicita do usuario ("sim", "ok", "confirma", "isso", "pode criar", etc.)
+
+=== 8. COMPORTAMENTO CONVERSACIONAL ===
+
+- Linguagem clara e objetiva
+- SEM EMOJIS (proibido usar emojis)
+- Sem tom robotico
+- Sem termos tecnicos visiveis ao usuario
+- Sem mensagens de erro explicitas
+- Respostas curtas e diretas
+
+=== 9. CONTRATO DE RESPOSTA JSON ===
+
+Sempre responda APENAS com JSON valido.
+
+Para COLETAR informacoes faltantes:
+{"acao": "coletar_informacoes", "contexto_coletado": "o que ja foi coletado", "informacao_faltante": "data|hora|local|cidade|nome_estabelecimento", "location_state": "missing_city|missing_place_name|complete", "idioma_detectado": "pt", "resposta_usuario": "pergunta clara e direta"}
 
 Exemplos de coletar_informacoes:
-- "ir no shopping" → falta DATA e HORA → {"acao": "coletar_informacoes", "contexto_coletado": "ir no shopping", "informacao_faltante": "ambos", "resposta_usuario": "Boa! Qual dia você quer ir no shopping?"}
-- "shopping sábado" → falta HORA → {"acao": "coletar_informacoes", "contexto_coletado": "shopping sábado", "informacao_faltante": "hora", "resposta_usuario": "Sábado no shopping! Que horas fica bom pra você?"}
-- "reunião às 15h" → falta DATA → {"acao": "coletar_informacoes", "contexto_coletado": "reunião às 15h", "informacao_faltante": "data", "resposta_usuario": "Reunião às 15h, combinado! Qual dia?"}
 
-Para CRIAR evento (SOMENTE quando tiver DATA e HORA):
-{"acao": "criar_evento", "titulo": "...", "data": "YYYY-MM-DD", "hora": "HH:MM", "local": "...", "prioridade": "low|medium|high", "categoria": "trabalho|pessoal|saude|lazer|geral", "duracao_minutos": 60, "idioma_detectado": "...", "resposta_usuario": "Perfeito, estou organizando isso pra você..."}
+"cinema" (falta tudo):
+{"acao": "coletar_informacoes", "contexto_coletado": "cinema", "informacao_faltante": "data", "idioma_detectado": "pt", "resposta_usuario": "Cinema, boa. Qual dia?"}
+
+"cinema amanha" (falta hora):
+{"acao": "coletar_informacoes", "contexto_coletado": "cinema amanha", "informacao_faltante": "hora", "idioma_detectado": "pt", "resposta_usuario": "Amanha. Que horas?"}
+
+"cinema amanha 17h" (falta local comercial):
+{"acao": "coletar_informacoes", "contexto_coletado": "cinema amanha 17h", "informacao_faltante": "nome_estabelecimento", "location_state": "missing_place_name", "idioma_detectado": "pt", "resposta_usuario": "Qual cinema?"}
+
+"Pantanal Shopping" (tem nome, falta cidade):
+{"acao": "coletar_informacoes", "contexto_coletado": "cinema amanha 17h Pantanal Shopping", "informacao_faltante": "cidade", "location_state": "missing_city", "idioma_detectado": "pt", "resposta_usuario": "Pantanal Shopping. Qual cidade?"}
+
+"na minha cidade" ou "Cuiaba" (tem cidade, falta nome):
+{"acao": "coletar_informacoes", "contexto_coletado": "cinema amanha 17h Cuiaba", "informacao_faltante": "nome_estabelecimento", "location_state": "missing_place_name", "idioma_detectado": "pt", "resposta_usuario": "Cuiaba. Qual cinema ou shopping?"}
+
+Para SOLICITAR CONFIRMACAO (quando todos os dados estao completos):
+{"acao": "solicitar_confirmacao", "titulo": "Cinema", "data": "2024-01-16", "hora": "17:00", "local": "Pantanal Shopping, Cuiaba", "location_type": "commercial", "location_state": "complete", "prioridade": "low", "categoria": "lazer", "duracao_minutos": 120, "resumo_evento": {"titulo": "Cinema", "data": "amanha", "hora": "17h", "local": "Pantanal Shopping, Cuiaba", "notificacao": "alerta"}, "idioma_detectado": "pt", "resposta_usuario": "Deixa eu confirmar: Cinema amanha as 17h no Pantanal Shopping, Cuiaba. Confirma?"}
+
+Para CRIAR evento (SOMENTE apos usuario confirmar):
+{"acao": "criar_evento", "titulo": "Cinema", "data": "2024-01-16", "hora": "17:00", "local": "Pantanal Shopping, Cuiaba", "location_type": "commercial", "prioridade": "low", "categoria": "lazer", "duracao_minutos": 120, "idioma_detectado": "pt", "resposta_usuario": "Pronto, agendado."}
 
 Para LISTAR eventos:
-{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "...", "resposta_usuario": "..."}
+{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "pt", "resposta_usuario": "Seus proximos compromissos:"}
 
 Para EDITAR evento:
-{"acao": "editar_evento", "evento_id": "..." ou "buscar_titulo": "...", "titulo": "...", "data": "...", "hora": "...", "idioma_detectado": "...", "resposta_usuario": "..."}
+{"acao": "editar_evento", "evento_id": "..." ou "buscar_titulo": "...", "titulo": "...", "data": "...", "hora": "...", "idioma_detectado": "pt", "resposta_usuario": "..."}
 
 Para DELETAR evento:
-{"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "idioma_detectado": "...", "resposta_usuario": "..."}
+{"acao": "deletar_evento", "evento_id": "..." ou "buscar_titulo": "...", "idioma_detectado": "pt", "resposta_usuario": "..."}
 
-Para CONVERSAR (saudações):
+Para CONVERSAR (saudacoes):
 ${greetingInstruction}
-{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "saudação personalizada"}
+{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "saudacao"}
 
-Para FORA DO ESCOPO (esportes, notícias, política, receitas, piadas, jogos, etc.):
-{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "Hmm, isso não é minha praia! Sou focado em te ajudar a não esquecer compromissos. O que quer agendar?"}
+Para FORA DO ESCOPO (esportes, noticias, politica, receitas, piadas, jogos, previsao do tempo, etc.):
+{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "Isso nao e minha especialidade. Sou focado em te ajudar a nao esquecer compromissos. O que quer agendar?"}
 
-## 🌤️ SOBRE CLIMA/TEMPO
-NÃO responda sobre previsão do tempo. Responda assim:
-{"acao": "conversar", "idioma_detectado": "...", "resposta_usuario": "A previsão do tempo pode ser ativada em Configurações > Ações Inteligentes. Você receberá diariamente no chat! Posso ajudar com outra coisa?"}
+Para CLIMA/TEMPO especificamente:
+{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "A previsao do tempo pode ser ativada em Configuracoes, Acoes Inteligentes. Voce recebera diariamente no chat. Posso ajudar com outra coisa?"}
 
-## 📅 CONTEXTO TEMPORAL
+=== 10. CONTEXTO TEMPORAL ===
+
 Data de hoje: ${todayStr} (${todayISO})
 - "hoje/today/hoy" = ${todayISO}
-- "amanhã/tomorrow/mañana" = dia seguinte
-- Dias da semana = próxima ocorrência
+- "amanha/tomorrow/manana" = dia seguinte
+- Dias da semana = proxima ocorrencia
 
-## 🎯 REGRAS DE PRIORIDADE
-- médico, hospital, emergência, doctor, emergency = "high"
-- trabalho, reunião, meeting, work = "medium"
-- café, lazer, coffee, personal = "low"
+=== 11. REGRAS DE PRIORIDADE ===
+
+- medico, hospital, emergencia, exame = "high"
+- trabalho, reuniao, meeting = "medium"
+- cafe, lazer, cinema, shopping = "low"
+
+=== 12. IDIOMAS SUPORTADOS ===
+
+Detecte automaticamente: pt, en, es, fr, de, it, ja, ko, zh, outro
+Responda no idioma do usuario.
 
 ${onboardingContext}
 
 ${userContext}
 
-${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringify(imageAnalysis)}\nUse para sugerir criação de evento.` : ''}`;
+${imageAnalysis ? `ANALISE DE IMAGEM\nImagem analisada: ${JSON.stringify(imageAnalysis)}\nUse para sugerir criacao de evento.` : ''}`;
 
     console.log('Sending to GPT-4o-mini for interpretation...');
 
-    // Call GPT-4o-mini for INTERPRETATION
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -585,7 +629,7 @@ ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringif
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Muitas requisições. Aguarde um momento." }),
+          JSON.stringify({ error: "Muitas requisicoes. Aguarde um momento." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -601,7 +645,6 @@ ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringif
     
     console.log('AI interpretation:', content);
 
-    // Parse the JSON from AI
     let action: KairoAction;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -616,60 +659,56 @@ ${imageAnalysis ? `## 📷 ANÁLISE DE IMAGEM\nImagem analisada: ${JSON.stringif
 
     console.log('Parsed action:', action);
 
-    // BACKEND EXECUTES THE ACTION
     let executionResult: { success: boolean; data?: any; error?: string } = { success: true };
     
-    if (userId && supabase && action.acao !== 'conversar') {
+    if (userId && supabase && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
       executionResult = await executeAction(supabase, userId, action, userProfile);
       console.log('Execution result:', executionResult);
+    } else if (action.acao === 'solicitar_confirmacao') {
+      // Pass through confirmation data
+      executionResult = { success: true, data: action.resumo_evento };
     }
 
-    // Build response
     let finalResponse = action.resposta_usuario || '';
 
-    // If listing events, append the list
     if (action.acao === 'listar_eventos' && executionResult.success && executionResult.data) {
       const events = executionResult.data as any[];
       if (events.length === 0) {
-        finalResponse += '\n\nVocê não tem eventos agendados.';
+        finalResponse += '\n\nVoce nao tem eventos agendados.';
       } else {
         finalResponse += '\n\n';
         for (const e of events) {
-          const emoji = e.priority === 'high' ? '🔴' : e.priority === 'medium' ? '🟡' : '🟢';
-          finalResponse += `${emoji} **${e.title}**\n`;
-          finalResponse += `   📅 ${e.event_date}${e.event_time ? ' às ' + e.event_time : ''}\n`;
-          if (e.location) finalResponse += `   📍 ${e.location}\n`;
+          const priority = e.priority === 'high' ? '[ALTA]' : e.priority === 'medium' ? '[MEDIA]' : '[BAIXA]';
+          finalResponse += `${priority} ${e.title}\n`;
+          finalResponse += `   ${e.event_date}${e.event_time ? ' as ' + e.event_time : ''}\n`;
+          if (e.location) finalResponse += `   ${e.location}\n`;
           finalResponse += '\n';
         }
       }
     }
 
-    // Return SSE stream format for compatibility
     console.log('Building SSE response with finalResponse:', finalResponse);
     
     const encoder = new TextEncoder();
     
-    // Build the complete SSE response as chunks
     const chunks: string[] = [];
     
-    // Send action metadata first
     const actionData = {
       action: action.acao,
       success: executionResult.success,
-      data: executionResult.data,
-      error: executionResult.error
+      data: executionResult.data || action,
+      error: executionResult.error,
+      resumo_evento: action.resumo_evento
     };
     
     const actionJson = JSON.stringify([actionData]);
     const actionContent = `<!--KAIRO_ACTIONS:${actionJson}-->`;
     chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:actionContent}}]})}\n\n`);
 
-    // Send response text - use JSON.stringify for proper escaping
     if (finalResponse) {
       chunks.push(`data: ${JSON.stringify({choices:[{delta:{content:finalResponse}}]})}\n\n`);
     }
     
-    // Send done marker
     chunks.push('data: [DONE]\n\n');
     
     const fullResponse = chunks.join('');
