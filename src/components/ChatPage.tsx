@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
+import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -171,16 +171,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Fixed Header Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl safe-area-top">
         <div className="flex items-center justify-center gap-2 px-4 py-3">
-          {/* List View */}
+          {/* Calendar View - Left */}
           <button
-            onClick={() => onViewChange('list')}
+            onClick={() => onViewChange('calendar')}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-              activeView === 'list' 
+              activeView === 'calendar' 
                 ? 'bg-primary/20 text-primary' 
                 : 'text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2'
             }`}
           >
-            <LayoutGrid className="w-5 h-5" />
+            <CalendarIcon className="w-5 h-5" />
           </button>
           
           {/* Center - Kairo Logo */}
@@ -191,16 +191,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
           </button>
           
-          {/* Calendar View */}
+          {/* Settings - Right */}
           <button
-            onClick={() => onViewChange('calendar')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-              activeView === 'calendar' 
-                ? 'bg-primary/20 text-primary' 
-                : 'text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2'
-            }`}
+            onClick={onOpenSettings}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 text-muted-foreground hover:text-foreground hover:bg-kairo-surface-2"
           >
-            <CalendarIcon className="w-5 h-5" />
+            <User className="w-5 h-5" />
           </button>
         </div>
       </header>
