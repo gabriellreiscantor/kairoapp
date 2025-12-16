@@ -201,7 +201,10 @@ const MainApp = () => {
         
         {/* Today indicator */}
         <div className="flex items-center gap-2 glass border border-primary/20 rounded-xl px-3 py-2">
-          <span className="text-primary font-bold text-sm calendar-number">
+          <span className="text-muted-foreground text-xs italic font-light tracking-wide">
+            hoje é dia
+          </span>
+          <span className="text-primary font-bold text-lg calendar-number">
             {format(new Date(), 'd')}
           </span>
         </div>
