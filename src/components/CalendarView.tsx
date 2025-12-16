@@ -34,43 +34,43 @@ const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
   const handleNextYear = () => setPickerYear(prev => prev + 1);
 
   return (
-    <div className="px-6">
+    <div className="px-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <Popover open={yearPickerOpen} onOpenChange={setYearPickerOpen}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <button className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <span className="capitalize">{format(currentMonth, 'MMMM', { locale: ptBR })}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-4 bg-kairo-surface-2 border-border/50 rounded-2xl" align="start">
+          <PopoverContent className="w-64 p-3 bg-kairo-surface-2 border-border/30 rounded-xl" align="start">
             {/* Year Navigation */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <button 
                 onClick={handlePrevYear}
-                className="p-2 rounded-full hover:bg-kairo-surface-3 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
               </button>
-              <span className="text-foreground font-semibold">{pickerYear}</span>
+              <span className="text-foreground font-semibold text-sm">{pickerYear}</span>
               <button 
                 onClick={handleNextYear}
-                className="p-2 rounded-full hover:bg-kairo-surface-3 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-kairo-surface-3 transition-colors"
               >
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
             
             {/* Month Grid */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1">
               {MONTHS.map((month, index) => {
                 const isCurrentMonth = currentMonth.getMonth() === index && currentMonth.getFullYear() === pickerYear;
                 return (
                   <button
                     key={month}
                     onClick={() => handleMonthSelect(index)}
-                    className={`py-2 px-1 rounded-xl text-sm font-medium transition-colors ${
+                    className={`py-1.5 px-1 rounded-lg text-xs font-medium transition-colors ${
                       isCurrentMonth 
                         ? 'bg-primary text-primary-foreground' 
                         : 'text-foreground hover:bg-kairo-surface-3'
@@ -85,22 +85,22 @@ const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
         </Popover>
 
         {/* Today indicator */}
-        <div className="flex items-center gap-2 bg-primary/20 rounded-full px-3 py-1.5">
-          <span className="text-primary font-bold text-lg">{format(today, 'd')}</span>
+        <div className="flex items-center gap-1.5 bg-primary/15 rounded-lg px-2 py-1">
+          <span className="text-primary font-bold text-sm tabular-nums">{format(today, 'd')}</span>
         </div>
       </div>
 
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 mb-1">
         {WEEKDAYS.map((day, index) => (
-          <div key={index} className="text-center text-sm text-muted-foreground font-medium py-2">
+          <div key={index} className="text-center text-[10px] text-muted-foreground font-medium py-1">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, index) => {
           const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
           const isTodayDate = isToday(day);
@@ -111,10 +111,10 @@ const CalendarView = ({ selectedDate, onDateSelect }: CalendarViewProps) => {
               key={index}
               onClick={() => onDateSelect(day)}
               className={`
-                aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all
-                ${!isCurrentMonth ? 'text-muted-foreground/30' : 'text-foreground'}
+                aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all
+                ${!isCurrentMonth ? 'text-muted-foreground/25' : 'text-foreground'}
                 ${isTodayDate ? 'bg-primary text-primary-foreground' : ''}
-                ${isSelected && !isTodayDate ? 'bg-kairo-surface-3 ring-2 ring-primary/50' : ''}
+                ${isSelected && !isTodayDate ? 'bg-kairo-surface-3 ring-1 ring-primary/40' : ''}
                 ${isCurrentMonth && !isTodayDate && !isSelected ? 'hover:bg-kairo-surface-2' : ''}
               `}
             >

@@ -42,22 +42,22 @@ const MainApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="px-6 pt-12 pb-4 flex items-center justify-between">
+      <header className="px-4 pt-10 pb-2 flex items-center justify-between">
         <div>
-          <p className="text-muted-foreground text-sm capitalize">
+          <p className="text-muted-foreground text-xs capitalize">
             {format(new Date(), 'EEEE', { locale: ptBR })}
           </p>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-lg font-semibold text-foreground">
             {format(new Date(), "d 'de' MMMM", { locale: ptBR })}
           </h1>
         </div>
         <button 
           onClick={() => setIsSettingsOpen(true)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center transition-colors hover:bg-kairo-surface-3"
+          className="w-8 h-8 rounded-full bg-kairo-surface-2 flex items-center justify-center transition-colors hover:bg-kairo-surface-3"
         >
-          <Settings className="w-5 h-5 text-muted-foreground" />
+          <Settings className="w-4 h-4 text-muted-foreground" />
         </button>
       </header>
 
@@ -78,21 +78,21 @@ const MainApp = () => {
 
       {/* Events for selected date (when in calendar view) */}
       {activeView === 'calendar' && (
-        <div className="px-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
+        <div className="px-4 mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-medium text-foreground">
               {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
             </h2>
             <button 
               onClick={() => handleAddEvent()}
-              className="w-10 h-10 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95"
+              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center transition-transform active:scale-95"
             >
-              <Plus className="w-5 h-5 text-primary-foreground" />
+              <Plus className="w-4 h-4 text-primary-foreground" />
             </button>
           </div>
           
           {todayEvents.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               {todayEvents.map((event) => (
                 <EventCard
                   key={event.id}
@@ -106,9 +106,9 @@ const MainApp = () => {
           ) : (
             <button 
               onClick={() => handleAddEvent()}
-              className="w-full p-6 rounded-2xl border-2 border-dashed border-border/50 text-center"
+              className="w-full py-4 rounded-xl border border-dashed border-border/40 text-center"
             >
-              <p className="text-muted-foreground text-sm">Sem planos ainda. Toque para adicionar!</p>
+              <p className="text-muted-foreground text-xs">Sem planos. Toque para adicionar</p>
             </button>
           )}
         </div>
@@ -118,9 +118,9 @@ const MainApp = () => {
       {activeView === 'list' && (
         <button 
           onClick={() => handleAddEvent()}
-          className="fixed right-6 bottom-28 w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30 transition-transform active:scale-95 z-40"
+          className="fixed right-4 bottom-24 w-11 h-11 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/25 transition-transform active:scale-95 z-40"
         >
-          <Plus className="w-6 h-6 text-primary-foreground" />
+          <Plus className="w-5 h-5 text-primary-foreground" />
         </button>
       )}
 

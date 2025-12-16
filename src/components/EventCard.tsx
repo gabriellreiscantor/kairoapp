@@ -46,32 +46,31 @@ const EventCard = ({
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 rounded-2xl bg-card border ${config.borderColor} 
-                  transition-all duration-200 hover:bg-accent active:scale-[0.98]
-                  flex items-center gap-4 text-left group`}
+      className={`w-full px-3 py-2.5 rounded-xl bg-card border ${config.borderColor} 
+                  transition-all duration-150 hover:bg-accent active:scale-[0.99]
+                  flex items-center gap-3 text-left group`}
     >
       {/* Priority indicator */}
       <div
-        className={`w-12 h-12 rounded-xl ${config.bgColor} flex items-center justify-center
-                    transition-transform duration-200 group-hover:scale-105`}
+        className={`w-9 h-9 rounded-lg ${config.bgColor} flex items-center justify-center flex-shrink-0`}
       >
-        <Icon className={`w-5 h-5 ${config.color}`} />
+        <Icon className={`w-4 h-4 ${config.color}`} />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <h3
-          className={`font-medium text-foreground truncate ${
+          className={`text-sm font-medium text-foreground truncate ${
             status === "done" ? "line-through opacity-50" : ""
           }`}
         >
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground mt-0.5">{time}</p>
+        <p className="text-xs text-muted-foreground">{time}</p>
       </div>
 
       {/* Time indicator */}
-      <div className={`text-xl font-semibold ${config.color}`}>
+      <div className={`text-base font-semibold ${config.color} tabular-nums`}>
         {time.split(" ")[0]}
       </div>
     </button>

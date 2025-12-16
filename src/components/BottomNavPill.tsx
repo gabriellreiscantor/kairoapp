@@ -8,30 +8,38 @@ interface BottomNavPillProps {
 
 const BottomNavPill = ({ activeView, onViewChange, onChatOpen }: BottomNavPillProps) => {
   return (
-    <div className="fixed bottom-6 left-0 right-0 px-6 safe-area-bottom z-50">
+    <div className="fixed bottom-4 left-0 right-0 px-4 safe-area-bottom z-50">
       <div className="flex items-center justify-between">
         {/* View Toggle Pill */}
-        <div className="nav-pill">
+        <div className="bg-kairo-surface-2/90 backdrop-blur-sm rounded-full p-1 flex items-center gap-0.5">
           <button
             onClick={() => onViewChange('list')}
-            className={`nav-pill-item ${activeView === 'list' ? 'active' : ''}`}
+            className={`px-3 py-2 rounded-full transition-all duration-150 ${
+              activeView === 'list' 
+                ? 'bg-foreground text-background' 
+                : 'text-muted-foreground'
+            }`}
           >
-            <LayoutGrid className="w-5 h-5" />
+            <LayoutGrid className="w-4 h-4" />
           </button>
           <button
             onClick={() => onViewChange('calendar')}
-            className={`nav-pill-item ${activeView === 'calendar' ? 'active' : ''}`}
+            className={`px-3 py-2 rounded-full transition-all duration-150 ${
+              activeView === 'calendar' 
+                ? 'bg-foreground text-background' 
+                : 'text-muted-foreground'
+            }`}
           >
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-4 h-4" />
           </button>
         </div>
 
         {/* Chat Button */}
         <button
           onClick={onChatOpen}
-          className="w-14 h-14 rounded-full bg-kairo-surface-2 border border-border/30 flex items-center justify-center transition-all duration-200 active:scale-95 hover:bg-kairo-surface-3"
+          className="w-11 h-11 rounded-full bg-kairo-surface-2/90 backdrop-blur-sm border border-border/20 flex items-center justify-center transition-all duration-150 active:scale-95"
         >
-          <MessageCircle className="w-6 h-6 text-foreground" />
+          <MessageCircle className="w-5 h-5 text-foreground" />
         </button>
       </div>
     </div>
