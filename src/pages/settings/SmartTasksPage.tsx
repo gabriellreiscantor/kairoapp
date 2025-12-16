@@ -89,7 +89,7 @@ const SmartTasksPage = () => {
         >
           <ChevronLeft className="w-5 h-5 text-foreground pointer-events-none" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Tarefas Inteligentes</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-12 pointer-events-none">Ações Inteligentes</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
