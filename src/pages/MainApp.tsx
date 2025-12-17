@@ -30,7 +30,7 @@ const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
 const SWIPE_THRESHOLD = 50;
 
 const MainApp = () => {
-  const { t, getDateLocale } = useLanguage();
+  const { t, getDateLocale, language } = useLanguage();
   const { user } = useAuth();
   const dateLocale = getDateLocale();
   
@@ -149,8 +149,8 @@ const MainApp = () => {
       emoji: '✂️',
       time: '15:00',
       location: 'Centro',
-    });
-  }, [showCall]);
+    }, language);
+  }, [showCall, language]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
