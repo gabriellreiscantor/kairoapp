@@ -11,7 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-
+import { scheduleCallAlert, cancelCallAlert, getCallAlertTime } from "@/hooks/useCallAlertScheduler";
 interface EventCreatedCardProps {
   event: {
     id?: string;
@@ -185,6 +185,18 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     if (checked) {
       setShowCallAlertTooltip(true);
       setTimeout(() => setShowCallAlertTooltip(false), 3000);
+      
+      // Schedule the call alert notification
+      await scheduleCallAlert({
+        id: event.id,
+        title: event.title,
+        event_date: event.event_date,
+        event_time: event.event_time,
+        location: event.location,
+      });
+    } else {
+      // Cancel the scheduled notification
+      await cancelCallAlert(event.id);
     }
     
     try {
@@ -197,6 +209,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         console.error('Error updating call alert:', error);
         setCallAlertEnabled(!checked); // Revert on error
         setShowCallAlertTooltip(false);
+        // Revert notification scheduling
+        if (checked) {
+          await cancelCallAlert(event.id);
+        }
       }
     } catch (err) {
       console.error('Error updating call alert:', err);
@@ -206,6 +222,9 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       setIsUpdating(false);
     }
   };
+
+  // Get the time the call will be made (1h before)
+  const callAlertTime = getCallAlertTime(event.event_time);
 
   const isAllDay = !event.event_time;
 
@@ -259,8 +278,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {/* Tooltip when activated */}
           {showCallAlertTooltip && (
             <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-              <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[200px]">
-                Te ligaremos 1h antes do seu compromisso
+              <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
+                {callAlertTime 
+                  ? `Te ligaremos às ${callAlertTime}` 
+                  : 'Te ligaremos 1h antes do seu compromisso'}
               </div>
             </div>
           )}
