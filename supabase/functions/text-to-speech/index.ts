@@ -23,16 +23,17 @@ const TTS_TEMPLATES: Record<string, string> = {
 
 // Voice mapping for different languages (OpenAI TTS voices)
 // alloy, echo, fable, onyx, nova, shimmer
+// Using 'echo' (male, neutral) for all languages - consistent with "Kairo" male identity
 const VOICE_BY_LANGUAGE: Record<string, string> = {
-  'pt-BR': 'nova',    // Friendly female voice
-  'en-US': 'nova',
-  'es-ES': 'nova',
-  'fr-FR': 'nova',
-  'de-DE': 'onyx',    // Male voice for German
-  'it-IT': 'nova',
-  'ja-JP': 'shimmer', // Softer voice for Japanese
-  'ko-KR': 'shimmer',
-  'zh-CN': 'shimmer',
+  'pt-BR': 'echo',
+  'en-US': 'echo',
+  'es-ES': 'echo',
+  'fr-FR': 'echo',
+  'de-DE': 'echo',
+  'it-IT': 'echo',
+  'ja-JP': 'echo',
+  'ko-KR': 'echo',
+  'zh-CN': 'echo',
 };
 
 // Build the TTS message from template

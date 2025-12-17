@@ -118,7 +118,7 @@ export const useCallAlert = (): UseCallAlertReturn => {
     }
   }, []);
 
-  // Generate and play TTS with multilingual support
+  // Generate and play TTS with multilingual support (plays 3-4 times then auto-closes)
   const playTTS = useCallback(async (event: CallAlertEvent) => {
     // Prevent multiple simultaneous TTS calls
     if (isCallingTTSRef.current) {
@@ -160,26 +160,44 @@ export const useCallAlert = (): UseCallAlertReturn => {
         const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        audioRef.current = new Audio(audioUrl);
-        audioRef.current.onended = () => {
-          setIsPlaying(false);
-          isCallingTTSRef.current = false;
-          URL.revokeObjectURL(audioUrl);
-          // Auto-close after TTS finishes
-          setTimeout(() => {
-            setIsCallVisible(false);
-            setCurrentEvent(null);
-          }, 1000);
+        let playCount = 0;
+        const maxPlays = 3; // Play 3 times then auto-close
+        
+        const playAudio = () => {
+          audioRef.current = new Audio(audioUrl);
+          
+          audioRef.current.onended = () => {
+            playCount++;
+            if (playCount < maxPlays && isCallingTTSRef.current) {
+              // Wait 1 second between plays
+              setTimeout(() => {
+                if (isCallingTTSRef.current) {
+                  playAudio();
+                }
+              }, 1000);
+            } else {
+              // Done playing - auto-close
+              setIsPlaying(false);
+              isCallingTTSRef.current = false;
+              URL.revokeObjectURL(audioUrl);
+              setTimeout(() => {
+                setIsCallVisible(false);
+                setCurrentEvent(null);
+              }, 500);
+            }
+          };
+          
+          audioRef.current.onerror = () => {
+            console.error('Audio playback error');
+            setIsPlaying(false);
+            isCallingTTSRef.current = false;
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          audioRef.current.play();
         };
         
-        audioRef.current.onerror = () => {
-          console.error('Audio playback error');
-          setIsPlaying(false);
-          isCallingTTSRef.current = false;
-          URL.revokeObjectURL(audioUrl);
-        };
-        
-        await audioRef.current.play();
+        playAudio();
       }
     } catch (error) {
       console.error('Failed to play TTS:', error);

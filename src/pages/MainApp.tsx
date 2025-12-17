@@ -238,6 +238,7 @@ const MainApp = () => {
         <CallScreen
           isVisible={isCallVisible}
           eventTitle={currentEvent?.title || ''}
+          eventTime={currentEvent?.time}
           eventEmoji={currentEvent?.emoji}
           onAnswer={handleAnswer}
           onDecline={handleDecline}
