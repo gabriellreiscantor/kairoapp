@@ -26,29 +26,56 @@ const isNativeDevice = () => {
          (window as any).Capacitor.isNativePlatform?.();
 };
 
+// Constants for call behavior
+const CALL_TIMEOUT_MS = 36000; // 36 seconds
+const MAX_RING_CYCLES = 6; // ~6 rings in 36 seconds
+const RETRY_DELAY_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_ATTEMPTS = 2; // Maximum 2 attempts total
+
 export const useCallAlert = (): UseCallAlertReturn => {
   const [isCallVisible, setIsCallVisible] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CallAlertEvent | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ringtoneIntervalRef = useRef<number | null>(null);
   const vibrationIntervalRef = useRef<number | null>(null);
+  const callTimeoutRef = useRef<number | null>(null);
+  const ringCountRef = useRef(0);
+  const attemptCountRef = useRef(0);
   const isCallingTTSRef = useRef(false);
   const currentLanguageRef = useRef('pt-BR');
 
-  // Initialize ringtone audio
+  // Cleanup all timers
+  const cleanupTimers = useCallback(() => {
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+    if (ringtoneIntervalRef.current) {
+      clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+    if (vibrationIntervalRef.current) {
+      clearInterval(vibrationIntervalRef.current);
+      vibrationIntervalRef.current = null;
+    }
+  }, []);
+
+  // Initialize cleanup on unmount
   useEffect(() => {
-    ringtoneRef.current = new Audio();
-    
     return () => {
-      stopRingtone();
+      cleanupTimers();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [cleanupTimers]);
 
   // Start vibration pattern - uses native Haptics on iOS/Android, falls back to Web API
   const startVibration = useCallback(async () => {
@@ -96,60 +123,132 @@ export const useCallAlert = (): UseCallAlertReturn => {
     }
   }, []);
 
-  // Start ringtone (using Web Audio API for a simple tone)
+  // Play realistic phone ringtone (Brazilian standard: 425Hz, dual-tone pattern)
+  const playRingTone = useCallback((audioContext: AudioContext) => {
+    // Brazilian phone ring: two short bursts
+    const playBurst = (startTime: number, duration: number) => {
+      // Primary frequency (425Hz - Brazilian standard)
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(425, startTime);
+      gain1.gain.setValueAtTime(0.15, startTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      osc1.connect(gain1);
+      gain1.connect(audioContext.destination);
+      osc1.start(startTime);
+      osc1.stop(startTime + duration);
+
+      // Secondary frequency (480Hz - adds richness)
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(480, startTime);
+      gain2.gain.setValueAtTime(0.1, startTime);
+      gain2.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.start(startTime);
+      osc2.stop(startTime + duration);
+    };
+
+    const now = audioContext.currentTime;
+    // Ring pattern: burst-pause-burst (like real phone)
+    playBurst(now, 0.4);
+    playBurst(now + 0.5, 0.4);
+  }, []);
+
+  // Start ringtone with realistic phone sound
   const startRingtone = useCallback(() => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      ringCountRef.current = 0;
       
-      const playTone = () => {
-        if (!isCallVisible) return;
-        
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
-      };
-
-      playTone();
-      const interval = setInterval(() => {
-        if (isCallVisible) {
-          playTone();
-        } else {
-          clearInterval(interval);
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      
+      // Play initial ring
+      playRingTone(audioContext);
+      ringCountRef.current = 1;
+      
+      // Ring every 4 seconds (realistic phone cadence)
+      ringtoneIntervalRef.current = window.setInterval(() => {
+        if (ringCountRef.current >= MAX_RING_CYCLES) {
+          // Stop after max rings - call not answered
+          handleMissedCall();
+          return;
         }
-      }, 1500);
-
-      (ringtoneRef.current as any) = { audioContext, interval };
+        
+        playRingTone(audioContext);
+        ringCountRef.current++;
+      }, 4000);
+      
     } catch (error) {
       console.error('Failed to play ringtone:', error);
     }
-  }, [isCallVisible]);
+  }, []);
 
   // Stop ringtone
   const stopRingtone = useCallback(() => {
     try {
-      if (ringtoneRef.current && (ringtoneRef.current as any).interval) {
-        clearInterval((ringtoneRef.current as any).interval);
+      if (ringtoneIntervalRef.current) {
+        clearInterval(ringtoneIntervalRef.current);
+        ringtoneIntervalRef.current = null;
       }
-      if (ringtoneRef.current && (ringtoneRef.current as any).audioContext) {
-        (ringtoneRef.current as any).audioContext.close();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
       }
     } catch (error) {
       console.error('Failed to stop ringtone:', error);
     }
   }, []);
 
-  // Generate and play TTS with multilingual support (plays 3-4 times then auto-closes)
+  // Handle missed call (not answered after timeout or max rings)
+  const handleMissedCall = useCallback(() => {
+    stopVibration();
+    stopRingtone();
+    cleanupTimers();
+    
+    setIsCallVisible(false);
+    
+    const event = currentEvent;
+    const language = currentLanguageRef.current;
+    
+    // Check if we should retry
+    if (attemptCountRef.current < MAX_ATTEMPTS && event) {
+      console.log(`Call missed. Attempt ${attemptCountRef.current}/${MAX_ATTEMPTS}. Retrying in 5 minutes...`);
+      
+      // Schedule retry in 5 minutes
+      setTimeout(() => {
+        if (event) {
+          attemptCountRef.current++;
+          showCallInternal(event, language);
+        }
+      }, RETRY_DELAY_MS);
+    } else {
+      console.log('Max attempts reached. No more retries.');
+      attemptCountRef.current = 0;
+      setCurrentEvent(null);
+    }
+  }, [currentEvent, stopVibration, stopRingtone, cleanupTimers]);
+
+  // Internal show call (used for retries)
+  const showCallInternal = useCallback((event: CallAlertEvent, language: string = 'pt-BR') => {
+    currentLanguageRef.current = language;
+    setCurrentEvent(event);
+    setIsCallVisible(true);
+    ringCountRef.current = 0;
+    
+    startVibration();
+    startRingtone();
+    
+    // Set timeout for 36 seconds
+    callTimeoutRef.current = window.setTimeout(() => {
+      handleMissedCall();
+    }, CALL_TIMEOUT_MS);
+  }, [startVibration, startRingtone, handleMissedCall]);
+
+  // Generate and play TTS with multilingual support (plays 3 times then auto-closes)
   const playTTS = useCallback(async (event: CallAlertEvent) => {
     // Prevent multiple simultaneous TTS calls
     if (isCallingTTSRef.current) {
@@ -210,6 +309,7 @@ export const useCallAlert = (): UseCallAlertReturn => {
               // Done playing - auto-close
               setIsPlaying(false);
               isCallingTTSRef.current = false;
+              attemptCountRef.current = 0; // Reset attempts on successful answer
               URL.revokeObjectURL(audioUrl);
               setTimeout(() => {
                 setIsCallVisible(false);
@@ -242,14 +342,11 @@ export const useCallAlert = (): UseCallAlertReturn => {
     }
   }, []);
 
-  // Show call screen with language support
+  // Show call screen with language support (public API)
   const showCall = useCallback((event: CallAlertEvent, language: string = 'pt-BR') => {
-    currentLanguageRef.current = language;
-    setCurrentEvent(event);
-    setIsCallVisible(true);
-    startVibration();
-    startRingtone();
-  }, [startVibration, startRingtone]);
+    attemptCountRef.current = 1; // First attempt
+    showCallInternal(event, language);
+  }, [showCallInternal]);
 
   // Handle answer
   const handleAnswer = useCallback(() => {
@@ -259,16 +356,19 @@ export const useCallAlert = (): UseCallAlertReturn => {
       return;
     }
     
+    // Clear timeout since call was answered
+    cleanupTimers();
     stopVibration();
     stopRingtone();
     
     if (currentEvent) {
       playTTS(currentEvent);
     }
-  }, [stopVibration, stopRingtone, currentEvent, playTTS]);
+  }, [cleanupTimers, stopVibration, stopRingtone, currentEvent, playTTS]);
 
   // Handle decline
   const handleDecline = useCallback(() => {
+    cleanupTimers();
     stopVibration();
     stopRingtone();
     
@@ -277,13 +377,15 @@ export const useCallAlert = (): UseCallAlertReturn => {
     }
     
     isCallingTTSRef.current = false;
+    attemptCountRef.current = 0; // Reset attempts on decline
     setIsCallVisible(false);
     setCurrentEvent(null);
     setIsPlaying(false);
-  }, [stopVibration, stopRingtone]);
+  }, [cleanupTimers, stopVibration, stopRingtone]);
 
   // Handle snooze (remind in 10 minutes)
   const handleSnooze = useCallback(() => {
+    cleanupTimers();
     stopVibration();
     stopRingtone();
     
@@ -295,17 +397,18 @@ export const useCallAlert = (): UseCallAlertReturn => {
     setIsCallVisible(false);
     setIsPlaying(false);
     
-    // Re-show in 10 minutes
+    // Re-show in 10 minutes (resets attempt counter)
     if (currentEvent) {
       const event = currentEvent;
       const language = currentLanguageRef.current;
       setTimeout(() => {
-        showCall(event, language);
+        attemptCountRef.current = 1; // Reset to first attempt for snooze
+        showCallInternal(event, language);
       }, 10 * 60 * 1000); // 10 minutes
     }
     
     setCurrentEvent(null);
-  }, [stopVibration, stopRingtone, currentEvent, showCall]);
+  }, [cleanupTimers, stopVibration, stopRingtone, currentEvent, showCallInternal]);
 
   // Cleanup on visibility change
   useEffect(() => {
