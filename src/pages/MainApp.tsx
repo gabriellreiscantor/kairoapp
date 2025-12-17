@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone } from "lucide-react";
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +14,7 @@ import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
 import CallScreen from "@/components/CallScreen";
 import { useCallAlert } from "@/hooks/useCallAlert";
+import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface Event {
@@ -122,6 +125,70 @@ const MainApp = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents, eventsVersion]);
+
+  // Request notification permissions and set up listeners for "Me Ligue"
+  useEffect(() => {
+    // Request permissions on mount
+    requestNotificationPermissions();
+
+    // Set up native notification listener
+    if (Capacitor.isNativePlatform()) {
+      const setupNotificationListeners = async () => {
+        // Listen for notification received (when app is in foreground)
+        await LocalNotifications.addListener('localNotificationReceived', (notification) => {
+          console.log('[MainApp] Notification received:', notification);
+          
+          if (notification.extra?.type === 'call-alert') {
+            showCall({
+              id: notification.extra.eventId,
+              title: notification.extra.eventTitle,
+              emoji: notification.extra.eventEmoji || '📅',
+              time: notification.extra.eventTime,
+              location: notification.extra.eventLocation,
+            }, language);
+          }
+        });
+
+        // Listen for notification action performed (when user taps notification)
+        await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+          console.log('[MainApp] Notification action:', action);
+          
+          if (action.notification.extra?.type === 'call-alert') {
+            showCall({
+              id: action.notification.extra.eventId,
+              title: action.notification.extra.eventTitle,
+              emoji: action.notification.extra.eventEmoji || '📅',
+              time: action.notification.extra.eventTime,
+              location: action.notification.extra.eventLocation,
+            }, language);
+          }
+        });
+      };
+
+      setupNotificationListeners();
+    }
+
+    // Web fallback listener
+    const handleWebCallAlert = (event: CustomEvent) => {
+      const { event: eventData } = event.detail;
+      showCall({
+        id: eventData.id,
+        title: eventData.title,
+        emoji: eventData.emoji || '📅',
+        time: eventData.event_time,
+        location: eventData.location,
+      }, language);
+    };
+
+    window.addEventListener('kairo-call-alert', handleWebCallAlert as EventListener);
+
+    return () => {
+      window.removeEventListener('kairo-call-alert', handleWebCallAlert as EventListener);
+      if (Capacitor.isNativePlatform()) {
+        LocalNotifications.removeAllListeners();
+      }
+    };
+  }, [showCall, language]);
 
   // Callback when event is created via chat
   const handleEventCreated = useCallback(() => {
