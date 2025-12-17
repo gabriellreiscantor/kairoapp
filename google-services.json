@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "587177092582",
+    "project_id": "kairo-43322",
+    "storage_bucket": "kairo-43322.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587177092582:android:d40828f54d4f2597c82227",
+        "android_client_info": {
+          "package_name": "com.kairo.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_f7VhSbtc6soLNECo6dZewQNyD6ILgKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
