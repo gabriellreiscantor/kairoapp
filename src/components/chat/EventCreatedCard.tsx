@@ -111,6 +111,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [callAlertEnabled, setCallAlertEnabled] = useState(event?.call_alert_enabled || false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEditButton, setShowEditButton] = useState(true);
+  const [showCallAlertTooltip, setShowCallAlertTooltip] = useState(false);
   
   // Timer to hide edit button after 5 seconds
   useEffect(() => {
@@ -180,6 +181,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     setIsUpdating(true);
     setCallAlertEnabled(checked);
     
+    // Show tooltip when activating
+    if (checked) {
+      setShowCallAlertTooltip(true);
+      setTimeout(() => setShowCallAlertTooltip(false), 3000);
+    }
+    
     try {
       const { error } = await supabase
         .from('events')
@@ -189,10 +196,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       if (error) {
         console.error('Error updating call alert:', error);
         setCallAlertEnabled(!checked); // Revert on error
+        setShowCallAlertTooltip(false);
       }
     } catch (err) {
       console.error('Error updating call alert:', err);
       setCallAlertEnabled(!checked); // Revert on error
+      setShowCallAlertTooltip(false);
     } finally {
       setIsUpdating(false);
     }
@@ -233,17 +242,28 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         </div>
         
         {/* Me Ligue toggle */}
-        <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-green-500" />
-            <span className="text-sm text-foreground">Me Ligue</span>
+        <div className="relative">
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-green-500" />
+              <span className="text-sm text-foreground">Me Ligue</span>
+            </div>
+            <Switch 
+              checked={callAlertEnabled} 
+              onCheckedChange={handleToggleCallAlert}
+              disabled={!event.id || isUpdating}
+              className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
+            />
           </div>
-          <Switch 
-            checked={callAlertEnabled} 
-            onCheckedChange={handleToggleCallAlert}
-            disabled={!event.id || isUpdating}
-            className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
-          />
+          
+          {/* Tooltip when activated */}
+          {showCallAlertTooltip && (
+            <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+              <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[200px]">
+                Te ligaremos 1h antes do seu compromisso
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Notification time */}
