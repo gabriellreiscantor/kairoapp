@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 interface CallAlertEvent {
   id: string;
@@ -18,6 +19,12 @@ interface UseCallAlertReturn {
   handleSnooze: () => void;
   isPlaying: boolean;
 }
+
+// Check if running on native device
+const isNativeDevice = () => {
+  return typeof (window as any).Capacitor !== 'undefined' && 
+         (window as any).Capacitor.isNativePlatform?.();
+};
 
 export const useCallAlert = (): UseCallAlertReturn => {
   const [isCallVisible, setIsCallVisible] = useState(false);
@@ -43,14 +50,38 @@ export const useCallAlert = (): UseCallAlertReturn => {
     };
   }, []);
 
-  // Start vibration pattern
-  const startVibration = useCallback(() => {
-    if ('vibrate' in navigator) {
-      vibrationIntervalRef.current = window.setInterval(() => {
-        navigator.vibrate([500, 200, 500, 200, 500]);
-      }, 2000);
+  // Start vibration pattern - uses native Haptics on iOS/Android, falls back to Web API
+  const startVibration = useCallback(async () => {
+    if (isNativeDevice()) {
+      // Native vibration pattern using Capacitor Haptics
+      const vibratePattern = async () => {
+        try {
+          await Haptics.notification({ type: NotificationType.Warning });
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+        } catch (error) {
+          console.error('Haptics error:', error);
+        }
+      };
       
-      navigator.vibrate([500, 200, 500, 200, 500]);
+      // Initial vibration
+      vibratePattern();
+      
+      // Repeat pattern every 2 seconds
+      vibrationIntervalRef.current = window.setInterval(() => {
+        vibratePattern();
+      }, 2000);
+    } else {
+      // Web fallback
+      if ('vibrate' in navigator) {
+        vibrationIntervalRef.current = window.setInterval(() => {
+          navigator.vibrate([500, 200, 500, 200, 500]);
+        }, 2000);
+        
+        navigator.vibrate([500, 200, 500, 200, 500]);
+      }
     }
   }, []);
 
@@ -60,7 +91,7 @@ export const useCallAlert = (): UseCallAlertReturn => {
       clearInterval(vibrationIntervalRef.current);
       vibrationIntervalRef.current = null;
     }
-    if ('vibrate' in navigator) {
+    if (!isNativeDevice() && 'vibrate' in navigator) {
       navigator.vibrate(0);
     }
   }, []);
