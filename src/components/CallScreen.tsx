@@ -5,6 +5,7 @@ import kairoLogo from '@/assets/kairo-fox-color.png';
 interface CallScreenProps {
   isVisible: boolean;
   eventTitle: string;
+  eventTime?: string;
   eventEmoji?: string;
   onAnswer: () => void;
   onDecline: () => void;
@@ -14,6 +15,7 @@ interface CallScreenProps {
 const CallScreen: React.FC<CallScreenProps> = ({
   isVisible,
   eventTitle,
+  eventTime,
   eventEmoji,
   onAnswer,
   onDecline,
@@ -71,10 +73,10 @@ const CallScreen: React.FC<CallScreenProps> = ({
           <span className="text-white/60 text-sm">Áudio de Kairo</span>
         </div>
 
-        {/* Event title with emoji */}
+        {/* Event title with time */}
         <h1 className="text-white text-3xl font-bold text-center">
           {eventEmoji && <span className="mr-2">{eventEmoji}</span>}
-          {eventTitle}
+          {eventTitle}{eventTime && ` às ${eventTime}`}
         </h1>
       </div>
 
