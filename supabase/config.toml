@@ -11,3 +11,7 @@ verify_jwt = false
 [functions.analyze-image]
 enabled = true
 verify_jwt = false
+
+[functions.text-to-speech]
+enabled = true
+verify_jwt = false
