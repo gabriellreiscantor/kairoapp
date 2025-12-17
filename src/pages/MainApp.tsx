@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,8 @@ import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
+import CallScreen from "@/components/CallScreen";
+import { useCallAlert } from "@/hooks/useCallAlert";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface Event {
@@ -31,6 +33,17 @@ const MainApp = () => {
   const { t, getDateLocale } = useLanguage();
   const { user } = useAuth();
   const dateLocale = getDateLocale();
+  
+  // Call alert hook for "Me Ligue" feature
+  const { 
+    isCallVisible, 
+    currentEvent, 
+    showCall, 
+    handleAnswer, 
+    handleDecline, 
+    handleSnooze,
+    isPlaying 
+  } = useCallAlert();
   
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -128,6 +141,17 @@ const MainApp = () => {
     setIsCreateModalOpen(true);
   };
 
+  // Test function to simulate a "Me Ligue" call
+  const testMeLigue = useCallback(() => {
+    showCall({
+      id: 'test-event',
+      title: 'Barbearia',
+      emoji: '✂️',
+      time: '15:00',
+      location: 'Centro',
+    });
+  }, [showCall]);
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setIsDateSheetOpen(true);
@@ -209,31 +233,51 @@ const MainApp = () => {
   // Chat Page (Home)
   if (activeView === 'chat') {
     return (
-      <div
-        className="h-screen"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ 
-          transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
-          transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
-        }}
-      >
-        <ChatPage 
-          onNavigateToCalendar={() => setActiveView('list')}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          activeView={activeView}
-          onViewChange={setActiveView}
-          onEventCreated={handleEventCreated}
-          initialEditMessage={initialEditMessage}
-          onClearInitialEditMessage={() => setInitialEditMessage(null)}
+      <>
+        {/* Call Screen for "Me Ligue" */}
+        <CallScreen
+          isVisible={isCallVisible}
+          eventTitle={currentEvent?.title || ''}
+          eventEmoji={currentEvent?.emoji}
+          onAnswer={handleAnswer}
+          onDecline={handleDecline}
+          onSnooze={handleSnooze}
         />
         
-        <SettingsDrawer
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      </div>
+        <div
+          className="h-screen"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ 
+            transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
+            transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+          }}
+        >
+          <ChatPage 
+            onNavigateToCalendar={() => setActiveView('list')}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            activeView={activeView}
+            onViewChange={setActiveView}
+            onEventCreated={handleEventCreated}
+            initialEditMessage={initialEditMessage}
+            onClearInitialEditMessage={() => setInitialEditMessage(null)}
+          />
+          
+          {/* Test "Me Ligue" Button */}
+          <button
+            onClick={testMeLigue}
+            className="fixed left-5 bottom-28 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg z-50"
+          >
+            <Phone className="w-5 h-5 text-white" />
+          </button>
+          
+          <SettingsDrawer
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        </div>
+      </>
     );
   }
 
