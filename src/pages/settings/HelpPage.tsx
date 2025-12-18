@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, MessageCircle, Mail, Book, Video, ExternalLink, HelpCircle, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-import kairoLogo from "@/assets/kairo-fox-color.png";
+import kairoLogo from "@/assets/kairo-logo.png";
 const FAQ = [
   {
     question: "Como criar um evento via WhatsApp?",
