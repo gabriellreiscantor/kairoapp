@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   ChevronRight, 
-  ChevronDown, 
   Bell, 
   Phone,
   Check,
@@ -14,9 +13,9 @@ import {
   ChevronLeft,
   Loader2
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
 
 interface EventData {
   id: string;
@@ -104,18 +103,6 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
       setIsSaving(false);
     }
   };
-
-  const formatDateDisplay = (date: Date) => {
-    return format(date, "d 'de' MMM. 'de' yyyy", { locale: ptBR });
-  };
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = new Date(e.target.value + 'T00:00:00');
-    if (!isNaN(newDate.getTime())) {
-      setEventDate(newDate);
-    }
-  };
-
   // Handle location search with debounce
   useEffect(() => {
     if (!locationSearch || locationSearch.length < 3) {
@@ -276,32 +263,16 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
         {/* Date, Time & Location Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           {/* Date */}
-          <label className="px-4 py-4 flex items-center justify-between border-b border-border/10 cursor-pointer relative min-h-[56px]">
-            <span className="text-foreground pointer-events-none">Data</span>
-            <span className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground pointer-events-none">
-              {formatDateDisplay(eventDate)}
-            </span>
-            <input
-              type="date"
-              value={format(eventDate, 'yyyy-MM-dd')}
-              onChange={handleDateChange}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-            />
-          </label>
+          <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
+            <span className="text-foreground">Data</span>
+            <DatePicker date={eventDate} onDateChange={setEventDate} />
+          </div>
 
           {/* Time */}
-          <label className="px-4 py-4 flex items-center justify-between border-b border-border/10 cursor-pointer relative min-h-[56px]">
-            <span className="text-foreground pointer-events-none">Hora</span>
-            <span className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground pointer-events-none">
-              {eventTime}
-            </span>
-            <input
-              type="time"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-            />
-          </label>
+          <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
+            <span className="text-foreground">Hora</span>
+            <TimePicker time={eventTime} onTimeChange={setEventTime} />
+          </div>
 
           {/* Location */}
           <button 
