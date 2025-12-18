@@ -1107,7 +1107,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Fixed Header Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
         {/* Single gradient: opaque at top (status bar) -> transparent at bottom */}
