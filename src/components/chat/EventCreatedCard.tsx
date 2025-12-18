@@ -213,8 +213,8 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         <div className="flex items-center justify-between text-sm pl-6">
           <span className="text-foreground capitalize">{formatDate(event.event_date)}</span>
           {isAllDay ? (
-            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 rounded-full text-xs font-medium">
-              🌞 Dia inteiro
+            <span className="text-muted-foreground text-sm">
+              ☀️ Dia inteiro
             </span>
           ) : (
             <span className="text-muted-foreground font-medium">
