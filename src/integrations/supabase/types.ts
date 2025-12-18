@@ -44,6 +44,7 @@ export type Database = {
       events: {
         Row: {
           call_alert_enabled: boolean | null
+          call_alert_sent_at: string | null
           category: string | null
           created_at: string | null
           description: string | null
@@ -61,6 +62,7 @@ export type Database = {
         }
         Insert: {
           call_alert_enabled?: boolean | null
+          call_alert_sent_at?: string | null
           category?: string | null
           created_at?: string | null
           description?: string | null
@@ -78,6 +80,7 @@ export type Database = {
         }
         Update: {
           call_alert_enabled?: boolean | null
+          call_alert_sent_at?: string | null
           category?: string | null
           created_at?: string | null
           description?: string | null
