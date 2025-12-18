@@ -21,6 +21,22 @@ const FAQ = [
     question: "Posso sincronizar com outros calendários?",
     answer: "Sim! Você pode conectar o Google Calendar, Apple Calendar e Outlook nas configurações de calendários."
   },
+  {
+    question: "Como cancelar minha assinatura no iOS?",
+    answer: "Para cancelar sua assinatura no iPhone, vá em Ajustes > seu nome > Assinaturas > Kairo e toque em 'Cancelar Assinatura'. A assinatura permanecerá ativa até o fim do período atual."
+  },
+  {
+    question: "Como cancelar minha assinatura no Android?",
+    answer: "No app Kairo, vá em Configurações > Assinatura e toque no botão 'Cancelar Assinatura'. Você também pode gerenciar assinaturas pela Google Play Store."
+  },
+  {
+    question: "Quais são os planos disponíveis?",
+    answer: "Oferecemos três planos: Grátis (14 eventos/semana), Plus (50 eventos/semana, R$ 14,90/mês) e Super (280 eventos/semana, R$ 29,90/mês). Os planos pagos incluem Me Ligue ilimitado e alertas críticos."
+  },
+  {
+    question: "O Kairo funciona offline?",
+    answer: "Você pode visualizar seus eventos salvos offline, mas a criação via chat e sincronização com outros calendários requerem conexão com a internet."
+  },
 ];
 
 const HelpPage = () => {

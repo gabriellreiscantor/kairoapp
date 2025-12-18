@@ -38,10 +38,18 @@ const AboutPage = () => {
           </button>
         </div>
 
-        {/* Version */}
-        <p className="text-center text-muted-foreground mt-8">
-          {t('about.version')} 1.0.0 (1)
-        </p>
+        {/* Version & Company Info */}
+        <div className="text-center mt-8 space-y-1">
+          <p className="text-muted-foreground">
+            {t('about.version')} 1.33
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Savini Comunicação LTDA
+          </p>
+          <p className="text-muted-foreground/70 text-xs">
+            G.R
+          </p>
+        </div>
       </div>
     </div>
   );
