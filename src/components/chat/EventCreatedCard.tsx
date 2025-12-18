@@ -140,7 +140,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowEditButton(false);
-    }, 10000);
+    }, 15000);
     
     return () => clearTimeout(timer);
   }, []);
