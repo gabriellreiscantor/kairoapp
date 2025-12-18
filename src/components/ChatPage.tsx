@@ -1049,8 +1049,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Fixed Header Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl safe-area-top">
-        <div className="flex items-center justify-center gap-2 px-4 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
+        {/* Background with gradient fade at bottom */}
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent translate-y-full pointer-events-none" />
+        
+        <div className="relative flex items-center justify-center gap-2 px-4 py-3">
           {/* Calendar View - Left */}
           <button
             onClick={() => onViewChange('calendar')}
@@ -1076,12 +1080,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           </button>
         </div>
       </header>
-
-      {/* Gradient fade below header */}
-      <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none safe-area-top">
-        <div className="h-24" />
-        <div className="h-10 bg-gradient-to-b from-background via-background/50 to-transparent" />
-      </div>
 
       {/* Messages - Timeline style */}
       <div 
