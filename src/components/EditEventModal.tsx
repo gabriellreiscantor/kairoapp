@@ -433,7 +433,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
 
         {/* Bottom Sheet para selecionar tempo do alerta */}
         <Sheet open={alertSheetOpen} onOpenChange={setAlertSheetOpen}>
-          <SheetContent side="bottom" className="rounded-t-3xl bg-kairo-surface border-border/10">
+          <SheetContent side="bottom" className="rounded-t-3xl bg-kairo-surface-2 border-border/30">
             <SheetHeader className="pb-4">
               <SheetTitle className="text-foreground text-center">Quando alertar?</SheetTitle>
             </SheetHeader>
@@ -444,9 +444,9 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
                   <button 
                     key={opt.value}
                     onClick={() => selectAlertTime(opt.value)}
-                    className="w-full px-4 py-4 flex items-center justify-between rounded-xl hover:bg-kairo-surface-2 transition-colors"
+                    className="w-full px-4 py-4 flex items-center justify-between rounded-xl bg-kairo-surface-1/50 hover:bg-kairo-surface-3 transition-colors"
                   >
-                    <span className="text-foreground">{opt.label}</span>
+                    <span className="text-foreground font-medium">{opt.label}</span>
                     {isSelected && <Check className="w-5 h-5 text-primary" />}
                   </button>
                 );
