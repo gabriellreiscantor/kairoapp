@@ -11,7 +11,7 @@ import {
   isSameMonth
 } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
-
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 interface CalendarEvent {
   id: string;
   title: string;
@@ -39,15 +39,26 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   const [appliedScale, setAppliedScale] = useState(1.5);
   const [isPinching, setIsPinching] = useState(false);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  const [isBouncing, setIsBouncing] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const initialDistance = useRef<number>(0);
   const initialScale = useRef<number>(1);
   const isPinchingRef = useRef(false);
+  const hasHitLimit = useRef(false);
   
   const MIN_SCALE = 1;
   const MAX_SCALE = 2.5;
+
+  // Haptic feedback when hitting zoom limits
+  const triggerHapticFeedback = useCallback(async () => {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Silently fail on web/unsupported platforms
+    }
+  }, []);
   
   // Current scale for calculations
   const scale = isPinching ? visualScale : appliedScale;
@@ -126,10 +137,22 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     if (e.touches.length === 2 && isPinching) {
       const currentDistance = getDistance(e.touches[0], e.touches[1]);
       const ratio = currentDistance / initialDistance.current;
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, initialScale.current * ratio));
-      setVisualScale(newScale);
+      const rawScale = initialScale.current * ratio;
+      const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, rawScale));
+      
+      // Trigger haptic when hitting limits (only once per limit hit)
+      if ((rawScale <= MIN_SCALE || rawScale >= MAX_SCALE) && !hasHitLimit.current) {
+        hasHitLimit.current = true;
+        triggerHapticFeedback();
+        setIsBouncing(true);
+        setTimeout(() => setIsBouncing(false), 150);
+      } else if (rawScale > MIN_SCALE && rawScale < MAX_SCALE) {
+        hasHitLimit.current = false;
+      }
+      
+      setVisualScale(clampedScale);
     }
-  }, [isPinching]);
+  }, [isPinching, triggerHapticFeedback]);
 
   const handleTouchEnd = useCallback(() => {
     if (isPinching) {
@@ -138,6 +161,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     }
     setIsPinching(false);
     isPinchingRef.current = false;
+    hasHitLimit.current = false;
   }, [isPinching, visualScale]);
 
   // Double tap to toggle zoom
@@ -159,11 +183,20 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.15 : 0.15;
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, appliedScale + delta));
+      const rawNewScale = appliedScale + delta;
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, rawNewScale));
+      
+      // Haptic feedback when hitting limits
+      if (rawNewScale <= MIN_SCALE || rawNewScale >= MAX_SCALE) {
+        triggerHapticFeedback();
+        setIsBouncing(true);
+        setTimeout(() => setIsBouncing(false), 150);
+      }
+      
       setAppliedScale(newScale);
       setVisualScale(newScale);
     }
-  }, [appliedScale]);
+  }, [appliedScale, triggerHapticFeedback]);
 
   // Native touch listener to prevent scroll during pinch
   useEffect(() => {
@@ -251,12 +284,16 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       {/* Scrollable Calendar Grid with visual transform during pinch */}
       <div 
         ref={contentRef}
-        className={`flex-1 ${isPinching ? 'overflow-hidden' : 'overflow-auto'}`}
+        className={`flex-1 ${isPinching ? 'overflow-hidden' : 'overflow-auto'} ${isBouncing ? 'animate-pulse' : ''}`}
         style={{
           // During pinch: apply visual transform for immediate feedback
-          transform: isPinching ? `scale(${visualScale / appliedScale})` : 'none',
+          transform: isPinching 
+            ? `scale(${visualScale / appliedScale})` 
+            : isBouncing 
+              ? 'scale(0.98)' 
+              : 'none',
           transformOrigin: `${origin.x}% ${origin.y}%`,
-          transition: isPinching ? 'none' : 'transform 0.15s ease-out'
+          transition: isPinching ? 'none' : 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)'
         }}
       >
         <div className="flex flex-col">
