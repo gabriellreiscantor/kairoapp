@@ -360,31 +360,23 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     return () => container.removeEventListener('scroll', handleScroll);
   }, [hasMoreMessages, isLoadingMore, isLoadingHistory, messages]);
 
-  // Scroll button visibility - separate listener with timeout to ensure ref is ready
+  // Scroll button visibility - re-check when messages change
   useEffect(() => {
-    let cleanup: (() => void) | null = null;
+    const container = scrollContainerRef.current;
+    if (!container) return;
     
-    const timeoutId = setTimeout(() => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-      
-      const handleScrollButton = () => {
-        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-        setShowScrollButton(distanceFromBottom > 200);
-      };
-      
-      // Check initial state
-      handleScrollButton();
-      
-      container.addEventListener('scroll', handleScrollButton);
-      cleanup = () => container.removeEventListener('scroll', handleScrollButton);
-    }, 100);
-    
-    return () => {
-      clearTimeout(timeoutId);
-      cleanup?.();
+    const handleScrollButton = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      console.log('Distance from bottom:', distanceFromBottom);
+      setShowScrollButton(distanceFromBottom > 200);
     };
-  }, []);
+    
+    // Check initial state
+    handleScrollButton();
+    
+    container.addEventListener('scroll', handleScrollButton);
+    return () => container.removeEventListener('scroll', handleScrollButton);
+  }, [messages.length]);
 
   const saveMessage = async (role: 'user' | 'assistant', content: string, metadata?: any) => {
     if (!user) return;
