@@ -352,6 +352,29 @@ serve(async (req) => {
         throw new Error('User not authenticated');
       }
 
+      // Map detected category to duration defaults
+      const categoryDurations: Record<string, number> = {
+        cinema: 150,
+        show: 180,
+        teatro: 120,
+        casamento: 300,
+        formatura: 180,
+        aniversario: 180,
+        medico: 60,
+        trabalho: 60,
+        esporte: 120,
+        viagem: 480,
+        restaurante: 90,
+        festa: 240,
+        religioso: 120,
+        outro: 60
+      };
+      
+      const detectedCategory = imageAnalysis.categoria_evento || 'outro';
+      const defaultDuration = categoryDurations[detectedCategory] || 120;
+      
+      console.log('Detected category from image:', detectedCategory);
+
       // Create the event directly in database
       const { data: createdEvent, error: createError } = await imageSupabase
         .from('events')
@@ -362,9 +385,9 @@ serve(async (req) => {
           event_date: imageAnalysis.data_detectada,
           event_time: imageAnalysis.hora_detectada || null,
           location: imageAnalysis.local_detectado || null,
-          duration_minutes: 120, // Default for movies/events
+          duration_minutes: defaultDuration,
           priority: 'medium',
-          category: 'evento',
+          category: detectedCategory,
           status: 'pending',
           notification_enabled: true
         })
