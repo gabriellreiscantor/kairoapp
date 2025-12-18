@@ -217,14 +217,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   }, [isLoading]);
 
-  // Scroll to bottom when returning to chat view
+  // Scroll to bottom when returning to chat view OR when initial load completes
   useEffect(() => {
-    if (activeView === 'chat') {
+    if (activeView === 'chat' && !isLoadingHistory && messages.length > 0) {
       setTimeout(() => {
         scrollToBottom();
-      }, 100);
+      }, 150);
     }
-  }, [activeView]);
+  }, [activeView, isLoadingHistory, messages.length]);
 
   // State for pending edit message from EventDetailPage
   const [pendingEditMessage, setPendingEditMessage] = useState<string | null>(null);
