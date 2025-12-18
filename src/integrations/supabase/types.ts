@@ -141,6 +141,8 @@ export type Database = {
           context_aware_enabled: boolean | null
           created_at: string | null
           display_name: string | null
+          fcm_token: string | null
+          fcm_token_updated_at: string | null
           first_event_created: boolean | null
           id: string
           learn_patterns_enabled: boolean | null
@@ -159,6 +161,8 @@ export type Database = {
           context_aware_enabled?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          fcm_token?: string | null
+          fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
           id: string
           learn_patterns_enabled?: boolean | null
@@ -177,6 +181,8 @@ export type Database = {
           context_aware_enabled?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          fcm_token?: string | null
+          fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
           id?: string
           learn_patterns_enabled?: boolean | null
