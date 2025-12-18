@@ -27,7 +27,7 @@ const corsHeaders = {
 
 // JSON structure that AI will return - MASTER PROMPT CONTRACT
 interface KairoAction {
-  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao';
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao' | 'data_passada';
   titulo?: string;
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
@@ -150,13 +150,33 @@ async function saveUserPattern(
   }
 }
 
+// Check if date/time is in the past
+function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
+  const tz = timezone || 'America/Sao_Paulo';
+  const now = new Date();
+  
+  // Create event date with time if provided
+  let eventDateTime: Date;
+  if (timeStr) {
+    eventDateTime = new Date(`${dateStr}T${timeStr}:00`);
+  } else {
+    // If no time, compare just dates (event at end of day)
+    eventDateTime = new Date(`${dateStr}T23:59:59`);
+  }
+  
+  console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'} vs now: ${now.toISOString()}`);
+  console.log(`[isDateInPast] Event datetime: ${eventDateTime.toISOString()}, is past: ${eventDateTime < now}`);
+  
+  return eventDateTime < now;
+}
+
 // Execute action in database - THIS IS THE BACKEND LOGIC
 async function executeAction(
   supabase: any, 
   userId: string, 
   action: KairoAction,
   profile: UserProfile
-): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean }> {
+): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; pastDate?: boolean; attemptedEvent?: any }> {
   console.log(`Backend executing action: ${action.acao}`, action);
 
   try {
@@ -164,6 +184,22 @@ async function executeAction(
       case 'criar_evento': {
         if (!action.titulo || !action.data) {
           return { success: false, error: 'Título e data são obrigatórios' };
+        }
+
+        // Check if date is in the past
+        if (isDateInPast(action.data, action.hora)) {
+          console.log('Event date is in the past - blocking creation');
+          return { 
+            success: false, 
+            pastDate: true,
+            error: 'Data/hora no passado',
+            attemptedEvent: {
+              titulo: action.titulo,
+              data: action.data,
+              hora: action.hora,
+              local: action.local
+            }
+          };
         }
 
         const { data: canCreate } = await supabase.rpc('can_create_event', {
@@ -375,7 +411,35 @@ serve(async (req) => {
       
       console.log('Detected category from image:', detectedCategory);
 
-      // Create the event directly in database
+      // ===== PAST DATE VALIDATION FOR IMAGE =====
+      if (isDateInPast(imageAnalysis.data_detectada, imageAnalysis.hora_detectada, userTimezone)) {
+        console.log('Image event date is in the past - returning warning');
+        
+        const responseText = `Ops! Essa data e horário já passaram. Por favor, envie uma imagem com um evento no futuro.`;
+        
+        const actionData = {
+          acao: 'data_passada',
+          success: false,
+          resposta_usuario: responseText,
+          titulo: imageAnalysis.titulo || 'Evento',
+          data: imageAnalysis.data_detectada,
+          hora: imageAnalysis.hora_detectada,
+          local: imageAnalysis.local_detectado,
+          idioma_detectado: 'pt'
+        };
+
+        let ssePayload = `data: {"text": "${responseText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}\n\n`;
+        ssePayload += `data: {"action": ${JSON.stringify(actionData)}}\n\n`;
+        ssePayload += `data: [DONE]\n\n`;
+
+        return new Response(ssePayload, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
       const { data: createdEvent, error: createError } = await imageSupabase
         .from('events')
         .insert({
@@ -1284,12 +1348,26 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     console.log('Parsed action:', action);
 
-    let executionResult: { success: boolean; data?: any; error?: string } = { success: true };
+    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any } = { success: true };
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
       executionResult = await executeAction(supabase, userId, action, userProfile);
       console.log('Execution result:', executionResult);
+      
+      // Handle past date error - change action to data_passada
+      if (executionResult.pastDate && executionResult.attemptedEvent) {
+        console.log('Past date detected, changing action to data_passada');
+        action = {
+          ...action,
+          acao: 'data_passada',
+          resposta_usuario: 'Ops! Essa data e horário já passaram. Por favor, escolha uma data no futuro.',
+          titulo: executionResult.attemptedEvent.titulo,
+          data: executionResult.attemptedEvent.data,
+          hora: executionResult.attemptedEvent.hora,
+          local: executionResult.attemptedEvent.local,
+        };
+      }
     } else if (action._alreadyExecuted) {
       // Action was already executed inline, mark as success
       executionResult = { success: true, data: action };

@@ -15,6 +15,7 @@ import kairoFoxColor from "@/assets/kairo-fox-color.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventDeletedCard from "@/components/chat/EventDeletedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
+import PastDateCard from "@/components/chat/PastDateCard";
 import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
@@ -60,6 +61,12 @@ interface Message {
     notificacao: string;
   };
   pendingImageEvent?: any; // For storing image analysis event data to create when user confirms
+  pastDateData?: { // For showing past date warning card
+    titulo: string;
+    data: string;
+    hora?: string;
+    local?: string;
+  };
 }
 
 interface ExecutedAction {
@@ -242,6 +249,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       eventData,
       deletedEventData: m.metadata?.deletedEventData,
       eventsListData: m.metadata?.eventsListData,
+      pastDateData: m.metadata?.pastDateData,
     };
   };
 
@@ -419,6 +427,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let finalEventData: any = undefined; // Track event data for persistence
       let finalDeletedEventData: any = undefined; // Track deleted event data for persistence
       let finalEventsListData: any[] | undefined = undefined; // Track events list for persistence
+      let finalPastDateData: any = undefined; // Track past date warning for persistence
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -503,6 +512,22 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 ));
                 // Trigger event refresh
                 onEventCreated?.();
+              }
+              // Handle past date warning from image analysis
+              else if (action.acao === 'data_passada') {
+                console.log('[ChatPage] Past date detected from image, showing warning card');
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId ? { 
+                    ...m, 
+                    content: assistantContent,
+                    pastDateData: {
+                      titulo: action.titulo,
+                      data: action.data,
+                      hora: action.hora,
+                      local: action.local
+                    }
+                  } : m
+                ));
               }
               // Legacy: Handle confirmation action (kept for compatibility)
               else if (action.acao === 'solicitar_confirmacao' && action.resumo_evento) {
@@ -651,6 +676,21 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     finalDeletedEventData = deletedEventData; // Store for persistence
                   }
                   
+                  // Check if PAST DATE warning
+                  const pastDateAction = executedActions.find(a => a.action === 'data_passada');
+                  let pastDateData = undefined;
+                  
+                  if (pastDateAction) {
+                    pastDateData = {
+                      titulo: pastDateAction.data?.titulo,
+                      data: pastDateAction.data?.data,
+                      hora: pastDateAction.data?.hora,
+                      local: pastDateAction.data?.local
+                    };
+                    console.log('[ChatPage] Past date warning detected:', pastDateData);
+                    finalPastDateData = pastDateData; // Store for persistence
+                  }
+                  
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
                     listedEvents: listedEvents?.length || 0 
@@ -666,6 +706,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       deletedEventData,
                       eventsListData: listedEvents,
                       confirmationData: confirmationResumo,
+                      pastDateData,
                     } : m
                   ));
 
@@ -725,9 +766,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
       });
       
-      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData) {
-        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData) 
-          ? { eventData: finalEventData, deletedEventData: finalDeletedEventData, eventsListData: finalEventsListData }
+      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData) {
+        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData) 
+          ? { eventData: finalEventData, deletedEventData: finalDeletedEventData, eventsListData: finalEventsListData, pastDateData: finalPastDateData }
           : undefined;
         
         console.log('[ChatPage] Constructed metadata for save:', metadata);
@@ -1223,6 +1264,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.deletedEventData && (
                       <div className="pl-9 animate-fade-in">
                         <EventDeletedCard event={message.deletedEventData} />
+                      </div>
+                    )}
+                    
+                    {/* Past Date Warning Card */}
+                    {message.pastDateData && (
+                      <div className="pl-9 animate-fade-in">
+                        <PastDateCard event={message.pastDateData} />
                       </div>
                     )}
                     
