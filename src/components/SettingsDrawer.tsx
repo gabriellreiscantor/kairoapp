@@ -187,23 +187,30 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           <div className="px-5 pb-6">
             <button 
               onClick={() => handleNavigate('/settings/plan')}
-              className="w-full rounded-2xl p-4 relative overflow-hidden bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple shadow-lg"
+              className="w-full rounded-2xl p-4 relative overflow-hidden bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple shadow-xl"
+              style={{
+                boxShadow: '0 8px 32px rgba(255, 107, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+              }}
             >
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              {/* Animated glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple opacity-30 blur-xl" />
               
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Crown className="w-5 h-5 text-white" />
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                    <Crown className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-left">
-                    <p className="text-white font-bold text-lg">{PLAN_NAMES[currentPlan]}</p>
-                    <p className="text-white/70 text-xs">{t('plan.eventsScheduled')}</p>
+                    <p className="text-white font-bold text-lg drop-shadow-md">{PLAN_NAMES[currentPlan]}</p>
+                    <p className="text-white/80 text-xs">{t('plan.eventsScheduled')}</p>
                   </div>
                 </div>
                 <button 
-                  className="px-4 py-2 rounded-full bg-white/95 text-gray-900 text-sm font-bold shadow-lg hover:scale-105 transition-transform"
+                  className="px-4 py-2.5 rounded-full bg-white text-gray-900 text-sm font-bold shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/50"
+                  style={{
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNavigate('/settings/plan');
@@ -215,9 +222,9 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
               
               <div className="relative flex items-center justify-between mt-4">
                 <div className="flex-1 mr-4">
-                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-2.5 bg-white/25 rounded-full overflow-hidden backdrop-blur-sm">
                     <div 
-                      className="h-full bg-white rounded-full transition-all duration-500"
+                      className="h-full bg-white rounded-full transition-all duration-500 shadow-sm"
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
@@ -227,8 +234,8 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     <Loader2 className="w-4 h-4 animate-spin text-white/70" />
                   ) : (
                     <>
-                      <span className="text-white font-bold text-lg">{usedEvents}</span>
-                      <span className="text-white/60 text-sm">/ {maxEvents}</span>
+                      <span className="text-white font-bold text-lg drop-shadow-md">{usedEvents}</span>
+                      <span className="text-white/70 text-sm">/ {maxEvents}</span>
                     </>
                   )}
                 </div>
