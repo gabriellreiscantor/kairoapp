@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import OfflineOverlay from "./components/OfflineOverlay";
 
 // Settings Pages
 import CalendarSettingsPage from "./pages/settings/CalendarSettingsPage";
@@ -38,6 +39,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <OfflineOverlay />
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
