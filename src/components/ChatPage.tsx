@@ -1050,12 +1050,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     <div className="min-h-screen bg-background flex flex-col">
       {/* Fixed Header Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
-        {/* Safe-area = solid background */}
-        <div className="absolute top-0 left-0 right-0 h-[env(safe-area-inset-top)] bg-background" />
-        {/* Buttons area = background with blur */}
-        <div className="absolute top-[env(safe-area-inset-top)] left-0 right-0 bottom-0 bg-background/80 backdrop-blur-xl" />
-        {/* Gradient fade BELOW header - from solid to transparent */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-b from-background/80 to-transparent translate-y-full pointer-events-none" />
+        {/* Single gradient: opaque at top (status bar) -> transparent at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-transparent pointer-events-none" />
         
         <div className="relative flex items-center justify-center gap-2 px-4 py-3">
           {/* Calendar View - Left */}
