@@ -1,4 +1,4 @@
-import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, Sun, Moon, Loader2, Crown } from "lucide-react";
+import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, Sun, Moon, Loader2, Crown, CreditCard } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -306,6 +306,12 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                   label={t('settings.language')}
                   value={LANGUAGE_NAMES[language] || language}
                   onClick={() => handleNavigate('/settings/language')}
+                />
+                <SettingItem 
+                  icon={<CreditCard className="w-4.5 h-4.5" />}
+                  iconColor="bg-emerald-500/10 text-emerald-500"
+                  label="Assinatura"
+                  onClick={() => handleNavigate('/settings/subscription')}
                 />
               </div>
             </div>
