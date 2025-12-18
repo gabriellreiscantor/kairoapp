@@ -1080,7 +1080,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Gradient fade below header */}
       <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none safe-area-top">
         <div className="h-24" />
-        <div className="h-6 bg-gradient-to-b from-background/80 to-transparent" />
+        <div className="h-10 bg-gradient-to-b from-background via-background/50 to-transparent" />
       </div>
 
       {/* Messages - Timeline style */}
