@@ -29,11 +29,45 @@ interface EventCreatedCardProps {
   onEdit?: (eventId: string) => void;
 }
 
-// Get dynamic icon based on event title/category
+// Direct category-to-icon mapping (priority for detected categories from images)
+const categoryIcons: Record<string, React.ReactNode> = {
+  // Categories detected from images
+  cinema: <Film className="w-5 h-5 text-primary" />,
+  show: <Music className="w-5 h-5 text-primary" />,
+  teatro: <Film className="w-5 h-5 text-primary" />,
+  casamento: <Heart className="w-5 h-5 text-primary" />,
+  formatura: <GraduationCap className="w-5 h-5 text-primary" />,
+  aniversario: <Heart className="w-5 h-5 text-primary" />,
+  medico: <Stethoscope className="w-5 h-5 text-primary" />,
+  trabalho: <Briefcase className="w-5 h-5 text-primary" />,
+  esporte: <Dumbbell className="w-5 h-5 text-primary" />,
+  viagem: <Plane className="w-5 h-5 text-primary" />,
+  restaurante: <Utensils className="w-5 h-5 text-primary" />,
+  festa: <Music className="w-5 h-5 text-primary" />,
+  religioso: <Heart className="w-5 h-5 text-primary" />,
+  // Legacy categories
+  saude: <Stethoscope className="w-5 h-5 text-primary" />,
+  pessoal: <Home className="w-5 h-5 text-primary" />,
+  fitness: <Dumbbell className="w-5 h-5 text-primary" />,
+  social: <Users className="w-5 h-5 text-primary" />,
+  financeiro: <DollarSign className="w-5 h-5 text-primary" />,
+  educacao: <GraduationCap className="w-5 h-5 text-primary" />,
+  lazer: <Gamepad2 className="w-5 h-5 text-primary" />,
+  evento: <Calendar className="w-5 h-5 text-primary" />,
+  geral: <CircleDot className="w-5 h-5 text-primary" />,
+  outro: <CircleDot className="w-5 h-5 text-primary" />,
+};
+
+// Get dynamic icon based on event category first, then title
 const getEventIcon = (title: string, category?: string) => {
+  // PRIORITY 1: Direct category match (from image analysis)
+  if (category && categoryIcons[category]) {
+    return categoryIcons[category];
+  }
+  
   const titleLower = title.toLowerCase();
   
-  // Match by title keywords first
+  // PRIORITY 2: Match by title keywords
   if (titleLower.includes('barbeir') || titleLower.includes('cabelo') || titleLower.includes('corte') || titleLower.includes('salão') || titleLower.includes('salon')) {
     return <Scissors className="w-5 h-5 text-primary" />;
   }
@@ -89,19 +123,8 @@ const getEventIcon = (title: string, category?: string) => {
     return <Home className="w-5 h-5 text-primary" />;
   }
   
-  // Fallback by category
-  const categoryIcons: Record<string, React.ReactNode> = {
-    trabalho: <Briefcase className="w-5 h-5 text-primary" />,
-    saude: <Stethoscope className="w-5 h-5 text-primary" />,
-    pessoal: <Home className="w-5 h-5 text-primary" />,
-    fitness: <Dumbbell className="w-5 h-5 text-primary" />,
-    social: <Users className="w-5 h-5 text-primary" />,
-    financeiro: <DollarSign className="w-5 h-5 text-primary" />,
-    educacao: <GraduationCap className="w-5 h-5 text-primary" />,
-    lazer: <Gamepad2 className="w-5 h-5 text-primary" />,
-  };
-  
-  return categoryIcons[category || ''] || <CircleDot className="w-5 h-5 text-primary" />;
+  // FALLBACK: Generic icon
+  return <CircleDot className="w-5 h-5 text-primary" />;
 };
 
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
