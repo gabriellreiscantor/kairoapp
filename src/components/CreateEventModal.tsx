@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useGeolocation } from "@/hooks/useGeolocation";
-import { useToast } from "@/hooks/use-toast";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -72,8 +71,7 @@ const EMOJIS = [
 ];
 
 const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) => {
-  const { toast } = useToast();
-  const { isLoading: isGeoLoading, error: geoError, getCurrentAddress, searchAddresses } = useGeolocation();
+  const { isLoading: isGeoLoading, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
@@ -149,16 +147,6 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
     if (result) {
       setLocation(result.address);
       setScreenView('main');
-      toast({
-        title: "Localização obtida",
-        description: "Seu endereço foi definido com sucesso.",
-      });
-    } else if (geoError) {
-      toast({
-        title: "Erro",
-        description: geoError,
-        variant: "destructive",
-      });
     }
   };
 
