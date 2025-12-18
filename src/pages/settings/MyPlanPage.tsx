@@ -1,8 +1,9 @@
-import { ChevronLeft, Check, Loader2, Sparkles, Zap, Crown, Clock, Calendar, MessageSquare, Shield, HelpCircle, ChevronDown, RotateCcw } from "lucide-react";
+import { Check, Loader2, Sparkles, Zap, Crown, Clock, Calendar, MessageSquare, Shield, HelpCircle, ChevronDown, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { cn } from "@/lib/utils";
+import BackButton from "@/components/BackButton";
 
 type PlanType = 'free' | 'plus' | 'super';
 
@@ -120,12 +121,7 @@ const MyPlanPage = () => {
     <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 py-4 safe-area-top flex items-center border-b border-border/10">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-10">Planos</h1>
       </header>
 

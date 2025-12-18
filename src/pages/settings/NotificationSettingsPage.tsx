@@ -1,10 +1,9 @@
-import { ChevronLeft, Bell, Phone, MessageSquare, Volume2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Bell, Phone, MessageSquare, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import BackButton from "@/components/BackButton";
 
 const NotificationSettingsPage = () => {
-  const navigate = useNavigate();
   const [pushEnabled, setPushEnabled] = useState(true);
   const [callEnabled, setCallEnabled] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
@@ -16,12 +15,7 @@ const NotificationSettingsPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="text-xl font-bold text-foreground">Notificações</h1>
       </header>
 

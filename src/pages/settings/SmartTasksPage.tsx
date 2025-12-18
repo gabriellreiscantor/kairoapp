@@ -1,12 +1,11 @@
-import { ChevronLeft, Sparkles, Brain, Clock, Repeat, CloudSun } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Sparkles, Brain, Clock, Repeat, CloudSun } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import BackButton from "@/components/BackButton";
 
 const SmartTasksPage = () => {
-  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   
   const [smartSuggestions, setSmartSuggestions] = useState(true);
@@ -83,12 +82,7 @@ const SmartTasksPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="text-xl font-bold text-foreground">Ações Inteligentes</h1>
       </header>
 

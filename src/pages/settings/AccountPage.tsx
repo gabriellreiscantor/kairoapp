@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BackButton from "@/components/BackButton";
 
 const AccountPage = () => {
   const navigate = useNavigate();
@@ -62,12 +63,7 @@ const AccountPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="text-xl font-bold text-foreground">Conta</h1>
       </header>
 
