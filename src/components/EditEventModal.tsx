@@ -241,31 +241,38 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
         {/* Date & Time Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           {/* Date */}
-          <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
+          <label className="px-4 py-4 flex items-center justify-between border-b border-border/10 cursor-pointer">
             <span className="text-foreground">Data</span>
             <div className="relative">
-              <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
+              <span className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground pointer-events-none">
                 {formatDateDisplay(eventDate)}
-              </button>
+              </span>
               <input
                 type="date"
                 value={format(eventDate, 'yyyy-MM-dd')}
                 onChange={handleDateChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                style={{ WebkitAppearance: 'none' }}
               />
             </div>
-          </div>
+          </label>
 
           {/* Time */}
-          <div className="px-4 py-4 flex items-center justify-between">
+          <label className="px-4 py-4 flex items-center justify-between cursor-pointer">
             <span className="text-foreground">Hora</span>
-            <input
-              type="time"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-              className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground"
-            />
-          </div>
+            <div className="relative">
+              <span className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground pointer-events-none">
+                {eventTime}
+              </span>
+              <input
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                style={{ WebkitAppearance: 'none' }}
+              />
+            </div>
+          </label>
         </div>
 
         {/* Alerts Card */}
