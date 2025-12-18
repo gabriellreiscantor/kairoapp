@@ -222,6 +222,9 @@ async function executeAction(
           };
         }
 
+        // É dia inteiro se: não tem hora OU não tem duração explícita
+        const isAllDay = !action.hora || !action.duracao_minutos;
+        
         const { data, error } = await supabase
           .from('events')
           .insert({
@@ -231,7 +234,8 @@ async function executeAction(
             event_date: action.data,
             event_time: action.hora || null,
             location: action.local || null,
-            duration_minutes: action.duracao_minutos || 60,
+            duration_minutes: action.duracao_minutos || null, // null se não explícito
+            is_all_day: isAllDay,
             priority: action.prioridade || 'medium',
             category: action.categoria || 'geral',
             status: 'pending',
@@ -440,6 +444,9 @@ serve(async (req) => {
           },
         });
       }
+      // É dia inteiro se não tem hora na imagem
+      const imageIsAllDay = !imageAnalysis.hora_detectada;
+      
       const { data: createdEvent, error: createError } = await imageSupabase
         .from('events')
         .insert({
@@ -449,7 +456,8 @@ serve(async (req) => {
           event_date: imageAnalysis.data_detectada,
           event_time: imageAnalysis.hora_detectada || null,
           location: imageAnalysis.local_detectado || null,
-          duration_minutes: defaultDuration,
+          duration_minutes: imageIsAllDay ? null : defaultDuration,
+          is_all_day: imageIsAllDay,
           priority: 'medium',
           category: detectedCategory,
           status: 'pending',
