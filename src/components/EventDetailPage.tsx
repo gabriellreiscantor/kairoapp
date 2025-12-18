@@ -114,15 +114,15 @@ const SingleEventCard = ({
   };
 
   return (
-    <div className={`bg-gradient-to-br from-kairo-surface-2 to-kairo-surface-2/80 rounded-2xl p-5 relative border-l-4 ${getColorAccent()} shadow-lg`}>
-      {/* Header: Emoji + Time */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${getColorClassName(selectedColor)} bg-opacity-20`}>
+    <div className={`bg-card rounded-2xl p-5 relative border-l-4 ${getColorAccent()} shadow-sm border border-border/20`}>
+      {/* Header: Emoji + Title + Time */}
+      <div className="flex items-start gap-4 mb-3">
+        <span className="text-4xl leading-none pt-1">
           {event.emoji || '📅'}
-        </div>
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold text-foreground leading-tight">{event.title}</h2>
-          <div className="flex items-center gap-2 mt-1">
+        </span>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-semibold text-foreground leading-tight truncate">{event.title}</h2>
+          <div className="flex items-center gap-2 mt-1.5">
             <span className="text-sm font-medium text-primary">
               {event.isAllDay ? 'Dia inteiro' : event.time}
             </span>
@@ -148,17 +148,17 @@ const SingleEventCard = ({
 
           {/* Location Menu */}
           {showLocationMenu && (
-            <div className="absolute top-8 left-0 bg-kairo-surface-3 rounded-xl overflow-hidden z-10 shadow-lg border border-border/20 min-w-[180px]">
+            <div className="absolute top-8 left-0 bg-card rounded-xl overflow-hidden z-10 shadow-lg border border-border/30 min-w-[180px]">
               <button 
                 onClick={() => setShowLocationMenu(false)}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-kairo-surface-2 transition-colors"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors"
               >
                 <Copy className="w-4 h-4 text-foreground" />
                 <span className="text-foreground">Copiar</span>
               </button>
               <button 
                 onClick={() => setShowLocationMenu(false)}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-kairo-surface-2 transition-colors"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors"
               >
                 <Navigation className="w-4 h-4 text-foreground" />
                 <span className="text-foreground">Encontrar no Mapas</span>
@@ -242,12 +242,12 @@ const SingleEventCard = ({
             className="fixed inset-0 z-10" 
             onClick={() => setShowColorPicker(false)} 
           />
-          <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl overflow-hidden shadow-lg z-20 border border-border/20">
+          <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-card rounded-2xl overflow-hidden shadow-lg z-20 border border-border/30">
             {EVENT_COLORS.map((c) => (
               <button 
                 key={c.value} 
                 onClick={() => handleColorChange(c.value)} 
-                className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0"
+                className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0 hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className={`w-5 h-5 rounded-full ${c.className}`} />
@@ -264,20 +264,20 @@ const SingleEventCard = ({
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div className="absolute inset-x-0 bottom-0 translate-y-full mt-4 bg-kairo-surface-3 rounded-2xl p-4 shadow-lg z-30 border border-border/20">
+        <div className="absolute inset-x-0 bottom-0 translate-y-full mt-4 bg-card rounded-2xl p-4 shadow-lg z-30 border border-border/30">
           <p className="text-foreground text-center mb-4">
             Tem certeza de que deseja excluir este evento?
           </p>
           <div className="flex gap-3">
             <button 
               onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 py-3 rounded-xl bg-kairo-surface-2 text-foreground font-medium"
+              className="flex-1 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
             >
               Cancelar
             </button>
             <button 
               onClick={handleDeleteConfirm}
-              className="flex-1 py-3 rounded-xl bg-transparent text-red-500 font-medium"
+              className="flex-1 py-3 rounded-xl bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors"
             >
               Excluir Evento
             </button>
@@ -460,9 +460,6 @@ const EventDetailPage = ({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Background gradient effect */}
-      <div className="absolute inset-0 bg-gradient-to-b from-red-900/20 via-background to-background pointer-events-none" />
-      
       <div 
         className="relative flex flex-col h-full"
         style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
