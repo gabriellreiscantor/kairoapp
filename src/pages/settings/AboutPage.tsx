@@ -32,7 +32,10 @@ const AboutPage = () => {
             <span className="text-foreground">{t('about.privacy')}</span>
             <ExternalLink className="w-5 h-5 text-muted-foreground" />
           </button>
-          <button className="w-full flex items-center justify-between px-4 py-4">
+          <button 
+            onClick={() => navigate('/settings/help')}
+            className="w-full flex items-center justify-between px-4 py-4"
+          >
             <span className="text-foreground">{t('about.faq')}</span>
             <ExternalLink className="w-5 h-5 text-muted-foreground" />
           </button>
