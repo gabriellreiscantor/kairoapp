@@ -153,13 +153,16 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     lastTapTime.current = now;
   }, [appliedScale]);
 
-  // Mouse wheel zoom
+  // Mouse wheel zoom - with Ctrl/Cmd key for zoom, otherwise normal scroll
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, appliedScale + delta));
-    setAppliedScale(newScale);
-    setVisualScale(newScale);
+    // Only zoom if Ctrl/Cmd is pressed, otherwise allow normal scroll
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.15 : 0.15;
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, appliedScale + delta));
+      setAppliedScale(newScale);
+      setVisualScale(newScale);
+    }
   }, [appliedScale]);
 
   // Native touch listener to prevent scroll during pinch
@@ -277,7 +280,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                     }}
                     className={`
                       relative flex flex-col items-start p-1 transition-all duration-200 border-r border-border/5 last:border-r-0
-                      ${isCurrentMonth ? '' : 'opacity-30'}
+                      ${isCurrentMonth ? '' : 'opacity-50'}
                     `}
                     style={{ 
                       minHeight: `${cellHeight}px`,
