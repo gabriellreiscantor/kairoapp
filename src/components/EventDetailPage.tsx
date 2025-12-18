@@ -52,6 +52,21 @@ interface SingleEventCardProps {
   onClose: () => void;
 }
 
+// Get dot color class for timeline
+const getTimelineDotColor = (color: string) => {
+  const colorMap: Record<string, string> = {
+    'primary': 'bg-primary',
+    'red': 'bg-red-500',
+    'orange': 'bg-orange-500',
+    'yellow': 'bg-yellow-500',
+    'green': 'bg-green-500',
+    'blue': 'bg-blue-500',
+    'purple': 'bg-purple-500',
+    'pink': 'bg-pink-500',
+  };
+  return colorMap[color] || 'bg-primary';
+};
+
 const SingleEventCard = ({
   event,
   selectedDate,
@@ -65,7 +80,6 @@ const SingleEventCard = ({
   const [callMeEnabled, setCallMeEnabled] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [selectedColor, setSelectedColor] = useState(event.color || 'primary');
 
   useEffect(() => {
@@ -73,11 +87,6 @@ const SingleEventCard = ({
       setSelectedColor(event.color);
     }
   }, [event.color]);
-
-  const getDateLabel = () => {
-    if (isToday(selectedDate)) return 'Hoje';
-    return format(selectedDate, "d 'de' MMM", { locale: ptBR });
-  };
 
   const handleColorChange = async (colorId: string) => {
     try {
@@ -98,189 +107,160 @@ const SingleEventCard = ({
     setShowDeleteConfirm(false);
   };
 
-  // Get color accent for border
-  const getColorAccent = () => {
-    const colorMap: Record<string, string> = {
-      'primary': 'border-l-primary',
-      'red': 'border-l-red-500',
-      'orange': 'border-l-orange-500',
-      'yellow': 'border-l-yellow-500',
-      'green': 'border-l-green-500',
-      'blue': 'border-l-blue-500',
-      'purple': 'border-l-purple-500',
-      'pink': 'border-l-pink-500',
-    };
-    return colorMap[selectedColor] || 'border-l-primary';
-  };
-
   return (
-    <div className={`bg-card rounded-2xl p-5 relative border-l-4 ${getColorAccent()} shadow-sm border border-border/20`}>
-      {/* Header: Emoji + Title + Time */}
-      <div className="flex items-start gap-4 mb-3">
-        <span className="text-4xl leading-none pt-1">
-          {event.emoji || '📅'}
-        </span>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-foreground leading-tight truncate">{event.title}</h2>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-sm font-medium text-primary">
-              {event.isAllDay ? 'Dia inteiro' : event.time}
+    <div className="relative">
+      {/* Main Content */}
+      <div 
+        className={`relative transition-all duration-200 ${isExpanded ? 'pb-4' : ''}`}
+        onClick={onToggleExpand}
+      >
+        {/* Timeline Layout */}
+        <div className="flex gap-5">
+          {/* Time Column */}
+          <div className="w-14 flex-shrink-0 text-right pt-1">
+            <span className="text-sm font-semibold text-foreground">
+              {event.isAllDay ? 'Dia' : event.time?.split(':')[0] || '--'}
             </span>
-            <span className="text-xs text-muted-foreground">
-              • {getDateLabel()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Location */}
-      {event.location && (
-        <div className="relative mb-3">
-          <button 
-            onClick={() => setShowLocationMenu(!showLocationMenu)}
-            className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground transition-colors"
-          >
-            <Navigation className="w-3.5 h-3.5" />
-            <span className="underline decoration-muted-foreground/50">
-              {event.location}
-            </span>
-          </button>
-
-          {/* Location Menu */}
-          {showLocationMenu && (
-            <div className="absolute top-8 left-0 bg-card rounded-xl overflow-hidden z-10 shadow-lg border border-border/30 min-w-[180px]">
-              <button 
-                onClick={() => setShowLocationMenu(false)}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors"
-              >
-                <Copy className="w-4 h-4 text-foreground" />
-                <span className="text-foreground">Copiar</span>
-              </button>
-              <button 
-                onClick={() => setShowLocationMenu(false)}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors"
-              >
-                <Navigation className="w-4 h-4 text-foreground" />
-                <span className="text-foreground">Encontrar no Mapas</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Expanded Content */}
-      {isExpanded && (
-        <>
-          {/* Call Me Toggle */}
-          <div className="flex items-center justify-between py-3 border-t border-border/10">
-            <div className="flex items-center gap-3">
-              <Phone className="w-5 h-5 text-muted-foreground" />
-              <span className="text-foreground">Me Ligue</span>
-            </div>
-            <Switch checked={callMeEnabled} onCheckedChange={setCallMeEnabled} />
-          </div>
-
-          {/* Alert */}
-          <button className="flex items-center justify-between py-3 border-t border-border/10 w-full">
-            <div className="flex items-center gap-3">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="text-foreground">23:45, 1 dia antes</span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          </button>
-
-          {/* Calendar/Color */}
-          <button 
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            className="flex items-center justify-between py-3 border-t border-border/10 w-full"
-          >
-            <div className="flex items-center gap-3">
-              <span 
-                className={`w-4 h-4 rounded-full ${getColorClassName(selectedColor)}`}
-              />
-              <span className="text-primary">
-                {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Kairo'}
+            {!event.isAllDay && event.time && (
+              <span className="text-sm text-muted-foreground">
+                :{event.time.split(':')[1]}
               </span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </>
-      )}
+            )}
+          </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-4">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-11 h-11 rounded-full border border-border/30 flex items-center justify-center"
-          >
-            <Trash2 className="w-5 h-5 text-foreground" />
-          </button>
-          <button 
-            onClick={onEdit}
-            className="w-11 h-11 rounded-full border border-border/30 flex items-center justify-center"
-          >
-            <Pencil className="w-5 h-5 text-foreground" />
-          </button>
+          {/* Timeline Dot & Line */}
+          <div className="flex flex-col items-center">
+            <div className={`w-3 h-3 rounded-full ${getTimelineDotColor(selectedColor)} ring-4 ring-background shadow-lg`} />
+            <div className="w-0.5 flex-1 bg-border/50 mt-2" />
+          </div>
+
+          {/* Event Content */}
+          <div className="flex-1 pb-8 min-w-0">
+            {/* Emoji Hero */}
+            <div className="mb-3">
+              <span className="text-5xl">{event.emoji || '📅'}</span>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-foreground leading-tight mb-1">
+              {event.title}
+            </h3>
+
+            {/* Duration badge */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground mb-3">
+              <span>{event.isAllDay ? 'Dia inteiro' : `${event.time}`}</span>
+            </div>
+
+            {/* Location */}
+            {event.location && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                <Navigation className="w-3.5 h-3.5" />
+                <span className="truncate">{event.location}</span>
+              </div>
+            )}
+
+            {/* Expanded Options */}
+            {isExpanded && (
+              <div className="mt-4 space-y-1" onClick={(e) => e.stopPropagation()}>
+                {/* Call Me */}
+                <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Me Ligue</span>
+                  </div>
+                  <Switch checked={callMeEnabled} onCheckedChange={setCallMeEnabled} />
+                </div>
+
+                {/* Alert */}
+                <button className="flex items-center justify-between py-3 px-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors w-full">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">23:45, 1 dia antes</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </button>
+
+                {/* Color */}
+                <button 
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  className="flex items-center justify-between py-3 px-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors w-full relative"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-4 h-4 rounded-full ${getTimelineDotColor(selectedColor)}`} />
+                    <span className="text-sm text-foreground">
+                      {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Kairo'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </button>
+
+                {/* Color Picker */}
+                {showColorPicker && (
+                  <div className="bg-card rounded-xl overflow-hidden shadow-lg border border-border/30 mt-2">
+                    {EVENT_COLORS.map((c) => (
+                      <button 
+                        key={c.value} 
+                        onClick={() => handleColorChange(c.value)} 
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-4 h-4 rounded-full ${c.className}`} />
+                          <span className="text-sm text-foreground">{c.label}</span>
+                        </div>
+                        {selectedColor === c.value && (
+                          <Check className="w-4 h-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 pt-3">
+                  <button 
+                    onClick={onEdit}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    <span className="text-sm">Editar</span>
+                  </button>
+                  <button 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="flex items-center justify-center w-12 h-12 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <button 
-          onClick={onToggleExpand}
-          className="w-11 h-11 rounded-full border border-border/30 flex items-center justify-center"
-        >
-          {isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-foreground" />
-          ) : (
-            <ChevronUp className="w-5 h-5 text-foreground" />
-          )}
-        </button>
       </div>
 
-      {/* Color Picker Popup */}
-      {showColorPicker && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setShowColorPicker(false)} 
-          />
-          <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-card rounded-2xl overflow-hidden shadow-lg z-20 border border-border/30">
-            {EVENT_COLORS.map((c) => (
-              <button 
-                key={c.value} 
-                onClick={() => handleColorChange(c.value)} 
-                className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`w-5 h-5 rounded-full ${c.className}`} />
-                  <span className="text-foreground">{c.label}</span>
-                </div>
-                {selectedColor === c.value && (
-                  <Check className="w-5 h-5 text-primary" />
-                )}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="absolute inset-x-0 bottom-0 translate-y-full mt-4 bg-card rounded-2xl p-4 shadow-lg z-30 border border-border/30">
-          <p className="text-foreground text-center mb-4">
-            Tem certeza de que deseja excluir este evento?
-          </p>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button 
-              onClick={handleDeleteConfirm}
-              className="flex-1 py-3 rounded-xl bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors"
-            >
-              Excluir Evento
-            </button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/50" onClick={() => setShowDeleteConfirm(false)}>
+          <div 
+            className="w-full max-w-md bg-card rounded-2xl p-5 shadow-xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-foreground text-center mb-5 font-medium">
+              Excluir "{event.title}"?
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3.5 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleDeleteConfirm}
+                className="flex-1 py-3.5 rounded-xl bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -401,7 +381,8 @@ const EventDetailPage = ({
   // Empty state - no events
   if (events.length === 0) {
     const weekday = format(selectedDate, 'EEEE', { locale: ptBR });
-    const dayMonth = format(selectedDate, "d 'de' MMM", { locale: ptBR });
+    const dayNumber = format(selectedDate, 'd', { locale: ptBR });
+    const monthYear = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
     
     return (
       <div 
@@ -418,29 +399,33 @@ const EventDetailPage = ({
           className="flex flex-col h-full safe-area-top safe-area-bottom"
           style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
         >
-          {/* Header with handle bar and close button */}
-          <div className="flex items-center justify-between px-4">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-3">
             <div className="w-10" />
-            <div className="w-10 h-1 bg-muted-foreground/50 rounded-full my-3" />
-            <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center">
-              <X className="w-6 h-6 text-muted-foreground" />
+            <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+            <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors">
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
-          {/* Date Display */}
-          <div className="px-4 pt-4">
-            <h1 className="text-2xl font-bold text-foreground capitalize">
-              {weekday}, {dayMonth}.
-            </h1>
+          {/* Big Date Display */}
+          <div className="px-6 pt-8 pb-6">
+            <p className="text-sm text-muted-foreground capitalize mb-1">{weekday}</p>
+            <h1 className="text-6xl font-bold text-foreground mb-1">{dayNumber}</h1>
+            <p className="text-lg text-muted-foreground capitalize">{monthYear}</p>
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-4">
+          <div className="flex-1 flex items-center justify-center px-6">
             <button 
               onClick={onAddEvent}
-              className="w-full py-8 rounded-2xl border border-dashed border-border/40 text-center transition-colors hover:bg-kairo-surface-2/50"
+              className="w-full py-12 rounded-3xl border-2 border-dashed border-border/40 text-center transition-all hover:border-primary/50 hover:bg-primary/5 group"
             >
-              <p className="text-muted-foreground text-sm">
-                Você ainda não adicionou um evento. <span className="text-primary font-medium">Toque aqui para adicionar.</span>
+              <div className="text-5xl mb-4">📝</div>
+              <p className="text-muted-foreground">
+                Nenhum evento ainda
+              </p>
+              <p className="text-primary font-medium mt-1 group-hover:underline">
+                Toque para adicionar
               </p>
             </button>
           </div>
@@ -448,6 +433,10 @@ const EventDetailPage = ({
       </div>
     );
   }
+
+  const weekday = format(selectedDate, 'EEEE', { locale: ptBR });
+  const dayNumber = format(selectedDate, 'd', { locale: ptBR });
+  const monthYear = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
     <div 
@@ -464,18 +453,32 @@ const EventDetailPage = ({
         className="relative flex flex-col h-full"
         style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
       >
-        {/* Header with handle bar and close button */}
-        <div className="flex items-center justify-between px-4 safe-area-top">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-3 safe-area-top">
           <div className="w-10" />
-          <div className="w-10 h-1 bg-muted-foreground/50 rounded-full my-3" />
-          <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center">
-            <X className="w-6 h-6 text-muted-foreground" />
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+          <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors">
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
-        {/* Events List - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4">
-          {sortedEvents.map((event, index) => (
+        {/* Big Date Header */}
+        <div className="px-6 pt-6 pb-4">
+          <p className="text-sm text-muted-foreground capitalize mb-1">{weekday}</p>
+          <h1 className="text-5xl font-bold text-foreground mb-1">{dayNumber}</h1>
+          <p className="text-base text-muted-foreground capitalize">{monthYear}</p>
+        </div>
+
+        {/* Events Count */}
+        <div className="px-6 pb-4">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {sortedEvents.length} {sortedEvents.length === 1 ? 'evento' : 'eventos'}
+          </span>
+        </div>
+
+        {/* Timeline Events */}
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
+          {sortedEvents.map((event) => (
             <SingleEventCard
               key={event.id}
               event={event}
