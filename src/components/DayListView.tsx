@@ -165,12 +165,9 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
                   /* Empty day - subtle add button */
                   <button
                     onClick={() => onAddEvent(day)}
-                    className="w-full py-4 flex items-center justify-center gap-2 text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/30 rounded-xl transition-all duration-200 group"
+                    className="w-full py-3 flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-muted/30 rounded-xl transition-all duration-200"
                   >
-                    <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                      {t('calendar.addEvent')}
-                    </span>
+                    <Plus className="w-5 h-5" />
                   </button>
                 )}
               </div>
