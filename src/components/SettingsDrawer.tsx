@@ -102,7 +102,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
   const handleNavigate = (path: string) => {
     onClose();
-    navigate(path);
+    navigate(`${path}?from=settings`);
   };
 
   const handleLogout = async () => {

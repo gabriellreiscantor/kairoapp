@@ -4,6 +4,7 @@ import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, L
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CalendarView from "@/components/CalendarView";
@@ -38,6 +39,10 @@ const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
   const { user } = useAuth();
   const dateLocale = getDateLocale();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Check if settings should be open from URL param
+  const shouldOpenSettings = searchParams.get('settings') === 'open';
   
   // Call alert hook for "Me Ligue" feature
   const { 
@@ -82,7 +87,16 @@ const MainApp = () => {
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(shouldOpenSettings);
+  
+  // Sync settings open state with URL param
+  useEffect(() => {
+    if (shouldOpenSettings && !isSettingsOpen) {
+      setIsSettingsOpen(true);
+      // Clear the param after opening
+      setSearchParams({}, { replace: true });
+    }
+  }, [shouldOpenSettings, isSettingsOpen, setSearchParams]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
