@@ -44,7 +44,7 @@ interface KairoAction {
   idioma_detectado?: 'pt' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh' | 'outro';
   observacoes?: string;
   resposta_usuario?: string;
-  informacao_faltante?: 'data' | 'hora' | 'local' | 'cidade' | 'nome_estabelecimento';
+  informacao_faltante?: 'titulo' | 'data' | 'hora' | 'local' | 'cidade' | 'nome_estabelecimento';
   contexto_coletado?: string;
   resumo_evento?: {
     titulo: string;
@@ -742,6 +742,29 @@ Se nao tem hora → evento dia inteiro (null)
 Se nao tem local → null
 
 NAO PERGUNTE. CRIE.
+
+=== REGRA DE TITULO OBRIGATORIO ===
+
+Se o usuario pede para criar um evento mas NAO menciona QUAL evento (apenas "um evento", "algo", "uma coisa"):
+- Use "coletar_informacoes" com informacao_faltante = "titulo"
+- Pergunte de forma amigavel qual e o evento
+
+Exemplos que DEVEM perguntar o titulo:
+- "cria um evento pra mim dia 19" → {"acao": "coletar_informacoes", "informacao_faltante": "titulo", "resposta_usuario": "Beleza! Mas qual evento voce quer criar?"}
+- "marca algo pra amanha as 15h" → {"acao": "coletar_informacoes", "informacao_faltante": "titulo", "resposta_usuario": "Pode ser! O que vai ser esse evento?"}
+- "agenda dia 20 meio-dia" → {"acao": "coletar_informacoes", "informacao_faltante": "titulo", "resposta_usuario": "Anotado dia 20 ao meio-dia! Mas e pra que?"}
+- "cria um evento as 12:30" → {"acao": "coletar_informacoes", "informacao_faltante": "titulo", "resposta_usuario": "Claro! Qual vai ser o evento?"}
+
+Exemplos que NAO precisam perguntar (titulo esta claro):
+- "dentista dia 19 as 15h" → CRIAR evento "Dentista"
+- "reuniao amanha as 10h" → CRIAR evento "Reuniao"
+- "cria um evento cinema dia 20" → CRIAR evento "Cinema"
+- "lanchonete" → CRIAR evento "Lanchonete"
+- "vou no shopping" → CRIAR evento "Shopping"
+
+IMPORTANTE: A diferenca e se o usuario menciona uma ATIVIDADE ou apenas pede para criar "um evento" generico.
+Palavras genericas que DEVEM perguntar: "evento", "algo", "uma coisa", "compromisso" (sem especificar o que)
+Palavras especificas que NAO precisam perguntar: qualquer substantivo de atividade (dentista, cinema, reuniao, etc)
 
 === COMPORTAMENTO DE CAMPOS ===
 
