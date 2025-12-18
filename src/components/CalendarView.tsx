@@ -46,6 +46,8 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   const initialDistance = useRef<number>(0);
   const initialScale = useRef<number>(1);
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const scrollPositionRef = useRef({ top: 0, left: 0 });
+  const isPinchingRef = useRef(false);
   
   const MIN_SCALE = 1;
   const MAX_SCALE = 3;
@@ -106,7 +108,18 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
+      e.stopPropagation();
+      
+      // Save scroll position before pinch
+      if (contentRef.current) {
+        scrollPositionRef.current = {
+          top: contentRef.current.scrollTop,
+          left: contentRef.current.scrollLeft
+        };
+      }
+      
       setIsPinching(true);
+      isPinchingRef.current = true;
       initialDistance.current = getDistance(e.touches[0], e.touches[1]);
       initialScale.current = appliedScale;
       setVisualScale(appliedScale);
@@ -156,6 +169,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       }
     }
     setIsPinching(false);
+    isPinchingRef.current = false;
     lastTouchRef.current = null;
   }, [isPinching, visualScale]);
 
@@ -215,6 +229,33 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     setVisualScale(1);
     setTranslate({ x: 0, y: 0 });
   }, [currentMonth]);
+
+  // Native touch listener with { passive: false } to properly block scroll during pinch
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleNativeTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && isPinchingRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    const handleNativeTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+      }
+    };
+
+    container.addEventListener('touchmove', handleNativeTouchMove, { passive: false });
+    container.addEventListener('touchstart', handleNativeTouchStart, { passive: false });
+    
+    return () => {
+      container.removeEventListener('touchmove', handleNativeTouchMove);
+      container.removeEventListener('touchstart', handleNativeTouchStart);
+    };
+  }, []);
 
   // Smaller base cell height for compact default view
   const baseCellHeight = 60;
@@ -291,11 +332,12 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       {/* Scrollable Calendar Grid with visual zoom during pinch */}
       <div 
         ref={contentRef}
-        className="flex-1 overflow-auto"
+        className={`flex-1 ${isPinching ? 'overflow-hidden' : 'overflow-auto'}`}
         style={{
           transform: isPinching ? `scale(${visualScale / appliedScale})` : 'none',
           transformOrigin: `${origin.x}% ${origin.y}%`,
-          transition: isPinching ? 'none' : 'transform 0.2s ease-out'
+          transition: isPinching ? 'none' : 'transform 0.2s ease-out',
+          touchAction: isPinching ? 'none' : 'pan-y'
         }}
       >
         <div className="flex flex-col" style={{ minHeight: appliedScale > 1 ? `${weeks.length * cellHeight}px` : '100%' }}>
