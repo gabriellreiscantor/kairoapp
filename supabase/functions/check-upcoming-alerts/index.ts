@@ -5,21 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ProfileData {
-  fcm_token: string | null;
-  display_name: string | null;
-}
-
-interface EventRow {
-  id: string;
-  title: string;
-  event_date: string;
-  event_time: string | null;
-  location: string | null;
-  user_id: string;
-  profiles: ProfileData | ProfileData[] | null;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -41,18 +26,7 @@ Deno.serve(async (req) => {
     // Query events with call_alert_enabled that haven't been notified yet
     const { data: events, error: eventsError } = await supabase
       .from('events')
-      .select(`
-        id,
-        title,
-        event_date,
-        event_time,
-        location,
-        user_id,
-        profiles!events_user_id_fkey (
-          fcm_token,
-          display_name
-        )
-      `)
+      .select('id, title, event_date, event_time, location, user_id')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null);
@@ -67,15 +41,25 @@ Deno.serve(async (req) => {
     const notificationsSent: string[] = [];
     const errors: string[] = [];
 
-    for (const event of (events as EventRow[]) || []) {
+    for (const event of events || []) {
       try {
         // Combine date and time to create full datetime
         const eventDateTime = new Date(`${event.event_date}T${event.event_time}`);
         
         // Check if event is within our target window (55-65 minutes from now)
         if (eventDateTime >= targetTimeMin && eventDateTime <= targetTimeMax) {
-          // Handle profiles being array or single object from Supabase join
-          const profile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
+          // Fetch user profile separately (no JOIN needed)
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('fcm_token, display_name')
+            .eq('id', event.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
+            continue;
+          }
+
           const fcmToken = profile?.fcm_token;
           
           if (!fcmToken) {
