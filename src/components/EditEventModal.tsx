@@ -289,27 +289,18 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-8">
-        {/* Title & Location Card */}
+        {/* Title Card */}
         <div className="mx-4 mb-4 mt-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Título"
-            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none border-b border-border/10"
+            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          <button 
-            onClick={() => setScreenView('location')}
-            className="w-full px-4 py-4 flex items-center justify-between"
-          >
-            <span className={location ? 'text-foreground' : 'text-muted-foreground'}>
-              {location || 'Local'}
-            </span>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
         </div>
 
-        {/* Date & Time Card */}
+        {/* Date, Time & Location Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           {/* Date */}
           <label className="px-4 py-4 flex items-center justify-between border-b border-border/10 cursor-pointer relative min-h-[56px]">
@@ -326,7 +317,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
           </label>
 
           {/* Time */}
-          <label className="px-4 py-4 flex items-center justify-between cursor-pointer relative min-h-[56px]">
+          <label className="px-4 py-4 flex items-center justify-between border-b border-border/10 cursor-pointer relative min-h-[56px]">
             <span className="text-foreground pointer-events-none">Hora</span>
             <span className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground pointer-events-none">
               {eventTime}
@@ -338,6 +329,20 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
               className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
             />
           </label>
+
+          {/* Location */}
+          <button 
+            onClick={() => setScreenView('location')}
+            className="w-full px-4 py-4 flex items-center justify-between"
+          >
+            <span className="text-foreground">Local</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${location ? 'text-foreground' : 'text-muted-foreground'} max-w-[200px] truncate`}>
+                {location || 'Adicionar'}
+              </span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            </div>
+          </button>
         </div>
 
         {/* Alerts Card */}
