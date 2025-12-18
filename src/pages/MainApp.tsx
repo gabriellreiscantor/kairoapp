@@ -40,6 +40,7 @@ const MainApp = () => {
   const { user } = useAuth();
   const dateLocale = getDateLocale();
   const [searchParams, setSearchParams] = useSearchParams();
+  const settingsParamProcessed = useRef(false);
   
   // Check if settings should be open from URL param
   const shouldOpenSettings = searchParams.get('settings') === 'open';
@@ -87,16 +88,22 @@ const MainApp = () => {
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [isSettingsOpen, setIsSettingsOpen] = useState(shouldOpenSettings);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Sync settings open state with URL param
+  // Sync settings open state with URL param - using ref to prevent re-executions
   useEffect(() => {
-    if (shouldOpenSettings && !isSettingsOpen) {
-      setIsSettingsOpen(true);
-      // Clear the param after opening
+    if (shouldOpenSettings && !settingsParamProcessed.current) {
+      settingsParamProcessed.current = true;
+      // Clear param FIRST, then open
       setSearchParams({}, { replace: true });
+      setIsSettingsOpen(true);
     }
-  }, [shouldOpenSettings, isSettingsOpen, setSearchParams]);
+    
+    // Reset flag when param is cleared
+    if (!shouldOpenSettings) {
+      settingsParamProcessed.current = false;
+    }
+  }, [shouldOpenSettings, setSearchParams]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
