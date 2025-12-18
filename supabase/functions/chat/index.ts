@@ -1115,6 +1115,12 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             if (args.novo_horario) updates.event_time = args.novo_horario;
             if (args.novo_local) updates.location = args.novo_local;
             
+            // Reset call_alert_sent_at when date or time changes so new notification can be sent
+            if (args.nova_data || args.novo_horario) {
+              updates.call_alert_sent_at = null;
+              console.log(`Resetting call_alert_sent_at for event ${evento.id} due to date/time change`);
+            }
+            
             if (Object.keys(updates).length > 0) {
               const { data: updatedEvent, error } = await supabase
                 .from('events')
