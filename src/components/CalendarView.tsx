@@ -202,11 +202,40 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     setTranslate({ x: 0, y: 0 });
   }, [currentMonth]);
 
-  // Dynamic config based on zoom
+  // Dynamic config based on zoom - expand vertically at higher zoom
   const getEventConfig = () => {
-    if (scale >= 2) return { titleLength: 20, fontSize: 'text-xs', showLocation: true, maxEvents: 4 };
-    if (scale >= 1.5) return { titleLength: 12, fontSize: 'text-[11px]', showLocation: true, maxEvents: 3 };
-    return { titleLength: 6, fontSize: 'text-[10px]', showLocation: false, maxEvents: 2 };
+    if (scale >= 2.5) return { 
+      titleLength: 100, 
+      fontSize: 'text-sm', 
+      showLocation: true, 
+      maxEvents: 3,
+      truncate: false,
+      maxLines: 3
+    };
+    if (scale >= 2) return { 
+      titleLength: 50, 
+      fontSize: 'text-xs', 
+      showLocation: true, 
+      maxEvents: 3,
+      truncate: false,
+      maxLines: 2
+    };
+    if (scale >= 1.5) return { 
+      titleLength: 20, 
+      fontSize: 'text-[11px]', 
+      showLocation: true, 
+      maxEvents: 3,
+      truncate: true,
+      maxLines: 1
+    };
+    return { 
+      titleLength: 6, 
+      fontSize: 'text-[10px]', 
+      showLocation: false, 
+      maxEvents: 2,
+      truncate: true,
+      maxLines: 1
+    };
   };
   
   const eventConfig = getEventConfig();
@@ -253,7 +282,8 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
         {weeks.map((week, weekIndex) => (
           <div 
             key={weekIndex} 
-            className="flex-1 grid grid-cols-7 border-b border-border/10 min-h-[90px]"
+            className="flex-1 grid grid-cols-7 border-b border-border/10"
+            style={{ minHeight: scale >= 2 ? '120px' : '90px' }}
           >
             {week.map((day, dayIndex) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -291,20 +321,50 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                       {visibleEvents.map((event, idx) => (
                         <div
                           key={event.id || idx}
-                          className="w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5 truncate"
+                          className={`w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5 ${eventConfig.truncate ? 'truncate' : ''}`}
                         >
-                          <span className={`${eventConfig.fontSize} font-medium text-foreground truncate block leading-tight`}>
-                            {event.title.length > eventConfig.titleLength 
-                              ? event.title.slice(0, eventConfig.titleLength) + '...' 
+                          <span 
+                            className={`${eventConfig.fontSize} font-medium text-foreground block leading-tight`}
+                            style={!eventConfig.truncate ? {
+                              display: '-webkit-box',
+                              WebkitLineClamp: eventConfig.maxLines,
+                              WebkitBoxOrient: 'vertical' as const,
+                              overflow: 'hidden',
+                              whiteSpace: 'normal'
+                            } : { 
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {eventConfig.truncate 
+                              ? (event.title.length > eventConfig.titleLength 
+                                  ? event.title.slice(0, eventConfig.titleLength) + '...' 
+                                  : event.title)
                               : event.title}
                           </span>
                           <span className={`${scale >= 1.5 ? 'text-[10px]' : 'text-[9px]'} text-primary truncate block leading-tight`}>
                             {formatEventTime(event)}
                           </span>
                           {eventConfig.showLocation && event.location && (
-                            <span className="text-[9px] text-muted-foreground truncate block leading-tight">
-                              {event.location.length > eventConfig.titleLength 
-                                ? event.location.slice(0, eventConfig.titleLength) + '...' 
+                            <span 
+                              className="text-[9px] text-muted-foreground block leading-tight"
+                              style={!eventConfig.truncate ? {
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical' as const,
+                                overflow: 'hidden',
+                                whiteSpace: 'normal'
+                              } : {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {eventConfig.truncate 
+                                ? (event.location.length > eventConfig.titleLength 
+                                    ? event.location.slice(0, eventConfig.titleLength) + '...' 
+                                    : event.location)
                                 : event.location}
                             </span>
                           )}
