@@ -138,7 +138,9 @@ const EventDetailPage = ({
   };
 
   const handleEdit = () => {
-    setShowEditArea(true);
+    if (currentEvent && onEditEvent) {
+      onEditEvent(currentEvent.id);
+    }
   };
 
   const handleSendEdit = () => {

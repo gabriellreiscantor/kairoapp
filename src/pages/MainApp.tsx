@@ -10,6 +10,7 @@ import CalendarView from "@/components/CalendarView";
 import DayListView from "@/components/DayListView";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import CreateEventModal from "@/components/CreateEventModal";
+import EditEventModal from "@/components/EditEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
 import CallScreen from "@/components/CallScreen";
@@ -83,6 +84,8 @@ const MainApp = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const [createEventDate, setCreateEventDate] = useState<Date | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -528,9 +531,18 @@ const MainApp = () => {
             console.error('Error deleting event:', error);
           }
         }}
-        onEditEvent={(eventId) => {
-          setIsDateSheetOpen(false);
-          setActiveView('chat');
+        onEditEvent={async (eventId) => {
+          // Fetch full event data to edit
+          const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('id', eventId)
+            .single();
+          
+          if (!error && data) {
+            setEditingEvent(data);
+            setIsEditModalOpen(true);
+          }
         }}
         onNavigateToChat={(eventId, message) => {
           setInitialEditMessage({ eventId, message });
@@ -554,6 +566,22 @@ const MainApp = () => {
           setIsCreateModalOpen(false);
         }}
       />
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <EditEventModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingEvent(null);
+          }}
+          event={editingEvent}
+          onSave={() => {
+            setEventsVersion(v => v + 1);
+            setIsDateSheetOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
