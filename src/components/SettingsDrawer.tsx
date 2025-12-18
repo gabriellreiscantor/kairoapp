@@ -1,4 +1,4 @@
-import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, ChevronsUpDown, ExternalLink, Loader2 } from "lucide-react";
+import { X, ChevronRight, Calendar, Bell, Sparkles, Zap, User, Globe, MessageCircle, Info, LogOut, Sun, Moon, Loader2, Crown } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -16,27 +16,34 @@ interface SettingsDrawerProps {
 
 interface SettingItemProps {
   icon: React.ReactNode;
+  iconColor?: string;
   label: string;
   value?: string;
-  valueIcon?: 'chevron' | 'updown' | 'external';
   onClick?: () => void;
   danger?: boolean;
+  showArrow?: boolean;
 }
 
-const SettingItem = ({ icon, label, value, valueIcon = 'chevron', onClick, danger }: SettingItemProps) => (
+const SettingItem = ({ icon, iconColor, label, value, onClick, danger, showArrow = true }: SettingItemProps) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-kairo-surface-3/50 transition-colors"
+    className="w-full flex items-center justify-between py-3 group transition-colors"
   >
     <div className="flex items-center gap-3">
-      <div className={danger ? "text-primary" : "text-muted-foreground"}>{icon}</div>
-      <span className={danger ? "text-primary" : "text-foreground"}>{label}</span>
+      <div 
+        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+          danger 
+            ? "bg-red-500/10 text-red-500" 
+            : iconColor || "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+        }`}
+      >
+        {icon}
+      </div>
+      <span className={`font-medium ${danger ? "text-red-500" : "text-foreground"}`}>{label}</span>
     </div>
     <div className="flex items-center gap-2">
       {value && <span className="text-sm text-muted-foreground">{value}</span>}
-      {valueIcon === 'chevron' && <ChevronRight className="w-4 h-4 text-muted-foreground/50" />}
-      {valueIcon === 'updown' && <ChevronsUpDown className="w-4 h-4 text-muted-foreground/50" />}
-      {valueIcon === 'external' && <ExternalLink className="w-4 h-4 text-muted-foreground/50" />}
+      {showArrow && <ChevronRight className={`w-4 h-4 transition-transform group-hover:translate-x-0.5 ${danger ? "text-red-500/50" : "text-muted-foreground/40"}`} />}
     </div>
   </button>
 );
@@ -116,7 +123,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-kairo-surface-1 border-border/20 max-h-[90vh]" aria-describedby="settings-description">
+      <DrawerContent className="bg-background border-border/10 max-h-[92vh]" aria-describedby="settings-description">
         <DrawerHeader className="sr-only">
           <DrawerTitle>{t('settings.title')}</DrawerTitle>
           <DrawerDescription id="settings-description">
@@ -126,66 +133,77 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
 
         <div className="overflow-y-auto hide-scrollbar">
           {/* Close Button */}
-          <div className="flex justify-end px-4 pt-2">
+          <div className="flex justify-end px-5 pt-1">
             <button 
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors"
             >
-              <X className="w-5 h-5 text-muted-foreground" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
 
-          {/* User Profile */}
-          <div className="px-4 py-4 flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-kairo-surface-2 overflow-hidden">
-              {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <img 
-                  src={kairoLogo} 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover"
-                />
-              )}
+          {/* User Profile - Premium Header */}
+          <div className="px-5 py-6 flex flex-col items-center">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-kairo-orange via-kairo-red to-kairo-purple p-[3px]">
+                <div className="w-full h-full rounded-full bg-background overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img 
+                      src={kairoLogo} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              </div>
+              {/* Edit badge */}
+              <button 
+                onClick={() => handleNavigate('/settings/account')}
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              {profileLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-foreground text-lg font-semibold truncate">{displayName}</span>
-                    <button onClick={() => handleNavigate('/settings/account')}>
-                      <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <span className="text-muted-foreground text-sm truncate block">{displayEmail}</span>
-                </>
-              )}
-            </div>
+            
+            {profileLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mt-4" />
+            ) : (
+              <div className="mt-4 text-center">
+                <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">{displayEmail}</p>
+              </div>
+            )}
           </div>
 
-          {/* Plan Card */}
-          <div className="px-4 pb-4">
+          {/* Plan Card - Kairo Colors */}
+          <div className="px-5 pb-6">
             <button 
               onClick={() => handleNavigate('/settings/plan')}
-              className="w-full gradient-plan rounded-2xl p-4 relative overflow-hidden"
+              className="w-full rounded-2xl p-4 relative overflow-hidden bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple shadow-lg"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-semibold text-left">{PLAN_NAMES[currentPlan]}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-white/80 text-sm">{t('plan.eventsScheduled')}</span>
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Crown className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-lg">{PLAN_NAMES[currentPlan]}</p>
+                    <p className="text-white/70 text-xs">{t('plan.eventsScheduled')}</p>
                   </div>
                 </div>
                 <button 
-                  className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold"
+                  className="px-4 py-2 rounded-full bg-white text-kairo-orange text-sm font-bold shadow-md hover:scale-105 transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNavigate('/settings/plan');
@@ -195,100 +213,122 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                 </button>
               </div>
               
-              <div className="flex items-center justify-between mt-3">
+              <div className="relative flex items-center justify-between mt-4">
                 <div className="flex-1 mr-4">
-                  <Progress value={progress} className="h-1 bg-white/20" />
+                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-white rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   {subscriptionLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-white/70" />
                   ) : (
                     <>
-                      <span className="text-white font-bold">{usedEvents}</span>
-                      <span className="text-white/70 text-sm">/ {maxEvents}</span>
+                      <span className="text-white font-bold text-lg">{usedEvents}</span>
+                      <span className="text-white/60 text-sm">/ {maxEvents}</span>
                     </>
                   )}
-                  <ChevronRight className="w-4 h-4 text-white/50" />
                 </div>
               </div>
             </button>
           </div>
 
-          {/* Kairo Section */}
-          <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.kairo')}</h4>
-            <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
-              <SettingItem 
-                icon={<Calendar className="w-5 h-5" />} 
-                label={t('settings.calendars')}
-                value="Kairo"
-                onClick={() => handleNavigate('/settings/calendars')}
-              />
-              <SettingItem 
-                icon={<Bell className="w-5 h-5" />} 
-                label={t('settings.notifications')}
-                onClick={() => handleNavigate('/settings/notifications')}
-              />
-              <SettingItem 
-                icon={<Sparkles className="w-5 h-5" />} 
-                label={t('settings.smartTasks')}
-                onClick={() => handleNavigate('/settings/smart-tasks')}
-              />
-              <SettingItem 
-                icon={<Zap className="w-5 h-5" />} 
-                label={t('settings.specialFeatures')}
-                onClick={() => handleNavigate('/settings/features')}
-              />
+          {/* Settings Sections - Clean Design */}
+          <div className="px-5 space-y-6 pb-6">
+            {/* Kairo Section */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-gradient-to-b from-kairo-orange to-kairo-red" />
+                {t('settings.kairo')}
+              </h4>
+              <div className="space-y-1">
+                <SettingItem 
+                  icon={<Calendar className="w-4.5 h-4.5" />}
+                  iconColor="bg-blue-500/10 text-blue-500"
+                  label={t('settings.calendars')}
+                  value="Kairo"
+                  onClick={() => handleNavigate('/settings/calendars')}
+                />
+                <SettingItem 
+                  icon={<Bell className="w-4.5 h-4.5" />}
+                  iconColor="bg-amber-500/10 text-amber-500"
+                  label={t('settings.notifications')}
+                  onClick={() => handleNavigate('/settings/notifications')}
+                />
+                <SettingItem 
+                  icon={<Sparkles className="w-4.5 h-4.5" />}
+                  iconColor="bg-purple-500/10 text-purple-500"
+                  label={t('settings.smartTasks')}
+                  onClick={() => handleNavigate('/settings/smart-tasks')}
+                />
+                <SettingItem 
+                  icon={<Zap className="w-4.5 h-4.5" />}
+                  iconColor="bg-kairo-orange/10 text-kairo-orange"
+                  label={t('settings.specialFeatures')}
+                  onClick={() => handleNavigate('/settings/features')}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* General Section */}
-          <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.general')}</h4>
-            <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
-              <SettingItem 
-                icon={<User className="w-5 h-5" />} 
-                label={t('settings.account')}
-                onClick={() => handleNavigate('/settings/account')}
-              />
-              <SettingItem 
-                icon={<div className="w-5 h-5 rounded-full border-2 border-muted-foreground flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /></div>} 
-                label={t('settings.appearance')}
-                value={t('settings.system')}
-                valueIcon="updown"
-                onClick={() => handleNavigate('/settings/appearance')}
-              />
-              <SettingItem 
-                icon={<Globe className="w-5 h-5" />} 
-                label={t('settings.language')}
-                value={LANGUAGE_NAMES[language] || language}
-                valueIcon="external"
-                onClick={() => handleNavigate('/settings/language')}
-              />
+            {/* General Section */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-muted-foreground/30" />
+                {t('settings.general')}
+              </h4>
+              <div className="space-y-1">
+                <SettingItem 
+                  icon={<User className="w-4.5 h-4.5" />}
+                  iconColor="bg-green-500/10 text-green-500"
+                  label={t('settings.account')}
+                  onClick={() => handleNavigate('/settings/account')}
+                />
+                <SettingItem 
+                  icon={<Sun className="w-4.5 h-4.5" />}
+                  iconColor="bg-yellow-500/10 text-yellow-500"
+                  label={t('settings.appearance')}
+                  value={t('settings.system')}
+                  onClick={() => handleNavigate('/settings/appearance')}
+                />
+                <SettingItem 
+                  icon={<Globe className="w-4.5 h-4.5" />}
+                  iconColor="bg-cyan-500/10 text-cyan-500"
+                  label={t('settings.language')}
+                  value={LANGUAGE_NAMES[language] || language}
+                  onClick={() => handleNavigate('/settings/language')}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Others Section */}
-          <div className="px-4 mb-4">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{t('settings.others')}</h4>
-            <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
-              <SettingItem 
-                icon={<MessageCircle className="w-5 h-5" />} 
-                label={t('settings.feedback')}
-                onClick={() => handleNavigate('/settings/help')}
-              />
-              <SettingItem 
-                icon={<Info className="w-5 h-5" />} 
-                label={t('settings.about')}
-                onClick={() => handleNavigate('/settings/about')}
-              />
-              <SettingItem 
-                icon={<LogOut className="w-5 h-5" />} 
-                label={t('settings.logout')}
-                valueIcon="chevron"
-                danger
-                onClick={handleLogout}
-              />
+            {/* Others Section */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-muted-foreground/30" />
+                {t('settings.others')}
+              </h4>
+              <div className="space-y-1">
+                <SettingItem 
+                  icon={<MessageCircle className="w-4.5 h-4.5" />}
+                  iconColor="bg-pink-500/10 text-pink-500"
+                  label={t('settings.feedback')}
+                  onClick={() => handleNavigate('/settings/help')}
+                />
+                <SettingItem 
+                  icon={<Info className="w-4.5 h-4.5" />}
+                  iconColor="bg-slate-500/10 text-slate-500"
+                  label={t('settings.about')}
+                  onClick={() => handleNavigate('/settings/about')}
+                />
+                <SettingItem 
+                  icon={<LogOut className="w-4.5 h-4.5" />}
+                  label={t('settings.logout')}
+                  danger
+                  onClick={handleLogout}
+                />
+              </div>
             </div>
           </div>
 
