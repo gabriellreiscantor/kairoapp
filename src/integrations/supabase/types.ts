@@ -43,54 +43,69 @@ export type Database = {
       }
       events: {
         Row: {
+          alerts: Json | null
           call_alert_enabled: boolean | null
           call_alert_sent_at: string | null
           category: string | null
+          color: string | null
           created_at: string | null
           description: string | null
           duration_minutes: number | null
+          emoji: string | null
           event_date: string
           event_time: string | null
           id: string
+          is_all_day: boolean | null
           location: string | null
           notification_enabled: boolean | null
           priority: string | null
+          repeat: string | null
           status: string | null
           title: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          alerts?: Json | null
           call_alert_enabled?: boolean | null
           call_alert_sent_at?: string | null
           category?: string | null
+          color?: string | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          emoji?: string | null
           event_date: string
           event_time?: string | null
           id?: string
+          is_all_day?: boolean | null
           location?: string | null
           notification_enabled?: boolean | null
           priority?: string | null
+          repeat?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          alerts?: Json | null
           call_alert_enabled?: boolean | null
           call_alert_sent_at?: string | null
           category?: string | null
+          color?: string | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
+          emoji?: string | null
           event_date?: string
           event_time?: string | null
           id?: string
+          is_all_day?: boolean | null
           location?: string | null
           notification_enabled?: boolean | null
           priority?: string | null
+          repeat?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null

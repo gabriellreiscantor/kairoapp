@@ -1,4 +1,5 @@
 import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getColorClassName } from "@/lib/event-constants";
 
 export type Priority = "high" | "medium" | "low";
 export type EventStatus = "pending" | "confirmed" | "done";
@@ -9,6 +10,9 @@ interface EventCardProps {
   time: string;
   priority: Priority;
   status?: EventStatus;
+  emoji?: string;
+  color?: string;
+  isAllDay?: boolean;
   onClick?: () => void;
 }
 
@@ -38,10 +42,15 @@ const EventCard = ({
   time,
   priority,
   status = "pending",
+  emoji,
+  color,
+  isAllDay,
   onClick,
 }: EventCardProps) => {
   const config = priorityConfig[priority];
   const Icon = config.icon;
+  const hasCustomColor = color && color !== 'primary';
+  const displayEmoji = emoji || "📅";
 
   return (
     <button
@@ -50,12 +59,16 @@ const EventCard = ({
                   transition-all duration-150 hover:bg-accent active:scale-[0.99]
                   flex items-center gap-3 text-left group`}
     >
-      {/* Priority indicator */}
-      <div
-        className={`w-9 h-9 rounded-lg ${config.bgColor} flex items-center justify-center flex-shrink-0`}
-      >
-        <Icon className={`w-4 h-4 ${config.color}`} />
-      </div>
+      {/* Emoji/Color indicator */}
+      {hasCustomColor || emoji ? (
+        <div className={`w-9 h-9 rounded-lg ${color ? getColorClassName(color) : config.bgColor} flex items-center justify-center flex-shrink-0`}>
+          <span className="text-base">{displayEmoji}</span>
+        </div>
+      ) : (
+        <div className={`w-9 h-9 rounded-lg ${config.bgColor} flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-4 h-4 ${config.color}`} />
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">
@@ -66,12 +79,14 @@ const EventCard = ({
         >
           {title}
         </h3>
-        <p className="text-xs text-muted-foreground">{time}</p>
+        <p className="text-xs text-muted-foreground">
+          {isAllDay ? "Dia inteiro" : time}
+        </p>
       </div>
 
       {/* Time indicator */}
       <div className={`text-base font-semibold ${config.color} tabular-nums`}>
-        {time.split(" ")[0]}
+        {isAllDay ? "🌞" : time.split(" ")[0]}
       </div>
     </button>
   );
