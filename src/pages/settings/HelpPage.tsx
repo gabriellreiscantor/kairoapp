@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight, MessageCircle, Mail, Book, Video, ExternalLink, HelpCircle, Crown, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Mail, Book, Video, ExternalLink, HelpCircle, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-
+import kairoLogo from "@/assets/kairo-fox-color.png";
 const FAQ = [
   {
     question: "Como criar um evento via WhatsApp?",
@@ -47,7 +47,7 @@ const HelpPage = () => {
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-3xl p-6 text-center">
           <img 
-            src="/lovable-uploads/a50ceee9-2580-484c-8813-89648819a270.png" 
+            src={kairoLogo} 
             alt="Kairo" 
             className="w-16 h-16 mx-auto mb-4 rounded-full object-cover"
           />
