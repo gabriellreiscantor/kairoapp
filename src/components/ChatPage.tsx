@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2 } from "lucide-react";
+import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2, ChevronDown } from "lucide-react";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -146,6 +146,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const dateLocale = getDateLocale();
 
@@ -208,6 +209,20 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   useEffect(() => {
     scrollToBottom();
   }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
+
+  // Scroll button visibility detection
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollButton(distanceFromBottom > 200);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // State for pending edit message from EventDetailPage
   const [pendingEditMessage, setPendingEditMessage] = useState<string | null>(null);
@@ -1343,6 +1358,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={scrollToBottom}
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/40 shadow-lg flex items-center justify-center transition-all duration-300 animate-fade-in hover:scale-110 hover:bg-background"
+        >
+          <ChevronDown className="w-5 h-5 text-foreground" />
+        </button>
+      )}
 
       {/* Input with safe area - Fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom bg-background/95 backdrop-blur-xl border-t border-border/20">
