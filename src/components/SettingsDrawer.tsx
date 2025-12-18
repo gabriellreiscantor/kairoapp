@@ -203,7 +203,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                   </div>
                 </div>
                 <button 
-                  className="px-4 py-2 rounded-full bg-white text-kairo-orange text-sm font-bold shadow-md hover:scale-105 transition-transform"
+                  className="px-4 py-2 rounded-full bg-white/95 text-gray-900 text-sm font-bold shadow-lg hover:scale-105 transition-transform"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNavigate('/settings/plan');
