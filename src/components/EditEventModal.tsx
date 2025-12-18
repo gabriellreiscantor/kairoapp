@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
 import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel } from "@/lib/event-constants";
 
 interface EventData {
@@ -79,6 +80,10 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
   const [repeat, setRepeat] = useState("never");
   const [color, setColor] = useState("primary");
   const [alerts, setAlerts] = useState<Alert[]>([{ time: "1hour" }]);
+  
+  // Alert time picker sheet
+  const [alertSheetOpen, setAlertSheetOpen] = useState(false);
+  const [editingAlertIndex, setEditingAlertIndex] = useState<number | null>(null);
   
   // Swipe to delete
   const [swipingAlertIndex, setSwipingAlertIndex] = useState<number | null>(null);
@@ -180,6 +185,19 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
     const newAlerts = [...alerts];
     newAlerts[index] = { time };
     setAlerts(newAlerts);
+  };
+
+  const openAlertPicker = (index: number) => {
+    setEditingAlertIndex(index);
+    setAlertSheetOpen(true);
+  };
+
+  const selectAlertTime = (time: string) => {
+    if (editingAlertIndex !== null) {
+      updateAlertTime(editingAlertIndex, time);
+    }
+    setAlertSheetOpen(false);
+    setEditingAlertIndex(null);
   };
 
   // Swipe handlers
@@ -388,15 +406,13 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
                   style={{ transform: swipingAlertIndex === index ? `translateX(-${swipeOffset}px)` : 'translateX(0)' }}
                 >
                   <span className="text-foreground">Alerta {index + 1}</span>
-                  <select 
-                    value={alert.time} 
-                    onChange={(e) => updateAlertTime(index, e.target.value)}
-                    className="bg-transparent text-muted-foreground text-right focus:outline-none"
+                  <button 
+                    onClick={() => openAlertPicker(index)}
+                    className="flex items-center gap-2 text-primary"
                   >
-                    {ALERT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    <span>{getAlertLabel(alert.time)}</span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
                 </div>
                 <div className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 flex items-center justify-center" style={{ transform: `translateX(${80 - swipeOffset}px)` }}>
                   <Trash2 className="w-5 h-5 text-white" />
@@ -414,6 +430,30 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
           
           <p className="text-xs text-muted-foreground text-center mt-4">Máximo de 10 alertas</p>
         </div>
+
+        {/* Bottom Sheet para selecionar tempo do alerta */}
+        <Sheet open={alertSheetOpen} onOpenChange={setAlertSheetOpen}>
+          <SheetContent side="bottom" className="rounded-t-3xl bg-kairo-surface border-border/10">
+            <SheetHeader className="pb-4">
+              <SheetTitle className="text-foreground text-center">Quando alertar?</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-1 pb-8">
+              {ALERT_OPTIONS.map((opt) => {
+                const isSelected = editingAlertIndex !== null && alerts[editingAlertIndex]?.time === opt.value;
+                return (
+                  <button 
+                    key={opt.value}
+                    onClick={() => selectAlertTime(opt.value)}
+                    className="w-full px-4 py-4 flex items-center justify-between rounded-xl hover:bg-kairo-surface-2 transition-colors"
+                  >
+                    <span className="text-foreground">{opt.label}</span>
+                    {isSelected && <Check className="w-5 h-5 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     );
   }
