@@ -85,6 +85,9 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
   const [alertSheetOpen, setAlertSheetOpen] = useState(false);
   const [editingAlertIndex, setEditingAlertIndex] = useState<number | null>(null);
   
+  // Repeat picker sheet
+  const [repeatSheetOpen, setRepeatSheetOpen] = useState(false);
+  
   // Swipe to delete
   const [swipingAlertIndex, setSwipingAlertIndex] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -316,31 +319,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
     );
   }
 
-  // Repeat Screen
-  if (screenView === 'repeat') {
-    return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in">
-        <header className="flex items-center justify-between px-4 py-4 safe-area-top">
-          <button onClick={() => setScreenView('main')} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
-            <ChevronLeft className="w-5 h-5 text-foreground" />
-          </button>
-          <h1 className="text-lg font-semibold text-foreground">Repetir</h1>
-          <div className="w-10" />
-        </header>
-
-        <div className="flex-1 px-4 pt-4">
-          <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
-            {REPEAT_OPTIONS.map((option) => (
-              <button key={option.value} onClick={() => { setRepeat(option.value); setScreenView('main'); }} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0">
-                <span className="text-foreground">{option.label}</span>
-                {repeat === option.value && <Check className="w-5 h-5 text-primary" />}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Repeat Screen removed - now using Bottom Sheet
 
   // Color Screen
   if (screenView === 'color') {
@@ -519,7 +498,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
 
         {/* Repeat Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <button onClick={() => setScreenView('repeat')} className="w-full px-4 py-4 flex items-center justify-between">
+          <button onClick={() => setRepeatSheetOpen(true)} className="w-full px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Repeat className="w-5 h-5 text-muted-foreground" />
               <span className="text-foreground">Repetir</span>
@@ -594,6 +573,27 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas" rows={4} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
         </div>
       </div>
+
+      {/* Bottom Sheet para selecionar repetição */}
+      <Sheet open={repeatSheetOpen} onOpenChange={setRepeatSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl bg-kairo-surface-2 border-border/30">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-foreground text-center">Repetir</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-1 pb-8">
+            {REPEAT_OPTIONS.map((opt) => (
+              <button 
+                key={opt.value}
+                onClick={() => { setRepeat(opt.value); setRepeatSheetOpen(false); }}
+                className="w-full px-4 py-4 flex items-center justify-between rounded-xl bg-kairo-surface-1/50 hover:bg-kairo-surface-3 transition-colors"
+              >
+                <span className="text-foreground font-medium">{opt.label}</span>
+                {repeat === opt.value && <Check className="w-5 h-5 text-primary" />}
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
