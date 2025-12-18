@@ -210,6 +210,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     scrollToBottom();
   }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
 
+  // Ensure typing indicator is visible when loading starts
+  useEffect(() => {
+    if (isLoading) {
+      scrollToBottom();
+    }
+  }, [isLoading]);
+
   // State for pending edit message from EventDetailPage
   const [pendingEditMessage, setPendingEditMessage] = useState<string | null>(null);
 
