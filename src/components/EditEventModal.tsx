@@ -306,11 +306,11 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
           {/* Location */}
           <button 
             onClick={() => setScreenView('location')}
-            className="w-full px-4 py-4 flex items-center justify-between"
+            className="w-full px-4 py-4 flex items-center justify-between gap-3"
           >
-            <span className="text-foreground">Local</span>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${location ? 'text-foreground' : 'text-muted-foreground'} max-w-[200px] truncate`}>
+            <span className="text-foreground flex-shrink-0">Local</span>
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+              <span className={`text-sm text-right ${location ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {location || 'Adicionar'}
               </span>
               <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
