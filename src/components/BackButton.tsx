@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface BackButtonProps {
   fallbackPath?: string;
@@ -7,11 +7,17 @@ interface BackButtonProps {
 
 const BackButton = ({ fallbackPath = "/" }: BackButtonProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
+    // Check if user came from settings drawer
+    const fromSettings = searchParams.get('from') === 'settings';
+    
+    if (fromSettings) {
+      // Navigate to home with settings drawer open
+      navigate('/?settings=open');
     } else {
+      // Navigate to fallback path
       navigate(fallbackPath);
     }
   };
