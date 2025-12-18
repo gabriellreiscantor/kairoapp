@@ -98,34 +98,52 @@ const SingleEventCard = ({
     setShowDeleteConfirm(false);
   };
 
+  // Get color accent for border
+  const getColorAccent = () => {
+    const colorMap: Record<string, string> = {
+      'primary': 'border-l-primary',
+      'red': 'border-l-red-500',
+      'orange': 'border-l-orange-500',
+      'yellow': 'border-l-yellow-500',
+      'green': 'border-l-green-500',
+      'blue': 'border-l-blue-500',
+      'purple': 'border-l-purple-500',
+      'pink': 'border-l-pink-500',
+    };
+    return colorMap[selectedColor] || 'border-l-primary';
+  };
+
   return (
-    <div className="bg-kairo-surface-2 rounded-3xl p-5 relative">
-      {/* Title Row */}
-      <div className="flex items-start justify-between mb-1">
-        <div className="flex items-center gap-2">
-          {event.emoji && (
-            <span className="text-lg">{event.emoji}</span>
-          )}
-          <h2 className="text-xl font-semibold text-foreground">{event.title}</h2>
+    <div className={`bg-gradient-to-br from-kairo-surface-2 to-kairo-surface-2/80 rounded-2xl p-5 relative border-l-4 ${getColorAccent()} shadow-lg`}>
+      {/* Header: Emoji + Time */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${getColorClassName(selectedColor)} bg-opacity-20`}>
+          {event.emoji || '📅'}
         </div>
-        <div className="w-12 h-12 bg-background rounded-lg flex flex-col items-center justify-center border border-border/20">
-          <span className="text-[8px] text-red-500 font-medium uppercase">
-            {format(selectedDate, 'MMM', { locale: ptBR })}
-          </span>
-          <span className="text-sm font-bold text-foreground">
-            {format(selectedDate, 'd')}
-          </span>
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold text-foreground leading-tight">{event.title}</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm font-medium text-primary">
+              {event.isAllDay ? 'Dia inteiro' : event.time}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              • {getDateLabel()}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Location */}
       {event.location && (
-        <div className="relative">
+        <div className="relative mb-3">
           <button 
             onClick={() => setShowLocationMenu(!showLocationMenu)}
-            className="text-muted-foreground text-sm underline decoration-muted-foreground/50 mb-3 text-left"
+            className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground transition-colors"
           >
-            {event.location}
+            <Navigation className="w-3.5 h-3.5" />
+            <span className="underline decoration-muted-foreground/50">
+              {event.location}
+            </span>
           </button>
 
           {/* Location Menu */}
@@ -149,14 +167,6 @@ const SingleEventCard = ({
           )}
         </div>
       )}
-
-      {/* Date Row */}
-      <div className="flex items-center justify-between py-3 border-t border-border/10">
-        <span className="text-foreground">{getDateLabel()}</span>
-        <span className="text-muted-foreground">
-          {event.isAllDay ? 'Dia inteiro' : event.time}
-        </span>
-      </div>
 
       {/* Expanded Content */}
       {isExpanded && (
@@ -300,12 +310,25 @@ const EventDetailPage = ({
   const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Sort events by time (earliest first, all-day events at the end)
+  const sortedEvents = [...events].sort((a, b) => {
+    // All-day events go to the end
+    if (a.isAllDay && !b.isAllDay) return 1;
+    if (!a.isAllDay && b.isAllDay) return -1;
+    if (a.isAllDay && b.isAllDay) return 0;
+    
+    // Sort by time
+    const timeA = a.time || '23:59';
+    const timeB = b.time || '23:59';
+    return timeA.localeCompare(timeB);
+  });
+
   // Set first event as expanded by default when events change
   useEffect(() => {
-    if (events.length > 0 && !expandedEventId) {
-      setExpandedEventId(events[0].id);
+    if (sortedEvents.length > 0 && !expandedEventId) {
+      setExpandedEventId(sortedEvents[0].id);
     }
-  }, [events, expandedEventId]);
+  }, [sortedEvents, expandedEventId]);
 
   // Reset expanded state when closing
   useEffect(() => {
@@ -454,8 +477,8 @@ const EventDetailPage = ({
         </div>
 
         {/* Events List - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-          {events.map((event) => (
+        <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4">
+          {sortedEvents.map((event, index) => (
             <SingleEventCard
               key={event.id}
               event={event}

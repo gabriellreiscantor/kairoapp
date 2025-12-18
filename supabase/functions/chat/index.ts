@@ -150,35 +150,69 @@ async function saveUserPattern(
   }
 }
 
-// Map category to emoji
-function getCategoryEmoji(category: string): string {
+// Map category to emoji - Extended version with title-based detection
+function getCategoryEmoji(category: string, title?: string): string {
   const emojiMap: Record<string, string> = {
     // Saúde
     'medico': '🏥',
     'hospital': '🏥',
     'saude': '💊',
     'dentista': '🦷',
+    'consulta': '🩺',
+    'exame': '🔬',
+    'fisioterapia': '🦵',
+    'terapia': '🧠',
+    'psicologo': '🧠',
+    'psiquiatra': '🧠',
     
     // Fitness
     'academia': '💪',
     'treino': '🏋️',
     'esporte': '🏃',
     'corrida': '🏃',
+    'natacao': '🏊',
+    'yoga': '🧘',
+    'pilates': '🧘‍♀️',
+    'musculacao': '💪',
+    'crossfit': '🏋️',
+    'futebol': '⚽',
+    'basquete': '🏀',
+    'tenis': '🎾',
+    'vôlei': '🏐',
     
     // Trabalho
     'trabalho': '💼',
     'reuniao': '📝',
     'empresa': '🏢',
+    'escritorio': '🏢',
+    'entrevista': '🤝',
+    'apresentacao': '📊',
+    'deadline': '⏰',
+    
+    // Educação
+    'escola': '🏫',
+    'faculdade': '🎓',
+    'universidade': '🎓',
+    'curso': '📚',
+    'aula': '📖',
+    'prova': '📝',
+    'estudo': '📚',
     
     // Lazer
     'cinema': '🎬',
     'filme': '🎬',
     'show': '🎵',
+    'concerto': '🎵',
     'teatro': '🎭',
     'festa': '🎉',
     'aniversario': '🎂',
     'casamento': '💒',
     'formatura': '🎓',
+    'balada': '🎉',
+    'boate': '🕺',
+    'karaoke': '🎤',
+    'parque': '🌳',
+    'museu': '🏛️',
     
     // Alimentação
     'restaurante': '🍽️',
@@ -186,21 +220,163 @@ function getCategoryEmoji(category: string): string {
     'cafe': '☕',
     'almoco': '🍕',
     'jantar': '🍷',
+    'brunch': '🥐',
+    'churrasco': '🍖',
+    'pizzaria': '🍕',
+    'sushi': '🍣',
     
-    // Outros
+    // Bares e bebidas
+    'bar': '🍺',
+    'barzinho': '🍺',
+    'cerveja': '🍺',
+    'happy_hour': '🍻',
+    'happyhour': '🍻',
+    'drinks': '🍹',
+    'boteco': '🍺',
+    'pub': '🍺',
+    
+    // Beleza e cuidados
+    'salao': '💇‍♀️',
+    'cabelo': '💇',
+    'cabeleireiro': '💇‍♀️',
+    'manicure': '💅',
+    'pedicure': '💅',
+    'unha': '💅',
+    'barbearia': '💇',
+    'barbeiro': '💈',
+    'spa': '💆',
+    'massagem': '💆',
+    'depilacao': '✨',
+    'estetica': '💅',
+    'sobrancelha': '👁️',
+    'maquiagem': '💄',
+    'beleza': '💇‍♀️',
+    
+    // Viagem e transporte
     'viagem': '✈️',
+    'aeroporto': '✈️',
+    'voo': '✈️',
+    'aviao': '✈️',
+    'embarque': '✈️',
+    'rodoviaria': '🚌',
+    'onibus': '🚌',
+    'trem': '🚆',
+    'metro': '🚇',
+    'uber': '🚗',
+    'taxi': '🚕',
+    
+    // Praia e lazer ao ar livre
+    'praia': '🏖️',
+    'piscina': '🏊',
+    'trilha': '🥾',
+    'camping': '⛺',
+    'chacara': '🏡',
+    'sitio': '🏡',
+    'fazenda': '🌾',
+    
+    // Compras
     'compras': '🛒',
     'mercado': '🛒',
-    'barbearia': '💇',
-    'beleza': '💅',
-    'pet': '🐕',
-    'carro': '🚗',
+    'supermercado': '🛒',
+    'shopping': '🛍️',
+    'loja': '🛍️',
+    'feira': '🥕',
+    
+    // Casa e família
     'casa': '🏠',
-    'pessoal': '📌',
+    'familia': '👨‍👩‍👧',
+    'visita': '🏠',
+    'mudanca': '📦',
+    'reforma': '🔨',
+    
+    // Pets
+    'pet': '🐕',
+    'veterinario': '🐕',
+    'cachorro': '🐕',
+    'gato': '🐱',
+    
+    // Veículos
+    'carro': '🚗',
+    'mecanico': '🔧',
+    'oficina': '🔧',
+    'moto': '🏍️',
+    'revisao': '🔧',
+    
+    // Religião
+    'igreja': '⛪',
+    'missa': '⛪',
+    'culto': '⛪',
     'religioso': '⛪',
+    
+    // Finanças
+    'banco': '🏦',
+    'pagamento': '💳',
+    'conta': '💳',
+    
+    // Default
+    'pessoal': '📌',
+    'lazer': '🎯',
     'geral': '📅',
     'outro': '📅',
   };
+  
+  // First, check if we can find emoji from the title keywords
+  if (title) {
+    const titleLower = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Priority keywords to check in title
+    const titleKeywords: Record<string, string> = {
+      'salao': '💇‍♀️',
+      'salão': '💇‍♀️',
+      'cabelo': '💇',
+      'cabeleireiro': '💇‍♀️',
+      'aeroporto': '✈️',
+      'voo': '✈️',
+      'aviao': '✈️',
+      'bar': '🍺',
+      'barzinho': '🍺',
+      'cerveja': '🍺',
+      'happy hour': '🍻',
+      'churrasco': '🍖',
+      'praia': '🏖️',
+      'piscina': '🏊',
+      'academia': '💪',
+      'treino': '🏋️',
+      'medico': '🏥',
+      'dentista': '🦷',
+      'reuniao': '📝',
+      'aniversario': '🎂',
+      'casamento': '💒',
+      'cinema': '🎬',
+      'show': '🎵',
+      'restaurante': '🍽️',
+      'jantar': '🍷',
+      'almoco': '🍕',
+      'cafe': '☕',
+      'escola': '🏫',
+      'faculdade': '🎓',
+      'trabalho': '💼',
+      'manicure': '💅',
+      'unha': '💅',
+      'barbearia': '💈',
+      'barbeiro': '💈',
+      'spa': '💆',
+      'massagem': '💆',
+      'yoga': '🧘',
+      'pilates': '🧘‍♀️',
+      'futebol': '⚽',
+      'shopping': '🛍️',
+      'mercado': '🛒',
+      'banco': '🏦',
+      'viagem': '✈️',
+    };
+    
+    for (const [keyword, emoji] of Object.entries(titleKeywords)) {
+      if (titleLower.includes(keyword)) {
+        return emoji;
+      }
+    }
+  }
   
   return emojiMap[category?.toLowerCase()] || '📅';
 }
@@ -293,7 +469,7 @@ async function executeAction(
             is_all_day: isAllDay,
             priority: action.prioridade || 'medium',
             category: action.categoria || 'geral',
-            emoji: getCategoryEmoji(action.categoria || 'geral'),
+            emoji: getCategoryEmoji(action.categoria || 'geral', action.titulo),
             status: 'pending',
             notification_enabled: true
           })
