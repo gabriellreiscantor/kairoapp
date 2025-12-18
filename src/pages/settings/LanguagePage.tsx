@@ -1,7 +1,7 @@
-import { ChevronLeft, Check, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Check, Search } from "lucide-react";
 import { useState } from "react";
 import { useLanguage, LanguageCode } from "@/contexts/LanguageContext";
+import BackButton from "@/components/BackButton";
 
 const LANGUAGES = [
   { code: 'pt-BR' as LanguageCode, name: 'Português (Brasil)', native: 'Português (Brasil)' },
@@ -16,7 +16,6 @@ const LANGUAGES = [
 ];
 
 const LanguagePage = () => {
-  const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -33,12 +32,7 @@ const LanguagePage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="text-xl font-bold text-foreground">{t('language.title')}</h1>
       </header>
 

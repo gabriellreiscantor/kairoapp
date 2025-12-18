@@ -1,7 +1,7 @@
-import { ChevronLeft, Sun, Moon, Monitor, Check } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Sun, Moon, Monitor, Check } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import BackButton from "@/components/BackButton";
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -28,7 +28,6 @@ const LIGHT_THEME_COLORS = [
 ];
 
 const AppearancePage = () => {
-  const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
@@ -56,12 +55,7 @@ const AppearancePage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
-        </button>
+        <BackButton />
         <h1 className="text-xl font-bold text-foreground">Aparência</h1>
       </header>
 
