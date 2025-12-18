@@ -41,6 +41,19 @@ export const useGeolocation = () => {
     }
   }, []);
 
+  // Format address from Nominatim components: Rua, Bairro, Cidade, Estado, CEP
+  const formatAddress = (address: any): string => {
+    const parts = [
+      address.road,                                    // Rua
+      address.suburb || address.neighbourhood,         // Bairro
+      address.city || address.town || address.village, // Cidade
+      address.state,                                   // Estado
+      address.postcode                                 // CEP
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  };
+
   // Reverse geocoding: coordinates -> address (using Nominatim)
   const reverseGeocode = useCallback(async (lat: number, lon: number): Promise<string | null> => {
     try {
@@ -56,6 +69,11 @@ export const useGeolocation = () => {
       if (!response.ok) throw new Error('Falha na geocodificação');
       
       const data = await response.json();
+      
+      // Use formatted address if we have address details, otherwise fallback to display_name
+      if (data.address) {
+        return formatAddress(data.address);
+      }
       return data.display_name || null;
     } catch (err) {
       console.error('Reverse geocoding error:', err);
