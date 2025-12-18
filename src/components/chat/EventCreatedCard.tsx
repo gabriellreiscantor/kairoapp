@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Calendar, Bell, Phone, MapPin, CheckCircle, Pencil,
-  Scissors, Film, Waves, Dumbbell, Briefcase, 
-  Heart, ShoppingCart, Utensils, GraduationCap, 
-  Music, Plane, Car, Coffee, Users, Gamepad2,
-  Stethoscope, DollarSign, Home, CircleDot, Building
+  Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { scheduleCallAlert, cancelCallAlert, getCallAlertTime } from "@/hooks/useCallAlertScheduler";
+import { getColorClassName } from "@/lib/event-constants";
+
 interface EventCreatedCardProps {
   event: {
     id?: string;
@@ -24,126 +21,39 @@ interface EventCreatedCardProps {
     category?: string;
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
+    emoji?: string;
+    color?: string;
+    is_all_day?: boolean;
+    _createdAt?: number;
   };
   type?: 'created' | 'updated';
   onEdit?: (eventId: string) => void;
 }
 
-// Direct category-to-icon mapping (priority for detected categories from images)
-const categoryIcons: Record<string, React.ReactNode> = {
-  // Categories detected from images
-  cinema: <Film className="w-5 h-5 text-primary" />,
-  show: <Music className="w-5 h-5 text-primary" />,
-  teatro: <Film className="w-5 h-5 text-primary" />,
-  casamento: <Heart className="w-5 h-5 text-primary" />,
-  formatura: <GraduationCap className="w-5 h-5 text-primary" />,
-  aniversario: <Heart className="w-5 h-5 text-primary" />,
-  medico: <Stethoscope className="w-5 h-5 text-primary" />,
-  trabalho: <Briefcase className="w-5 h-5 text-primary" />,
-  esporte: <Dumbbell className="w-5 h-5 text-primary" />,
-  viagem: <Plane className="w-5 h-5 text-primary" />,
-  restaurante: <Utensils className="w-5 h-5 text-primary" />,
-  festa: <Music className="w-5 h-5 text-primary" />,
-  religioso: <Heart className="w-5 h-5 text-primary" />,
-  // Legacy categories
-  saude: <Stethoscope className="w-5 h-5 text-primary" />,
-  pessoal: <Home className="w-5 h-5 text-primary" />,
-  fitness: <Dumbbell className="w-5 h-5 text-primary" />,
-  social: <Users className="w-5 h-5 text-primary" />,
-  financeiro: <DollarSign className="w-5 h-5 text-primary" />,
-  educacao: <GraduationCap className="w-5 h-5 text-primary" />,
-  lazer: <Gamepad2 className="w-5 h-5 text-primary" />,
-  evento: <Calendar className="w-5 h-5 text-primary" />,
-  geral: <CircleDot className="w-5 h-5 text-primary" />,
-  outro: <Building className="w-5 h-5 text-primary" />,
-};
-
-// Get dynamic icon based on event category first, then title
-const getEventIcon = (title: string, category?: string) => {
-  // PRIORITY 1: Direct category match (from image analysis)
-  if (category && categoryIcons[category]) {
-    return categoryIcons[category];
-  }
-  
-  const titleLower = title.toLowerCase();
-  
-  // PRIORITY 2: Match by title keywords
-  if (titleLower.includes('barbeir') || titleLower.includes('cabelo') || titleLower.includes('corte') || titleLower.includes('salão') || titleLower.includes('salon')) {
-    return <Scissors className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('cinema') || titleLower.includes('filme') || titleLower.includes('movie') || titleLower.includes('netflix')) {
-    return <Film className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('piscina') || titleLower.includes('nadar') || titleLower.includes('praia') || titleLower.includes('natação')) {
-    return <Waves className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('academia') || titleLower.includes('treino') || titleLower.includes('gym') || titleLower.includes('musculação') || titleLower.includes('crossfit')) {
-    return <Dumbbell className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('reunião') || titleLower.includes('meeting') || titleLower.includes('trabalho') || titleLower.includes('escritório')) {
-    return <Briefcase className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('médico') || titleLower.includes('medico') || titleLower.includes('consulta') || titleLower.includes('dentista') || titleLower.includes('hospital') || titleLower.includes('exame')) {
-    return <Stethoscope className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('mercado') || titleLower.includes('compras') || titleLower.includes('shopping') || titleLower.includes('supermercado') || titleLower.includes('feira')) {
-    return <ShoppingCart className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('restaurante') || titleLower.includes('jantar') || titleLower.includes('almoço') || titleLower.includes('lanchonete') || titleLower.includes('comida') || titleLower.includes('pizza')) {
-    return <Utensils className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('aula') || titleLower.includes('escola') || titleLower.includes('faculdade') || titleLower.includes('curso') || titleLower.includes('estudar')) {
-    return <GraduationCap className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('show') || titleLower.includes('concert') || titleLower.includes('festa') || titleLower.includes('balada') || titleLower.includes('música')) {
-    return <Music className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('viagem') || titleLower.includes('voo') || titleLower.includes('aeroporto') || titleLower.includes('férias')) {
-    return <Plane className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('carro') || titleLower.includes('oficina') || titleLower.includes('mecânico') || titleLower.includes('uber')) {
-    return <Car className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('café') || titleLower.includes('coffee') || titleLower.includes('cafeteria') || titleLower.includes('starbucks')) {
-    return <Coffee className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('amigo') || titleLower.includes('familia') || titleLower.includes('família') || titleLower.includes('encontro') || titleLower.includes('visita')) {
-    return <Users className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('jogo') || titleLower.includes('game') || titleLower.includes('playstation') || titleLower.includes('xbox') || titleLower.includes('videogame')) {
-    return <Gamepad2 className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('namoro') || titleLower.includes('date') || titleLower.includes('aniversário') || titleLower.includes('casamento')) {
-    return <Heart className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('banco') || titleLower.includes('pagar') || titleLower.includes('conta') || titleLower.includes('financ')) {
-    return <DollarSign className="w-5 h-5 text-primary" />;
-  }
-  if (titleLower.includes('casa') || titleLower.includes('home') || titleLower.includes('faxina') || titleLower.includes('limpeza')) {
-    return <Home className="w-5 h-5 text-primary" />;
-  }
-  
-  // FALLBACK: Generic icon
-  return <CircleDot className="w-5 h-5 text-primary" />;
-};
-
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
   ({ event, type = 'created', onEdit }, ref) => {
+  
+  // Calculate if event was just created (within 15 seconds)
+  const isRecentlyCreated = event._createdAt ? (Date.now() - event._createdAt < 15000) : false;
   
   // Hooks FIRST (must always be at top, before any conditional returns)
   const [callAlertEnabled, setCallAlertEnabled] = useState(event?.call_alert_enabled || false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showEditButton, setShowEditButton] = useState(true);
+  const [showEditButton, setShowEditButton] = useState(isRecentlyCreated);
   const [showCallAlertTooltip, setShowCallAlertTooltip] = useState(false);
   
-  // Timer to hide edit button after 10 seconds
+  // Timer to hide edit button after 15 seconds (only if recently created)
   useEffect(() => {
+    if (!isRecentlyCreated) return;
+    
+    const remainingTime = event._createdAt ? Math.max(0, 15000 - (Date.now() - event._createdAt)) : 15000;
+    
     const timer = setTimeout(() => {
       setShowEditButton(false);
-    }, 15000);
+    }, remainingTime);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [isRecentlyCreated, event._createdAt]);
   
   // Guard: Don't render if essential fields are missing
   if (!event || !event.title || !event.event_date) {
@@ -183,22 +93,8 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
-  const formatDuration = () => {
-    if (!event.event_time) return "Dia inteiro";
-    
-    if (event.duration_minutes) {
-      const startTime = event.event_time;
-      const [hours, minutes] = startTime.split(":").map(Number);
-      const endMinutes = hours * 60 + minutes + event.duration_minutes;
-      const endHours = Math.floor(endMinutes / 60) % 24;
-      const endMins = endMinutes % 60;
-      return `até ${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-    }
-    
-    return formatTime(event.event_time);
-  };
-
-  const handleToggleCallAlert = async (checked: boolean) => {
+  const handleToggleCallAlert = async (e: React.MouseEvent, checked: boolean) => {
+    e.stopPropagation(); // Prevent card click
     if (!event.id || isUpdating) return;
     
     setIsUpdating(true);
@@ -257,7 +153,18 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   // Get the time the call will be made (1h before)
   const callAlertTime = getCallAlertTime(event.event_time);
 
-  const isAllDay = !event.event_time;
+  const isAllDay = event.is_all_day ?? !event.event_time;
+  const eventEmoji = event.emoji || '📅';
+  const eventColor = event.color || 'primary';
+
+  // Get color class for the dot
+  const colorClass = getColorClassName(eventColor);
+
+  const handleCardClick = () => {
+    if (event.id && onEdit) {
+      onEdit(event.id);
+    }
+  };
 
   return (
     <div ref={ref} className="w-full max-w-[320px] animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
@@ -269,38 +176,55 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         </p>
       </div>
       
-      {/* Event Card */}
-      <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl p-4 space-y-3">
-        {/* Title row - Calendar on left, dynamic icon on right */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-kairo-orange" />
-            <span className="text-base font-semibold text-foreground">{event.title}</span>
-          </div>
-          {getEventIcon(event.title, event.category)}
+      {/* Event Card - clickable */}
+      <div 
+        onClick={handleCardClick}
+        className={`bg-kairo-surface-2 border border-border/30 rounded-2xl p-4 space-y-3 transition-all ${
+          event.id && onEdit ? 'cursor-pointer hover:bg-kairo-surface-3 active:scale-[0.99]' : ''
+        }`}
+      >
+        {/* Header: Color dot + Emoji + Title + Arrow */}
+        <div className="flex items-center gap-3">
+          {/* Color dot */}
+          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${colorClass}`} />
+          
+          {/* Emoji */}
+          <span className="text-xl flex-shrink-0">{eventEmoji}</span>
+          
+          {/* Title */}
+          <span className="text-base font-semibold text-foreground flex-1 truncate">{event.title}</span>
+          
+          {/* Arrow indicator */}
+          {event.id && onEdit && (
+            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          )}
         </div>
         
-        {/* Date and time row with duration */}
-        <div className="flex items-center justify-between text-sm">
+        {/* Date and time / All day badge */}
+        <div className="flex items-center justify-between text-sm pl-6">
           <span className="text-foreground capitalize">{formatDate(event.event_date)}</span>
-          <div className="text-right">
-            <span className="text-kairo-amber font-medium">{isAllDay ? "Dia inteiro" : formatTime(event.event_time)}</span>
-            {!isAllDay && event.duration_minutes && (
-              <p className="text-xs text-muted-foreground">{formatDuration()}</p>
-            )}
-          </div>
+          {isAllDay ? (
+            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 rounded-full text-xs font-medium">
+              🌞 Dia inteiro
+            </span>
+          ) : (
+            <span className="text-kairo-amber font-medium">{formatTime(event.event_time)}</span>
+          )}
         </div>
         
         {/* Me Ligue toggle */}
-        <div className="relative">
-          <div className="flex items-center justify-between py-1">
+        <div className="relative pl-6">
+          <div 
+            className="flex items-center justify-between py-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-green-500" />
               <span className="text-sm text-foreground">Me Ligue</span>
             </div>
             <Switch 
               checked={callAlertEnabled} 
-              onCheckedChange={handleToggleCallAlert}
+              onCheckedChange={(checked) => handleToggleCallAlert({stopPropagation: () => {}} as React.MouseEvent, checked)}
               disabled={!event.id || isUpdating}
               className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
             />
@@ -319,7 +243,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         </div>
         
         {/* Notification time */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pl-6">
           <Bell className="w-4 h-4 text-amber-500" />
           <span className="text-sm text-muted-foreground">
             {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
@@ -328,31 +252,28 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         
         {/* Description (if available) */}
         {event.description && (
-          <p className="text-xs text-muted-foreground/80 pl-6 -mt-1">
+          <p className="text-xs text-muted-foreground/80 pl-6">
             {event.description}
           </p>
         )}
         
         {/* Location */}
         {event.location && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pl-6">
             <MapPin className="w-4 h-4 text-red-500" />
             <span className="text-sm text-muted-foreground">{event.location}</span>
           </div>
         )}
       </div>
       
-      {/* Edit button - visible for 5 seconds */}
+      {/* Edit button - visible for 15 seconds after creation only */}
       {showEditButton && event.id && onEdit && (
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => onEdit(event.id!)}
-          className="mt-2 text-muted-foreground hover:text-foreground transition-opacity animate-in fade-in-0"
+          className="mt-2 text-sm text-muted-foreground hover:text-foreground transition-opacity animate-in fade-in-0 flex items-center gap-1"
         >
-          <Pencil className="w-4 h-4 mr-2" />
-          Editar
-        </Button>
+          Editar detalhes
+        </button>
       )}
     </div>
   );
