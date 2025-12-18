@@ -54,7 +54,6 @@ const COLORS = [
 
 const CALENDARS = [
   { id: 'kairo', name: 'Kairo', color: '#F97316' },
-  { id: 'example', name: 'Exemplo de cronograma', color: '#EF4444' },
 ];
 
 const SWIPE_THRESHOLD = 100;
@@ -138,9 +137,7 @@ const EventDetailPage = ({
   };
 
   const handleEdit = () => {
-    if (currentEvent && onEditEvent) {
-      onEditEvent(currentEvent.id);
-    }
+    setShowEditArea(true);
   };
 
   const handleSendEdit = () => {
@@ -368,7 +365,7 @@ const EventDetailPage = ({
           {showColorPicker && (
             <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl p-4 shadow-lg z-20 border border-border/20">
               <p className="text-muted-foreground text-sm mb-3">Cor do Evento</p>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2">
                 {COLORS.map((color) => (
                   <button
                     key={color.id}
@@ -384,31 +381,6 @@ const EventDetailPage = ({
                   </button>
                 ))}
               </div>
-              
-              <p className="text-muted-foreground text-xs mb-2">Kairo</p>
-              {CALENDARS.map((calendar) => (
-                <button
-                  key={calendar.id}
-                  onClick={() => {
-                    setSelectedCalendar(calendar.id);
-                    setShowColorPicker(false);
-                  }}
-                  className="w-full flex items-center justify-between py-3 border-t border-border/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <span 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ backgroundColor: calendar.color }}
-                    />
-                    <span className="text-foreground">{calendar.name}</span>
-                  </div>
-                  {selectedCalendar === calendar.id && (
-                    <div className="w-5 h-5 rounded-full border-2 border-foreground flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-foreground" />
-                    </div>
-                  )}
-                </button>
-              ))}
             </div>
           )}
 
