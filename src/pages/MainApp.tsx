@@ -15,6 +15,7 @@ import ChatPage from "@/components/ChatPage";
 import CallScreen from "@/components/CallScreen";
 import { useCallAlert } from "@/hooks/useCallAlert";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface Event {
@@ -47,6 +48,35 @@ const MainApp = () => {
     handleSnooze,
     isPlaying 
   } = useCallAlert();
+
+  // Push notifications hook - registers FCM token on native platforms
+  usePushNotifications({
+    onNotificationReceived: (notification) => {
+      console.log('[MainApp] Push received:', notification);
+      // Handle call alert push notifications
+      if (notification.data?.type === 'call-alert') {
+        showCall({
+          id: notification.data.eventId,
+          title: notification.data.eventTitle,
+          emoji: notification.data.eventEmoji || '📅',
+          time: notification.data.eventTime,
+          location: notification.data.eventLocation,
+        }, language);
+      }
+    },
+    onNotificationAction: (action) => {
+      console.log('[MainApp] Push action:', action);
+      if (action.notification.data?.type === 'call-alert') {
+        showCall({
+          id: action.notification.data.eventId,
+          title: action.notification.data.eventTitle,
+          emoji: action.notification.data.eventEmoji || '📅',
+          time: action.notification.data.eventTime,
+          location: action.notification.data.eventLocation,
+        }, language);
+      }
+    }
+  });
   
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
