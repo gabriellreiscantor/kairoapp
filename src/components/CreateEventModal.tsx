@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -345,13 +346,9 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
             <span className="text-foreground">De</span>
             <div className="flex items-center gap-2">
-              <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
-                {formatDateDisplay(startDate)}
-              </button>
+              <DatePicker date={startDate} onDateChange={setStartDate} />
               {!isAllDay && (
-                <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
-                  {startTime}
-                </button>
+                <TimePicker time={startTime} onTimeChange={setStartTime} />
               )}
             </div>
           </div>
@@ -360,13 +357,9 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
             <span className="text-foreground">Para</span>
             <div className="flex items-center gap-2">
-              <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
-                {formatDateDisplay(endDate)}
-              </button>
+              <DatePicker date={endDate} onDateChange={setEndDate} />
               {!isAllDay && (
-                <button className="bg-kairo-surface-3 px-3 py-2 rounded-lg text-sm text-foreground">
-                  {endTime}
-                </button>
+                <TimePicker time={endTime} onTimeChange={setEndTime} />
               )}
             </div>
           </div>
