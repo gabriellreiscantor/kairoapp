@@ -108,7 +108,10 @@ const HelpPage = () => {
             )}
 
             {/* Email - Available for all */}
-            <button className="w-full bg-kairo-surface-2 rounded-2xl p-4 flex items-center justify-between group hover:bg-kairo-surface-3 transition-all">
+            <a 
+              href="mailto:suporte@kairo.app?subject=Ajuda%20-%20Kairo%20App"
+              className="w-full bg-kairo-surface-2 rounded-2xl p-4 flex items-center justify-between group hover:bg-kairo-surface-3 transition-all"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Mail className="w-6 h-6 text-primary" />
@@ -119,9 +122,9 @@ const HelpPage = () => {
                 </div>
               </div>
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <ChevronRight className="w-4 h-4 text-primary" />
+                <ExternalLink className="w-4 h-4 text-primary" />
               </div>
-            </button>
+            </a>
           </div>
         </div>
 
@@ -180,9 +183,12 @@ const HelpPage = () => {
           <p className="text-xs text-muted-foreground">
             Não encontrou o que procurava?
           </p>
-          <button className="text-primary text-sm font-medium mt-1 hover:underline">
+          <a 
+            href="mailto:suporte@kairo.app?subject=Dúvida%20-%20Kairo%20App"
+            className="text-primary text-sm font-medium mt-1 hover:underline"
+          >
             Envie sua dúvida
-          </button>
+          </a>
         </div>
       </div>
     </div>
