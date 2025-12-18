@@ -1,12 +1,62 @@
-import { ChevronLeft, User, Mail, Phone, Shield, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, User, Mail, Shield, Trash2, Pencil, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const AccountPage = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("Usuário");
-  const [email, setEmail] = useState("usuario@email.com");
-  const [phone, setPhone] = useState("+55 11 99999-9999");
+  const { user, profile, refreshProfile, isLoading } = useAuth();
+  
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Sync state when profile/user loads
+  useEffect(() => {
+    if (profile) {
+      setName(profile.display_name || "");
+      setPhone(profile.phone || "");
+    }
+    if (user) {
+      setEmail(user.email || "");
+    }
+  }, [profile, user]);
+
+  const handleSave = async () => {
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        display_name: name,
+        phone: phone,
+      })
+      .eq('id', user.id);
+
+    if (!error) {
+      await refreshProfile();
+      toast.success("Alterações salvas com sucesso!");
+    } else {
+      toast.error("Erro ao salvar alterações");
+      console.error(error);
+    }
+    setSaving(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,9 +75,17 @@ const AccountPage = () => {
         {/* Profile Photo */}
         <div className="flex flex-col items-center py-4">
           <div className="relative mb-3">
-            <div className="w-24 h-24 rounded-full bg-kairo-surface-3 flex items-center justify-center">
-              <User className="w-12 h-12 text-muted-foreground" />
-            </div>
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt="Avatar" 
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-kairo-surface-3 flex items-center justify-center">
+                <User className="w-12 h-12 text-muted-foreground" />
+              </div>
+            )}
             <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <Pencil className="w-4 h-4 text-primary-foreground" />
             </button>
@@ -47,7 +105,8 @@ const AccountPage = () => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-transparent text-foreground focus:outline-none"
+                placeholder="Seu nome"
+                className="w-full bg-transparent text-foreground focus:outline-none placeholder:text-muted-foreground/50"
               />
             </div>
             <div className="px-4 py-3.5 border-b border-border/10">
@@ -55,8 +114,8 @@ const AccountPage = () => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-transparent text-foreground focus:outline-none"
+                disabled
+                className="w-full bg-transparent text-muted-foreground focus:outline-none cursor-not-allowed"
               />
             </div>
             <div className="px-4 py-3.5">
@@ -65,7 +124,8 @@ const AccountPage = () => {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-transparent text-foreground focus:outline-none"
+                placeholder="+55 11 99999-9999"
+                className="w-full bg-transparent text-foreground focus:outline-none placeholder:text-muted-foreground/50"
               />
             </div>
           </div>
@@ -89,7 +149,9 @@ const AccountPage = () => {
                 <Mail className="w-5 h-5 text-muted-foreground" />
                 <span className="text-foreground">Verificar E-mail</span>
               </div>
-              <span className="text-xs text-kairo-green">Verificado</span>
+              <span className={`text-xs ${user?.email_confirmed_at ? 'text-kairo-green' : 'text-kairo-amber'}`}>
+                {user?.email_confirmed_at ? 'Verificado' : 'Pendente'}
+              </span>
             </button>
           </div>
         </div>
@@ -111,8 +173,13 @@ const AccountPage = () => {
         </div>
 
         {/* Save Button */}
-        <button className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold">
-          Salvar Alterações
+        <button 
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {saving ? "Salvando..." : "Salvar Alterações"}
         </button>
       </div>
     </div>
