@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
-import { useToast } from "@/hooks/use-toast";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -115,7 +114,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
   const { t, getDateLocale } = useLanguage();
-  const { toast } = useToast();
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const { captureFromCamera, selectFromGallery } = useImageCapture();
   const { 
@@ -863,11 +861,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
     } catch (error) {
       console.error("Chat error:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao conectar",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -954,20 +947,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       
       if (error) {
         console.error('[ChatPage] Error fetching event:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os dados do evento.",
-          variant: "destructive",
-        });
         return;
       }
       
       if (!eventData) {
-        toast({
-          title: "Evento não encontrado",
-          description: "O evento que você tentou editar não existe mais.",
-          variant: "destructive",
-        });
+        console.error('[ChatPage] Event not found');
         return;
       }
       
@@ -975,11 +959,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       setEditingEvent(eventData);
     } catch (err) {
       console.error('[ChatPage] Error in handleEditEventById:', err);
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao tentar editar o evento.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1010,10 +989,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const handleAcceptCalendarConnection = () => {
     setShowCalendarSuggestion(false);
     // TODO: Implement calendar connection flow
-    toast({
-      title: "Em breve",
-      description: "A conexão com calendários estará disponível em breve!",
-    });
     completeOnboarding();
   };
 
@@ -1059,11 +1034,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         }
       } catch (error) {
         console.error('Transcription error:', error);
-        toast({
-          title: "Erro",
-          description: error instanceof Error ? error.message : "Erro ao transcrever áudio",
-          variant: "destructive",
-        });
       } finally {
         setIsTranscribing(false);
       }
@@ -1073,11 +1043,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         await startRecording();
       } catch (error) {
         console.error('Recording error:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível acessar o microfone",
-          variant: "destructive",
-        });
       }
     }
   };
@@ -1150,11 +1115,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       console.error('Image analysis error:', error);
       // Remove loading message on error
       setMessages(messages);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao analisar imagem",
-        variant: "destructive",
-      });
     } finally {
       setIsAnalyzingImage(false);
     }

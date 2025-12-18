@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
 interface EventData {
@@ -43,8 +42,7 @@ interface EditEventModalProps {
 type ScreenView = 'main' | 'location';
 
 const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps) => {
-  const { toast } = useToast();
-  const { isLoading: isGeoLoading, error: geoError, getCurrentAddress, searchAddresses } = useGeolocation();
+  const { isLoading: isGeoLoading, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [isSaving, setIsSaving] = useState(false);
   
@@ -77,11 +75,6 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
 
   const handleSave = async () => {
     if (!title.trim()) {
-      toast({
-        title: "Erro",
-        description: "O título do evento é obrigatório.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -103,20 +96,10 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
 
       if (error) throw error;
 
-      toast({
-        title: "Evento atualizado",
-        description: "As alterações foram salvas com sucesso.",
-      });
-
       onSave?.();
       onClose();
     } catch (error) {
       console.error('Error updating event:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível atualizar o evento. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsSaving(false);
     }
@@ -156,16 +139,6 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
     if (result) {
       setLocation(result.address);
       setScreenView('main');
-      toast({
-        title: "Localização obtida",
-        description: "Seu endereço foi definido com sucesso.",
-      });
-    } else if (geoError) {
-      toast({
-        title: "Erro",
-        description: geoError,
-        variant: "destructive",
-      });
     }
   };
 
