@@ -17,6 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 interface EventData {
   id: string;
@@ -43,6 +44,7 @@ type ScreenView = 'main' | 'location';
 
 const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps) => {
   const { toast } = useToast();
+  const { isLoading: isGeoLoading, error: geoError, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [isSaving, setIsSaving] = useState(false);
   
@@ -50,6 +52,8 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [eventDate, setEventDate] = useState<Date>(new Date());
   const [eventTime, setEventTime] = useState("12:00");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
@@ -129,6 +133,42 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
     }
   };
 
+  // Handle location search with debounce
+  useEffect(() => {
+    if (!locationSearch || locationSearch.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchAddresses(locationSearch);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [locationSearch, searchAddresses]);
+
+  // Handle current location
+  const handleGetCurrentLocation = async () => {
+    const result = await getCurrentAddress();
+    if (result) {
+      setLocation(result.address);
+      setScreenView('main');
+      toast({
+        title: "Localização obtida",
+        description: "Seu endereço foi definido com sucesso.",
+      });
+    } else if (geoError) {
+      toast({
+        title: "Erro",
+        description: geoError,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Location Screen
   if (screenView === 'location') {
     return (
@@ -136,14 +176,22 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-area-top">
           <button 
-            onClick={() => setScreenView('main')}
+            onClick={() => {
+              setScreenView('main');
+              setLocationSearch("");
+              setSearchResults([]);
+            }}
             className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center"
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
           <h1 className="text-lg font-semibold text-foreground">Local do Evento</h1>
           <button 
-            onClick={() => setScreenView('main')}
+            onClick={() => {
+              setScreenView('main');
+              setLocationSearch("");
+              setSearchResults([]);
+            }}
             className="text-primary font-medium"
           >
             Salvar
@@ -158,11 +206,15 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
               type="text"
               value={locationSearch}
               onChange={(e) => setLocationSearch(e.target.value)}
-              placeholder="Buscar local..."
+              placeholder="Buscar endereço..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none"
             />
-            {locationSearch && (
-              <button onClick={() => setLocationSearch("")}>
+            {isSearching && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
+            {locationSearch && !isSearching && (
+              <button onClick={() => {
+                setLocationSearch("");
+                setSearchResults([]);
+              }}>
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             )}
@@ -170,28 +222,47 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
         </div>
 
         {/* Current Location */}
-        <button className="flex items-center gap-3 px-4 py-4 border-b border-border/10">
-          <Navigation className="w-5 h-5 text-muted-foreground" />
-          <span className="text-foreground">Usar Localização Atual</span>
+        <button 
+          onClick={handleGetCurrentLocation}
+          disabled={isGeoLoading}
+          className="flex items-center gap-3 px-4 py-4 border-b border-border/10 disabled:opacity-50"
+        >
+          {isGeoLoading ? (
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+          ) : (
+            <Navigation className="w-5 h-5 text-primary" />
+          )}
+          <span className="text-foreground">
+            {isGeoLoading ? "Obtendo localização..." : "Usar Localização Atual"}
+          </span>
         </button>
 
         {/* Search Results */}
-        {locationSearch && (
-          <div className="px-4 py-2">
-            <p className="text-xs text-muted-foreground mb-2">Resultado da Pesquisa</p>
-            <button 
-              onClick={() => {
-                setLocation(locationSearch);
-                setScreenView('main');
-              }}
-              className="flex items-start gap-3 py-3 border-b border-border/10 w-full text-left"
-            >
-              <MapPin className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className="text-foreground font-medium">{locationSearch}</p>
-                <p className="text-sm text-muted-foreground">{locationSearch}, Brasil</p>
-              </div>
-            </button>
+        {searchResults.length > 0 && (
+          <div className="px-4 py-2 flex-1 overflow-y-auto">
+            <p className="text-xs text-muted-foreground mb-2">Resultados</p>
+            {searchResults.map((result, index) => (
+              <button 
+                key={index}
+                onClick={() => {
+                  setLocation(result.display_name);
+                  setLocationSearch("");
+                  setSearchResults([]);
+                  setScreenView('main');
+                }}
+                className="flex items-start gap-3 py-3 border-b border-border/10 w-full text-left"
+              >
+                <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-foreground text-sm line-clamp-2">{result.display_name}</p>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* No results message */}
+        {locationSearch.length >= 3 && !isSearching && searchResults.length === 0 && (
+          <div className="px-4 py-8 text-center">
+            <p className="text-muted-foreground">Nenhum resultado encontrado</p>
           </div>
         )}
       </div>
