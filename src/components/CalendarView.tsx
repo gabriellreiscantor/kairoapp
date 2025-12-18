@@ -202,13 +202,17 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
     setTranslate({ x: 0, y: 0 });
   }, [currentMonth]);
 
+  // Calculate real cell height based on zoom (not CSS transform)
+  const baseCellHeight = 80;
+  const cellHeight = baseCellHeight + (scale - 1) * 80; // 80px at 1x, 160px at 2x, 240px at 3x
+
   // Dynamic config based on zoom - expand vertically at higher zoom
   const getEventConfig = () => {
     if (scale >= 2.5) return { 
       titleLength: 100, 
       fontSize: 'text-sm', 
       showLocation: true, 
-      maxEvents: 3,
+      maxEvents: 999, // Show ALL events
       truncate: false,
       maxLines: 3
     };
@@ -216,7 +220,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       titleLength: 50, 
       fontSize: 'text-xs', 
       showLocation: true, 
-      maxEvents: 3,
+      maxEvents: 999, // Show ALL events
       truncate: false,
       maxLines: 2
     };
@@ -224,7 +228,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       titleLength: 20, 
       fontSize: 'text-[11px]', 
       showLocation: true, 
-      maxEvents: 3,
+      maxEvents: 5,
       truncate: true,
       maxLines: 1
     };
@@ -261,7 +265,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
         </div>
       )}
 
-      {/* Weekday Headers */}
+      {/* Weekday Headers - Fixed */}
       <div className="grid grid-cols-7 mb-1 border-b border-border/20 pb-2 shrink-0">
         {weekdays.map((day, index) => (
           <div key={index} className="text-center text-xs text-muted-foreground font-semibold py-2">
@@ -270,121 +274,127 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
         ))}
       </div>
 
-      {/* Zoomable Calendar Grid */}
+      {/* Scrollable Calendar Grid - NO transform scale, uses real dimensions */}
       <div 
         ref={contentRef}
-        className="flex-1 flex flex-col transition-transform duration-100 ease-out"
-        style={{
-          transform: `scale(${scale}) translate(${translate.x}px, ${translate.y}px)`,
-          transformOrigin: `${origin.x}% ${origin.y}%`
-        }}
+        className="flex-1 overflow-auto"
       >
-        {weeks.map((week, weekIndex) => (
-          <div 
-            key={weekIndex} 
-            className="flex-1 grid grid-cols-7 border-b border-border/10"
-            style={{ minHeight: scale >= 2 ? '120px' : '90px' }}
-          >
-            {week.map((day, dayIndex) => {
-              const isCurrentMonth = isSameMonth(day, currentMonth);
-              const isTodayDate = isToday(day);
-              const isSelected = isSameDay(day, selectedDate);
-              const dayEvents = getEventsForDate(day);
-              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
-              const overflowCount = dayEvents.length - MAX_VISIBLE_EVENTS;
-              
-              return (
-                <button
-                  key={dayIndex}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDateSelect(day);
-                  }}
-                  className={`
-                    relative flex flex-col items-center p-1 transition-all duration-200 
-                    ${isCurrentMonth ? '' : 'opacity-30'}
-                  `}
-                >
-                  <span
+        <div className="flex flex-col" style={{ minHeight: scale > 1 ? `${weeks.length * cellHeight}px` : '100%' }}>
+          {weeks.map((week, weekIndex) => (
+            <div 
+              key={weekIndex} 
+              className="grid grid-cols-7 border-b border-border/10"
+              style={{ 
+                minHeight: `${cellHeight}px`,
+                height: scale >= 2 ? 'auto' : `${cellHeight}px` // Auto height when zoomed to fit all events
+              }}
+            >
+              {week.map((day, dayIndex) => {
+                const isCurrentMonth = isSameMonth(day, currentMonth);
+                const isTodayDate = isToday(day);
+                const isSelected = isSameDay(day, selectedDate);
+                const dayEvents = getEventsForDate(day);
+                const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
+                const overflowCount = Math.max(0, dayEvents.length - MAX_VISIBLE_EVENTS);
+                
+                return (
+                  <button
+                    key={dayIndex}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDateSelect(day);
+                    }}
                     className={`
-                      calendar-number w-7 h-7 flex items-center justify-center rounded-full text-sm mb-1 transition-all duration-200
-                      ${!isCurrentMonth ? 'text-muted-foreground/40' : 'text-foreground'}
-                      ${isTodayDate ? 'bg-primary text-primary-foreground font-bold' : ''}
-                      ${isSelected && !isTodayDate ? 'bg-muted text-foreground font-medium' : ''}
+                      relative flex flex-col items-start p-1 transition-all duration-200 border-r border-border/5 last:border-r-0
+                      ${isCurrentMonth ? '' : 'opacity-30'}
                     `}
+                    style={{ minHeight: `${cellHeight}px` }}
                   >
-                    {format(day, 'd')}
-                  </span>
-                  
-                  {isCurrentMonth && dayEvents.length > 0 && (
-                    <div className="w-full flex flex-col gap-0.5 px-0.5">
-                      {visibleEvents.map((event, idx) => (
-                        <div
-                          key={event.id || idx}
-                          className={`w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5 ${eventConfig.truncate ? 'truncate' : ''}`}
-                        >
-                          <span 
-                            className={`${eventConfig.fontSize} font-medium text-foreground block leading-tight`}
-                            style={!eventConfig.truncate ? {
-                              display: '-webkit-box',
-                              WebkitLineClamp: eventConfig.maxLines,
-                              WebkitBoxOrient: 'vertical' as const,
-                              overflow: 'hidden',
-                              whiteSpace: 'normal'
-                            } : { 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
+                    {/* Date number */}
+                    <span
+                      className={`
+                        calendar-number flex items-center justify-center rounded-full mb-1 transition-all duration-200 shrink-0
+                        ${scale >= 2 ? 'w-8 h-8 text-base' : 'w-7 h-7 text-sm'}
+                        ${!isCurrentMonth ? 'text-muted-foreground/40' : 'text-foreground'}
+                        ${isTodayDate ? 'bg-primary text-primary-foreground font-bold' : ''}
+                        ${isSelected && !isTodayDate ? 'bg-muted text-foreground font-medium' : ''}
+                      `}
+                    >
+                      {format(day, 'd')}
+                    </span>
+                    
+                    {/* Events - expand to show all when zoomed */}
+                    {isCurrentMonth && dayEvents.length > 0 && (
+                      <div className="w-full flex flex-col gap-0.5 flex-1">
+                        {visibleEvents.map((event, idx) => (
+                          <div
+                            key={event.id || idx}
+                            className="w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5"
                           >
-                            {eventConfig.truncate 
-                              ? (event.title.length > eventConfig.titleLength 
-                                  ? event.title.slice(0, eventConfig.titleLength) + '...' 
-                                  : event.title)
-                              : event.title}
-                          </span>
-                          <span className={`${scale >= 1.5 ? 'text-[10px]' : 'text-[9px]'} text-primary truncate block leading-tight`}>
-                            {formatEventTime(event)}
-                          </span>
-                          {eventConfig.showLocation && event.location && (
                             <span 
-                              className="text-[9px] text-muted-foreground block leading-tight"
+                              className={`${eventConfig.fontSize} font-medium text-foreground block leading-tight`}
                               style={!eventConfig.truncate ? {
                                 display: '-webkit-box',
-                                WebkitLineClamp: 2,
+                                WebkitLineClamp: eventConfig.maxLines,
                                 WebkitBoxOrient: 'vertical' as const,
                                 overflow: 'hidden',
                                 whiteSpace: 'normal'
-                              } : {
+                              } : { 
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
                               }}
                             >
                               {eventConfig.truncate 
-                                ? (event.location.length > eventConfig.titleLength 
-                                    ? event.location.slice(0, eventConfig.titleLength) + '...' 
-                                    : event.location)
-                                : event.location}
+                                ? (event.title.length > eventConfig.titleLength 
+                                    ? event.title.slice(0, eventConfig.titleLength) + '...' 
+                                    : event.title)
+                                : event.title}
                             </span>
-                          )}
-                        </div>
-                      ))}
-                      
-                      {overflowCount > 0 && (
-                        <div className="text-center">
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            +{overflowCount}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+                            <span className={`${scale >= 1.5 ? 'text-[10px]' : 'text-[9px]'} text-primary truncate block leading-tight`}>
+                              {formatEventTime(event)}
+                            </span>
+                            {eventConfig.showLocation && event.location && (
+                              <span 
+                                className="text-[9px] text-muted-foreground block leading-tight"
+                                style={!eventConfig.truncate ? {
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical' as const,
+                                  overflow: 'hidden',
+                                  whiteSpace: 'normal'
+                                } : {
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {eventConfig.truncate 
+                                  ? (event.location.length > eventConfig.titleLength 
+                                      ? event.location.slice(0, eventConfig.titleLength) + '...' 
+                                      : event.location)
+                                  : event.location}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {/* Only show overflow indicator when not showing all events */}
+                        {overflowCount > 0 && (
+                          <div className="text-center shrink-0">
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              +{overflowCount}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
