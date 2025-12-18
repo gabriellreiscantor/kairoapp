@@ -1,5 +1,5 @@
-import { format, isToday, addDays, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { format, isToday, isTomorrow, addDays, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, isPast, isSameDay } from "date-fns";
+import { Calendar as CalendarIcon, MapPin, Plus } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Event {
@@ -29,7 +29,7 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
   
-  // Get all days of the current month plus next 7 days
+  // Get all days of the current month plus next 14 days
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const extraDays = Array.from({ length: 14 }, (_, i) => addDays(monthEnd, i + 1));
   const days = [...monthDays, ...extraDays];
@@ -39,58 +39,146 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
     return events[dateKey] || [];
   };
 
-  // Format weekday abbreviation in current locale
+  // Format weekday in current locale
   const formatWeekday = (date: Date) => {
-    const weekday = format(date, 'EEE', { locale: dateLocale });
-    return weekday;
+    return format(date, 'EEEE', { locale: dateLocale });
+  };
+
+  // Get friendly date label
+  const getDateLabel = (date: Date) => {
+    if (isToday(date)) return t('calendar.today');
+    if (isTomorrow(date)) return t('calendar.tomorrow');
+    return formatWeekday(date);
+  };
+
+  // Priority colors
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500';
+      case 'medium': return 'bg-amber-500';
+      case 'low': return 'bg-emerald-500';
+      default: return 'bg-primary';
+    }
   };
 
   return (
-    <div className="px-4">
-      {days.map((day) => {
+    <div className="px-4 pb-8 space-y-1">
+      {days.map((day, index) => {
         const isTodayDate = isToday(day);
         const dayEvents = getDayEvents(day);
         const hasEvents = dayEvents.length > 0;
+        const isPastDay = isPast(day) && !isToday(day);
+        const isFirstOfMonth = day.getDate() === 1;
 
         return (
-          <div key={day.toISOString()} className="py-2">
-            {/* Date Header */}
-            <button
-              onClick={() => hasEvents ? onDateSelect(day) : onAddEvent(day)}
-              className={`text-sm font-medium mb-1 ${
-                isTodayDate ? 'text-red-500' : 'text-muted-foreground'
+          <div key={day.toISOString()} className="animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
+            {/* Month separator */}
+            {isFirstOfMonth && index !== 0 && (
+              <div className="flex items-center gap-3 py-4 mt-4">
+                <div className="h-px flex-1 bg-border/50" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {format(day, 'MMMM yyyy', { locale: dateLocale })}
+                </span>
+                <div className="h-px flex-1 bg-border/50" />
+              </div>
+            )}
+
+            {/* Day Row */}
+            <div 
+              className={`flex items-start gap-3 py-3 transition-all duration-200 ${
+                isPastDay ? 'opacity-50' : ''
               }`}
             >
-              {format(day, 'd')} {formatWeekday(day)}
-            </button>
+              {/* Date Column */}
+              <button
+                onClick={() => hasEvents ? onDateSelect(day) : onAddEvent(day)}
+                className={`flex flex-col items-center min-w-[52px] py-2 px-1 rounded-xl transition-all duration-200 ${
+                  isTodayDate 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'hover:bg-muted/50 active:scale-95'
+                }`}
+              >
+                <span className={`text-2xl font-bold leading-none ${
+                  isTodayDate ? 'text-primary-foreground' : 'text-foreground'
+                }`}>
+                  {format(day, 'd')}
+                </span>
+                <span className={`text-[10px] uppercase tracking-wide mt-1 ${
+                  isTodayDate ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  {format(day, 'EEE', { locale: dateLocale })}
+                </span>
+              </button>
 
-            {/* Event Cards */}
-            {hasEvents && (
-              <div className="space-y-2">
-                {dayEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => onDateSelect(day)}
-                    className="w-full bg-kairo-surface-2 rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
-                  >
-                    <h3 className="text-foreground font-medium mb-2">{event.title}</h3>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-sm text-muted-foreground">
-                          {event.isAllDay ? t('calendar.allDay') : event.time}
-                        </span>
-                      </div>
-                      {event.endDate && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <CalendarIcon className="w-4 h-4" />
-                          <span className="text-xs">{format(event.endDate, 'd')}</span>
+              {/* Events Column */}
+              <div className="flex-1 min-w-0">
+                {hasEvents ? (
+                  <div className="space-y-2">
+                    {dayEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        onClick={() => onDateSelect(day)}
+                        className="w-full bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl p-4 text-left transition-all duration-200 hover:border-primary/30 active:scale-[0.98] group"
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Emoji or Priority Indicator */}
+                          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-xl">
+                            {event.emoji || '📅'}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            {/* Title */}
+                            <h3 className="text-foreground font-medium truncate group-hover:text-primary transition-colors">
+                              {event.title}
+                            </h3>
+                            
+                            {/* Time and Location */}
+                            <div className="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${getPriorityColor(event.priority)}`} />
+                                <span>
+                                  {event.isAllDay ? t('calendar.allDay') : event.time}
+                                </span>
+                              </div>
+                              
+                              {event.location && (
+                                <div className="flex items-center gap-1 truncate">
+                                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{event.location}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Multi-day indicator */}
+                          {event.endDate && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
+                              <CalendarIcon className="w-3 h-3" />
+                              <span>{format(event.endDate, 'd MMM', { locale: dateLocale })}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  /* Empty day - subtle add button */
+                  <button
+                    onClick={() => onAddEvent(day)}
+                    className="w-full py-4 flex items-center justify-center gap-2 text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/30 rounded-xl transition-all duration-200 group"
+                  >
+                    <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                      {t('calendar.addEvent')}
+                    </span>
                   </button>
-                ))}
+                )}
               </div>
+            </div>
+
+            {/* Separator line */}
+            {hasEvents && (
+              <div className="ml-[64px] h-px bg-border/30" />
             )}
           </div>
         );

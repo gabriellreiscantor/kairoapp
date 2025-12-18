@@ -521,15 +521,6 @@ const MainApp = () => {
       {/* Gradient Overlay Bottom */}
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom pointer-events-none z-10" />
 
-      {/* FAB for list view */}
-      {activeView === 'list' && (
-        <button 
-          onClick={() => handleAddEvent()}
-          className="fixed right-5 bottom-28 w-14 h-14 rounded-full gradient-gold flex items-center justify-center shadow-2xl shadow-primary/40 transition-all duration-300 active:scale-95 z-40 golden-ripple"
-        >
-          <Plus className="w-6 h-6 text-primary-foreground" />
-        </button>
-      )}
 
       {/* Floating Dock Navigation */}
       <FloatingDock />
