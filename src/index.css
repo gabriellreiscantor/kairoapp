@@ -375,10 +375,11 @@
     transform: scale(0.95);
   }
   
-  /* Timeline connector */
+  /* Timeline connector (invisível mas presente para estrutura) */
   .timeline-line {
     @apply absolute left-6 top-10 bottom-0 w-px;
     background: linear-gradient(to bottom, hsl(var(--border)) 0%, transparent 100%);
+    opacity: 0;
   }
   
   /* Section divider with golden accent */
