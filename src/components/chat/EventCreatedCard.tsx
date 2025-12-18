@@ -93,6 +93,14 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
+  const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = totalMinutes % 60;
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  };
+
   const handleToggleCallAlert = async (e: React.MouseEvent, checked: boolean) => {
     e.stopPropagation(); // Prevent card click
     if (!event.id || isUpdating) return;
@@ -153,7 +161,8 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   // Get the time the call will be made (1h before)
   const callAlertTime = getCallAlertTime(event.event_time);
 
-  const isAllDay = event.is_all_day ?? !event.event_time;
+  // É dia inteiro se: is_all_day é true OU não tem hora OU não tem duração
+  const isAllDay = event.is_all_day === true || !event.event_time || !event.duration_minutes;
   const eventEmoji = event.emoji || '📅';
   const eventColor = event.color || 'primary';
 
@@ -208,7 +217,9 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
               🌞 Dia inteiro
             </span>
           ) : (
-            <span className="text-kairo-amber font-medium">{formatTime(event.event_time)}</span>
+            <span className="text-muted-foreground font-medium">
+              {formatTime(event.event_time)} - {calculateEndTime(event.event_time!, event.duration_minutes!)}
+            </span>
           )}
         </div>
         
