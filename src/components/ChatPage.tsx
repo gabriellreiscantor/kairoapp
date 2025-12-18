@@ -210,20 +210,6 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     scrollToBottom();
   }, [messages, showWeeklySuggestion, showCalendarSuggestion]);
 
-  // Scroll button visibility detection
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    
-    const handleScroll = () => {
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      setShowScrollButton(distanceFromBottom > 200);
-    };
-    
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // State for pending edit message from EventDetailPage
   const [pendingEditMessage, setPendingEditMessage] = useState<string | null>(null);
 
@@ -358,7 +344,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  // Scroll listener for infinite pagination
+  // Scroll listener for infinite pagination AND scroll button visibility
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -368,6 +354,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       if (container.scrollTop < 100 && hasMoreMessages && !isLoadingMore && !isLoadingHistory) {
         loadMoreMessages();
       }
+      
+      // Show/hide scroll to bottom button
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollButton(distanceFromBottom > 200);
     };
     
     container.addEventListener('scroll', handleScroll);
