@@ -337,10 +337,10 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                       {format(day, 'd')}
                     </span>
                     
-                    {/* Events - always show ALL events */}
+                    {/* Events - limit to 3 visible */}
                     {isCurrentMonth && dayEvents.length > 0 && (
                       <div className="w-full flex flex-col gap-0.5 flex-1">
-                        {dayEvents.map((event, idx) => (
+                        {dayEvents.slice(0, 3).map((event, idx) => (
                           <div
                             key={event.id || idx}
                             className="w-full bg-kairo-surface-2 border border-border/30 rounded px-1 py-0.5"
@@ -366,6 +366,14 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                             )}
                           </div>
                         ))}
+                        {/* Show "+X mais" indicator for additional events */}
+                        {dayEvents.length > 3 && (
+                          <div 
+                            className="w-full text-center py-0.5 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+                          >
+                            +{dayEvents.length - 3} mais
+                          </div>
+                        )}
                       </div>
                     )}
                   </button>
