@@ -200,9 +200,17 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
     
     try {
+      // Reset call_alert_sent_at when enabling so new notification can be sent
+      const updateData: { call_alert_enabled: boolean; call_alert_sent_at?: null } = { 
+        call_alert_enabled: checked 
+      };
+      if (checked) {
+        updateData.call_alert_sent_at = null;
+      }
+      
       const { error } = await supabase
         .from('events')
-        .update({ call_alert_enabled: checked })
+        .update(updateData)
         .eq('id', event.id);
       
       if (error) {
