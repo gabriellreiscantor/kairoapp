@@ -20,6 +20,7 @@ import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 import EventListCard from "@/components/chat/EventListCard";
+import EditEventModal from "@/components/EditEventModal";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -147,6 +148,19 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<{
+    id: string;
+    title: string;
+    event_date: string;
+    event_time: string | null;
+    location: string | null;
+    description: string | null;
+    priority: string | null;
+    notification_enabled: boolean | null;
+    call_alert_enabled: boolean | null;
+    category: string | null;
+    status: string | null;
+  } | null>(null);
 
   const dateLocale = getDateLocale();
 
@@ -926,11 +940,47 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     handleSend("editar");
   };
 
-  // Handle edit request for a specific event by ID
-  const handleEditEventById = (eventId: string) => {
-    console.log('[ChatPage] Editing event by ID:', eventId);
-    // Send a message that includes the event ID for the AI to know which event to edit
-    handleSend(`editar evento id:${eventId}`);
+  // Handle edit request for a specific event by ID - opens modal instead of sending chat message
+  const handleEditEventById = async (eventId: string) => {
+    console.log('[ChatPage] Opening edit modal for event:', eventId);
+    
+    try {
+      // Fetch the event data from Supabase
+      const { data: eventData, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+      
+      if (error) {
+        console.error('[ChatPage] Error fetching event:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os dados do evento.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!eventData) {
+        toast({
+          title: "Evento não encontrado",
+          description: "O evento que você tentou editar não existe mais.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Open the edit modal with the event data
+      setEditingEvent(eventData);
+    } catch (err) {
+      console.error('[ChatPage] Error in handleEditEventById:', err);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao tentar editar o evento.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Close confirmation modal
@@ -1465,6 +1515,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           resumo={confirmationModal.resumo}
           onConfirm={handleConfirmEvent}
           onEdit={handleEditEvent}
+        />
+      )}
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <EditEventModal
+          isOpen={!!editingEvent}
+          onClose={() => setEditingEvent(null)}
+          event={editingEvent}
+          onSave={() => {
+            onEventCreated?.();
+          }}
         />
       )}
     </div>
