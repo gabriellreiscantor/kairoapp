@@ -32,10 +32,15 @@ interface CalendarViewProps {
 
 const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }: CalendarViewProps) => {
   const { t } = useLanguage();
-  const [scale, setScale] = useState(1);
+  
+  // Visual scale = feedback during pinch gesture (transform: scale)
+  // Applied scale = actual dimensions after pinch ends
+  const [visualScale, setVisualScale] = useState(1);
+  const [appliedScale, setAppliedScale] = useState(1);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [isPinching, setIsPinching] = useState(false);
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const initialDistance = useRef<number>(0);
@@ -44,6 +49,9 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   
   const MIN_SCALE = 1;
   const MAX_SCALE = 3;
+  
+  // Combined scale for calculations
+  const scale = isPinching ? visualScale : appliedScale;
 
   const weekdays = [
     t('calendar.weekdaySun'),
@@ -100,7 +108,8 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       e.preventDefault();
       setIsPinching(true);
       initialDistance.current = getDistance(e.touches[0], e.touches[1]);
-      initialScale.current = scale;
+      initialScale.current = appliedScale;
+      setVisualScale(appliedScale);
       
       const center = getCenter(e.touches[0], e.touches[1]);
       if (containerRef.current) {
@@ -110,10 +119,10 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
           y: ((center.y - rect.top) / rect.height) * 100
         });
       }
-    } else if (e.touches.length === 1 && scale > 1) {
+    } else if (e.touches.length === 1 && appliedScale > 1) {
       lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  }, [scale]);
+  }, [appliedScale]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && isPinching) {
@@ -121,43 +130,47 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       const currentDistance = getDistance(e.touches[0], e.touches[1]);
       const ratio = currentDistance / initialDistance.current;
       const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, initialScale.current * ratio));
-      setScale(newScale);
-    } else if (e.touches.length === 1 && scale > 1 && lastTouchRef.current) {
+      setVisualScale(newScale);
+    } else if (e.touches.length === 1 && appliedScale > 1 && lastTouchRef.current) {
       e.preventDefault();
       const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
       const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
       
       setTranslate(prev => ({
-        x: Math.max(-100, Math.min(100, prev.x + deltaX / scale)),
-        y: Math.max(-100, Math.min(100, prev.y + deltaY / scale))
+        x: Math.max(-100, Math.min(100, prev.x + deltaX / appliedScale)),
+        y: Math.max(-100, Math.min(100, prev.y + deltaY / appliedScale))
       }));
       
       lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  }, [isPinching, scale]);
+  }, [isPinching, appliedScale]);
 
   const handleTouchEnd = useCallback(() => {
+    if (isPinching) {
+      // Apply the visual scale to actual dimensions
+      const finalScale = visualScale < 1.1 ? 1 : visualScale;
+      setAppliedScale(finalScale);
+      setVisualScale(finalScale);
+      if (finalScale === 1) {
+        setTranslate({ x: 0, y: 0 });
+      }
+    }
     setIsPinching(false);
     lastTouchRef.current = null;
-    
-    // Snap to 1 if close
-    if (scale < 1.1) {
-      setScale(1);
-      setTranslate({ x: 0, y: 0 });
-    }
-  }, [scale]);
+  }, [isPinching, visualScale]);
 
-  // Double-tap to toggle zoom
   const lastTapTime = useRef(0);
   const handleDoubleTap = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const now = Date.now();
     if (now - lastTapTime.current < 300) {
       e.preventDefault();
-      if (scale > 1) {
-        setScale(1);
+      if (appliedScale > 1) {
+        setAppliedScale(1);
+        setVisualScale(1);
         setTranslate({ x: 0, y: 0 });
       } else {
-        setScale(2);
+        setAppliedScale(2);
+        setVisualScale(2);
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
@@ -172,13 +185,12 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       }
     }
     lastTapTime.current = now;
-  }, [scale]);
+  }, [appliedScale]);
 
-  // Mouse wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + delta));
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, appliedScale + delta));
     
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -188,23 +200,25 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       });
     }
     
-    setScale(newScale);
+    const finalScale = newScale <= 1.05 ? 1 : newScale;
+    setAppliedScale(finalScale);
+    setVisualScale(finalScale);
     
-    if (newScale <= 1.05) {
-      setScale(1);
+    if (finalScale === 1) {
       setTranslate({ x: 0, y: 0 });
     }
-  }, [scale]);
+  }, [appliedScale]);
 
   // Reset zoom when month changes
   useEffect(() => {
-    setScale(1);
+    setAppliedScale(1);
+    setVisualScale(1);
     setTranslate({ x: 0, y: 0 });
   }, [currentMonth]);
 
-  // Calculate real cell height based on zoom (not CSS transform)
-  const baseCellHeight = 80;
-  const cellHeight = baseCellHeight + (scale - 1) * 80; // 80px at 1x, 160px at 2x, 240px at 3x
+  // Smaller base cell height for compact default view
+  const baseCellHeight = 60;
+  const cellHeight = baseCellHeight + (appliedScale - 1) * 60; // 60px at 1x, 120px at 2x, 180px at 3x
 
   // Dynamic config based on zoom - expand vertically at higher zoom
   const getEventConfig = () => {
@@ -257,10 +271,10 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
       onClick={handleDoubleTap}
     >
       {/* Zoom indicator */}
-      {scale > 1 && (
+      {appliedScale > 1 && (
         <div className="absolute top-2 right-2 z-20 bg-background/80 backdrop-blur-sm rounded-full px-2 py-1 border border-border/30">
           <span className="text-[10px] text-muted-foreground font-medium">
-            {scale.toFixed(1)}x
+            {appliedScale.toFixed(1)}x
           </span>
         </div>
       )}
@@ -274,19 +288,24 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
         ))}
       </div>
 
-      {/* Scrollable Calendar Grid - NO transform scale, uses real dimensions */}
+      {/* Scrollable Calendar Grid with visual zoom during pinch */}
       <div 
         ref={contentRef}
         className="flex-1 overflow-auto"
+        style={{
+          transform: isPinching ? `scale(${visualScale / appliedScale})` : 'none',
+          transformOrigin: `${origin.x}% ${origin.y}%`,
+          transition: isPinching ? 'none' : 'transform 0.2s ease-out'
+        }}
       >
-        <div className="flex flex-col" style={{ minHeight: scale > 1 ? `${weeks.length * cellHeight}px` : '100%' }}>
+        <div className="flex flex-col" style={{ minHeight: appliedScale > 1 ? `${weeks.length * cellHeight}px` : '100%' }}>
           {weeks.map((week, weekIndex) => (
             <div 
               key={weekIndex} 
               className="grid grid-cols-7 border-b border-border/10"
               style={{ 
                 minHeight: `${cellHeight}px`,
-                height: scale >= 2 ? 'auto' : `${cellHeight}px` // Auto height when zoomed to fit all events
+                height: appliedScale >= 2 ? 'auto' : `${cellHeight}px`
               }}
             >
               {week.map((day, dayIndex) => {
