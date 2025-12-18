@@ -11,10 +11,29 @@ const THEMES: { id: Theme; icon: typeof Sun; label: string; description: string 
   { id: 'system', icon: Monitor, label: 'Sistema', description: 'Segue as configurações do dispositivo' },
 ];
 
+// Cores principais do tema escuro
+const DARK_THEME_COLORS = [
+  { color: 'hsl(12, 95%, 55%)', name: 'Laranja vibrante' },
+  { color: 'hsl(350, 85%, 50%)', name: 'Rosa quente' },
+  { color: 'hsl(280, 70%, 45%)', name: 'Roxo profundo' },
+  { color: 'hsl(160, 60%, 40%)', name: 'Verde esmeralda' },
+];
+
+// Cores principais do tema claro
+const LIGHT_THEME_COLORS = [
+  { color: 'hsl(12, 95%, 55%)', name: 'Laranja coral' },
+  { color: 'hsl(38, 90%, 48%)', name: 'Âmbar dourado' },
+  { color: 'hsl(160, 55%, 38%)', name: 'Verde suave' },
+  { color: 'hsl(0, 65%, 48%)', name: 'Vermelho coral' },
+];
+
 const AppearancePage = () => {
   const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  
+  // Get current theme colors
+  const currentColors = mounted && resolvedTheme === 'dark' ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -156,13 +175,24 @@ const AppearancePage = () => {
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl p-4">
             <div className="flex items-center justify-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[hsl(12,95%,55%)]" title="Laranja" />
-              <div className="w-6 h-6 rounded-full bg-[hsl(350,85%,50%)]" title="Rosa" />
-              <div className="w-5 h-5 rounded-full bg-[hsl(280,70%,45%)]" title="Roxo" />
-              <div className="w-4 h-4 rounded-full bg-[hsl(160,60%,40%)]" title="Verde" />
+              {currentColors.map((item, index) => (
+                <div 
+                  key={index}
+                  className="rounded-full transition-all duration-300"
+                  style={{ 
+                    backgroundColor: item.color,
+                    width: `${32 - (index * 4)}px`,
+                    height: `${32 - (index * 4)}px`
+                  }}
+                  title={item.name}
+                />
+              ))}
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3">
-              As cores vibrantes da logo aparecem em ambos os temas
+              {mounted && resolvedTheme === 'dark' 
+                ? 'Tons vibrantes e quentes para o tema escuro'
+                : 'Cores alegres e suaves para o tema claro'
+              }
             </p>
           </div>
         </div>
