@@ -305,8 +305,8 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
                 <Phone className={`w-5 h-5 ${callAlertEnabled ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
               <div className="text-left">
-                <span className="text-foreground">Alerta de Chamada</span>
-                <p className="text-xs text-muted-foreground">Receber ligação simulada</p>
+                <span className="text-foreground">Me ligue pra lembrar</span>
+                <p className="text-xs text-muted-foreground">O Kairo vai te ligar pra não esquecer do evento</p>
               </div>
             </div>
             <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
