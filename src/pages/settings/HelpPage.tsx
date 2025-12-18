@@ -46,9 +46,11 @@ const HelpPage = () => {
       <div className="px-4 pb-8 space-y-6">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-3xl p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-primary" />
-          </div>
+          <img 
+            src="/lovable-uploads/a50ceee9-2580-484c-8813-89648819a270.png" 
+            alt="Kairo" 
+            className="w-16 h-16 mx-auto mb-4 rounded-full object-cover"
+          />
           <h2 className="text-lg font-semibold text-foreground mb-2">Como podemos ajudar?</h2>
           <p className="text-sm text-muted-foreground">
             Estamos aqui para garantir a melhor experiência com o Kairo
