@@ -150,6 +150,61 @@ async function saveUserPattern(
   }
 }
 
+// Map category to emoji
+function getCategoryEmoji(category: string): string {
+  const emojiMap: Record<string, string> = {
+    // Saúde
+    'medico': '🏥',
+    'hospital': '🏥',
+    'saude': '💊',
+    'dentista': '🦷',
+    
+    // Fitness
+    'academia': '💪',
+    'treino': '🏋️',
+    'esporte': '🏃',
+    'corrida': '🏃',
+    
+    // Trabalho
+    'trabalho': '💼',
+    'reuniao': '📝',
+    'empresa': '🏢',
+    
+    // Lazer
+    'cinema': '🎬',
+    'filme': '🎬',
+    'show': '🎵',
+    'teatro': '🎭',
+    'festa': '🎉',
+    'aniversario': '🎂',
+    'casamento': '💒',
+    'formatura': '🎓',
+    
+    // Alimentação
+    'restaurante': '🍽️',
+    'lanchonete': '🍔',
+    'cafe': '☕',
+    'almoco': '🍕',
+    'jantar': '🍷',
+    
+    // Outros
+    'viagem': '✈️',
+    'compras': '🛒',
+    'mercado': '🛒',
+    'barbearia': '💇',
+    'beleza': '💅',
+    'pet': '🐕',
+    'carro': '🚗',
+    'casa': '🏠',
+    'pessoal': '📌',
+    'religioso': '⛪',
+    'geral': '📅',
+    'outro': '📅',
+  };
+  
+  return emojiMap[category?.toLowerCase()] || '📅';
+}
+
 // Check if date/time is in the past
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
@@ -238,6 +293,7 @@ async function executeAction(
             is_all_day: isAllDay,
             priority: action.prioridade || 'medium',
             category: action.categoria || 'geral',
+            emoji: getCategoryEmoji(action.categoria || 'geral'),
             status: 'pending',
             notification_enabled: true
           })
@@ -460,6 +516,7 @@ serve(async (req) => {
           is_all_day: imageIsAllDay,
           priority: 'medium',
           category: detectedCategory,
+          emoji: getCategoryEmoji(detectedCategory),
           status: 'pending',
           notification_enabled: true
         })
