@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { format, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Phone, 
   Bell, 
@@ -137,7 +138,24 @@ const EventDetailPage = ({
   };
 
   const handleEdit = () => {
-    setShowEditArea(true);
+    if (currentEvent && onEditEvent) {
+      onEditEvent(currentEvent.id);
+    }
+  };
+
+  const handleColorChange = async (colorId: string) => {
+    if (!currentEvent) return;
+    
+    try {
+      await supabase
+        .from('events')
+        .update({ color: colorId })
+        .eq('id', currentEvent.id);
+      
+      setShowColorPicker(false);
+    } catch (error) {
+      console.error('Erro ao atualizar cor:', error);
+    }
   };
 
   const handleSendEdit = () => {
@@ -363,25 +381,32 @@ const EventDetailPage = ({
 
           {/* Color Picker Popup */}
           {showColorPicker && (
-            <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl p-4 shadow-lg z-20 border border-border/20">
-              <p className="text-muted-foreground text-sm mb-3">Cor do Evento</p>
-              <div className="flex flex-wrap gap-2">
-                {COLORS.map((color) => (
-                  <button
-                    key={color.id}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      color.border ? 'border-2 border-muted-foreground' : ''
-                    }`}
-                    style={{ backgroundColor: color.color }}
-                    onClick={() => setShowColorPicker(false)}
-                  >
-                    {color.id === 'none' && (
-                      <div className="w-6 h-0.5 bg-muted-foreground rotate-45" />
-                    )}
-                  </button>
-                ))}
+            <>
+              {/* Overlay para fechar ao clicar fora */}
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setShowColorPicker(false)} 
+              />
+              <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl p-4 shadow-lg z-20 border border-border/20">
+                <p className="text-muted-foreground text-sm mb-3">Cor do Evento</p>
+                <div className="flex flex-wrap gap-2">
+                  {COLORS.map((color) => (
+                    <button
+                      key={color.id}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                        color.border ? 'border-2 border-muted-foreground' : ''
+                      }`}
+                      style={{ backgroundColor: color.color }}
+                      onClick={() => handleColorChange(color.id)}
+                    >
+                      {color.id === 'none' && (
+                        <div className="w-6 h-0.5 bg-muted-foreground rotate-45" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Delete Confirmation */}
