@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mask fade effect for fox icon */
+.mask-fade-bottom {
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
 @layer base {
   :root {
     /* Core backgrounds - Midnight warmth */

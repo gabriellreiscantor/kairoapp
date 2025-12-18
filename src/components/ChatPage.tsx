@@ -1158,7 +1158,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             {/* Welcome message */}
             <div className="flex items-start gap-3 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
-                <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+<img src={kairoFox} alt="Kairo" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
               <div className="flex-1">
                 <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
@@ -1218,7 +1218,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.content && (
                       <div className="flex items-start gap-3 pl-1">
                         <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                          <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+<img src={kairoFox} alt="Kairo" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <div className="flex-1 pt-0.5">
                           <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
@@ -1232,7 +1232,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.confirmationData && (
                       <div className="flex items-start gap-3 pl-1">
                         <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                          <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+<img src={kairoFox} alt="Kairo" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <EventConfirmationCard
                           resumo={message.confirmationData}
@@ -1309,7 +1309,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           {isLoading && (
             <div className="flex items-start gap-3 mb-4 pl-1">
               <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover" />
+                <img src={kairoFox} alt="Kairo" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
               <div className="flex items-center gap-1 pt-2">
                 <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0ms]" />
