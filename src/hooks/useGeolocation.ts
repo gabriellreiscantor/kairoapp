@@ -116,7 +116,7 @@ export const useGeolocation = () => {
     
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=br`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=br&addressdetails=1`,
         {
           headers: {
             'Accept-Language': 'pt-BR',
@@ -128,7 +128,7 @@ export const useGeolocation = () => {
       
       const data = await response.json();
       return data.map((item: any) => ({
-        display_name: item.display_name,
+        display_name: item.address ? formatAddress(item.address) : item.display_name,
         lat: item.lat,
         lon: item.lon,
       }));
