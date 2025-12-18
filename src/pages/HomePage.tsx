@@ -52,18 +52,23 @@ const HomePage = () => {
   const handleCreateEvent = (eventData: {
     title: string;
     date: string;
-    time: string;
-    priority: Priority;
+    time: string | null;
+    priority: string;
     alertType: string;
     repeat: string;
     notes: string;
+    emoji: string;
+    is_all_day: boolean;
+    color: string;
+    alerts: { time: string }[];
+    location: string;
   }) => {
     const newEvent: Event = {
       id: Date.now().toString(),
       title: eventData.title,
       time: eventData.time || "00:00",
       date: eventData.date || format(today, "yyyy-MM-dd"),
-      priority: eventData.priority,
+      priority: (eventData.priority as Priority) || "medium",
     };
     setEvents([...events, newEvent]);
   };

@@ -1,5 +1,6 @@
-import { Check, Pencil, Bell, Phone, Calendar, MapPin } from "lucide-react";
+import { Check, Pencil, Bell, Phone, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { getColorClassName } from "@/lib/event-constants";
 
 interface EventConfirmationCardProps {
   resumo: {
@@ -8,13 +9,18 @@ interface EventConfirmationCardProps {
     hora: string;
     local: string;
     notificacao: string;
+    emoji?: string;
+    color?: string;
+    is_all_day?: boolean;
   };
   onConfirm: () => void;
   onEdit: () => void;
 }
 
 const EventConfirmationCard = ({ resumo, onConfirm, onEdit }: EventConfirmationCardProps) => {
-  const isAllDay = !resumo.hora || resumo.hora === "Dia inteiro";
+  const isAllDay = resumo.is_all_day || !resumo.hora || resumo.hora === "Dia inteiro";
+  const emoji = resumo.emoji || "📅";
+  const color = resumo.color || "primary";
   
   return (
     <div className="w-full max-w-[320px]">
@@ -23,13 +29,14 @@ const EventConfirmationCard = ({ resumo, onConfirm, onEdit }: EventConfirmationC
       
       {/* Event Card */}
       <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl p-4 space-y-3">
-        {/* Title row */}
+        {/* Title row with emoji */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-orange-500">🔴</span>
+            <div className={`w-8 h-8 rounded-full ${getColorClassName(color)} flex items-center justify-center flex-shrink-0`}>
+              <span className="text-base">{emoji}</span>
+            </div>
             <span className="text-base font-semibold text-foreground">{resumo.titulo}</span>
           </div>
-          <Calendar className="w-5 h-5 text-muted-foreground" />
         </div>
         
         {/* Date and time row */}
@@ -50,14 +57,14 @@ const EventConfirmationCard = ({ resumo, onConfirm, onEdit }: EventConfirmationC
         {/* Notification info */}
         <div className="flex items-center gap-2 text-muted-foreground">
           <Bell className="w-4 h-4" />
-          <span className="text-sm">{resumo.notificacao || "09:00, no dia"}</span>
+          <span className="text-sm">{resumo.notificacao || "1 hora antes"}</span>
         </div>
         
         {/* Location/Description */}
         {resumo.local && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="w-4 h-4" />
-            <span className="text-sm">{resumo.local}</span>
+            <span className="text-sm truncate">{resumo.local}</span>
           </div>
         )}
       </div>
