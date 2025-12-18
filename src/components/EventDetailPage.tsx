@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +13,11 @@ import {
   Copy,
   Navigation,
   X,
-  Send
+  Send,
+  Check
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { EVENT_COLORS, getColorClassName } from "@/lib/event-constants";
 
 interface Event {
   id: string;
@@ -25,6 +27,7 @@ interface Event {
   location?: string;
   isAllDay?: boolean;
   emoji?: string;
+  color?: string;
 }
 
 interface EventDetailPageProps {
@@ -37,25 +40,6 @@ interface EventDetailPageProps {
   onEditEvent?: (eventId: string) => void;
   onNavigateToChat?: (eventId: string, message: string) => void;
 }
-
-const COLORS = [
-  { id: 'none', color: 'transparent', border: true },
-  { id: 'red', color: '#EF4444' },
-  { id: 'orange', color: '#F97316' },
-  { id: 'amber', color: '#F59E0B' },
-  { id: 'yellow', color: '#EAB308' },
-  { id: 'lime', color: '#84CC16' },
-  { id: 'green', color: '#22C55E' },
-  { id: 'cyan', color: '#06B6D4' },
-  { id: 'blue', color: '#3B82F6' },
-  { id: 'violet', color: '#8B5CF6' },
-  { id: 'purple', color: '#A855F7' },
-  { id: 'pink', color: '#EC4899' },
-];
-
-const CALENDARS = [
-  { id: 'kairo', name: 'Kairo', color: '#F97316' },
-];
 
 const SWIPE_THRESHOLD = 100;
 
@@ -74,7 +58,7 @@ const EventDetailPage = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLocationMenu, setShowLocationMenu] = useState(false);
-  const [selectedCalendar, setSelectedCalendar] = useState('kairo');
+  const [selectedColor, setSelectedColor] = useState('primary');
   const [editInput, setEditInput] = useState('');
   const [showEditArea, setShowEditArea] = useState(false);
   
@@ -87,7 +71,13 @@ const EventDetailPage = ({
 
   const currentEvent = events[0];
 
-  // Handle close with animation
+  // Sync selectedColor with event's color
+  useEffect(() => {
+    if (currentEvent?.color) {
+      setSelectedColor(currentEvent.color);
+    }
+  }, [currentEvent?.color]);
+
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -152,6 +142,7 @@ const EventDetailPage = ({
         .update({ color: colorId })
         .eq('id', currentEvent.id);
       
+      setSelectedColor(colorId);
       setShowColorPicker(false);
     } catch (error) {
       console.error('Erro ao atualizar cor:', error);
@@ -332,18 +323,17 @@ const EventDetailPage = ({
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              {/* Calendar */}
+              {/* Calendar/Color */}
               <button 
                 onClick={() => setShowColorPicker(!showColorPicker)}
                 className="flex items-center justify-between py-3 border-t border-border/10 w-full"
               >
                 <div className="flex items-center gap-3">
                   <span 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: CALENDARS.find(c => c.id === selectedCalendar)?.color }}
+                    className={`w-4 h-4 rounded-full ${getColorClassName(selectedColor)}`}
                   />
                   <span className="text-primary">
-                    {CALENDARS.find(c => c.id === selectedCalendar)?.name}
+                    {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Kairo'}
                   </span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -387,24 +377,22 @@ const EventDetailPage = ({
                 className="fixed inset-0 z-10" 
                 onClick={() => setShowColorPicker(false)} 
               />
-              <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl p-4 shadow-lg z-20 border border-border/20">
-                <p className="text-muted-foreground text-sm mb-3">Cor do Evento</p>
-                <div className="flex flex-wrap gap-2">
-                  {COLORS.map((color) => (
-                    <button
-                      key={color.id}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                        color.border ? 'border-2 border-muted-foreground' : ''
-                      }`}
-                      style={{ backgroundColor: color.color }}
-                      onClick={() => handleColorChange(color.id)}
-                    >
-                      {color.id === 'none' && (
-                        <div className="w-6 h-0.5 bg-muted-foreground rotate-45" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+              <div className="absolute left-0 right-0 top-full mt-2 mx-0 bg-kairo-surface-3 rounded-2xl overflow-hidden shadow-lg z-20 border border-border/20">
+                {EVENT_COLORS.map((c) => (
+                  <button 
+                    key={c.value} 
+                    onClick={() => handleColorChange(c.value)} 
+                    className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-5 h-5 rounded-full ${c.className}`} />
+                      <span className="text-foreground">{c.label}</span>
+                    </div>
+                    {selectedColor === c.value && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </button>
+                ))}
               </div>
             </>
           )}
