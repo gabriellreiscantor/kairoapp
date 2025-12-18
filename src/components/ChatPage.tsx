@@ -344,7 +344,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  // Scroll listener for infinite pagination AND scroll button visibility
+  // Scroll listener for infinite pagination
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -354,15 +354,37 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       if (container.scrollTop < 100 && hasMoreMessages && !isLoadingMore && !isLoadingHistory) {
         loadMoreMessages();
       }
-      
-      // Show/hide scroll to bottom button
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      setShowScrollButton(distanceFromBottom > 200);
     };
     
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [hasMoreMessages, isLoadingMore, isLoadingHistory, messages]);
+
+  // Scroll button visibility - separate listener with timeout to ensure ref is ready
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    
+    const timeoutId = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      
+      const handleScrollButton = () => {
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        setShowScrollButton(distanceFromBottom > 200);
+      };
+      
+      // Check initial state
+      handleScrollButton();
+      
+      container.addEventListener('scroll', handleScrollButton);
+      cleanup = () => container.removeEventListener('scroll', handleScrollButton);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      cleanup?.();
+    };
+  }, []);
 
   const saveMessage = async (role: 'user' | 'assistant', content: string, metadata?: any) => {
     if (!user) return;
