@@ -136,11 +136,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [showEditButton, setShowEditButton] = useState(true);
   const [showCallAlertTooltip, setShowCallAlertTooltip] = useState(false);
   
-  // Timer to hide edit button after 5 seconds
+  // Timer to hide edit button after 10 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowEditButton(false);
-    }, 5000);
+    }, 10000);
     
     return () => clearTimeout(timer);
   }, []);
