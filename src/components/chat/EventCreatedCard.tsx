@@ -4,7 +4,7 @@ import {
   Scissors, Film, Waves, Dumbbell, Briefcase, 
   Heart, ShoppingCart, Utensils, GraduationCap, 
   Music, Plane, Car, Coffee, Users, Gamepad2,
-  Stethoscope, DollarSign, Home, CircleDot
+  Stethoscope, DollarSign, Home, CircleDot, Building
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,7 +55,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   lazer: <Gamepad2 className="w-5 h-5 text-primary" />,
   evento: <Calendar className="w-5 h-5 text-primary" />,
   geral: <CircleDot className="w-5 h-5 text-primary" />,
-  outro: <CircleDot className="w-5 h-5 text-primary" />,
+  outro: <Building className="w-5 h-5 text-primary" />,
 };
 
 // Get dynamic icon based on event category first, then title
