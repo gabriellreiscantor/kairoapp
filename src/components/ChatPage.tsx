@@ -650,11 +650,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         title: updatedEvent.title,
                         event_date: updatedEvent.event_date,
                         event_time: updatedEvent.event_time,
+                        duration_minutes: updatedEvent.duration_minutes,
                         location: updatedEvent.location,
                         category: updatedEvent.category || 'geral',
                         notification_enabled: updatedEvent.notification_enabled ?? true,
                         call_alert_enabled: updatedEvent.call_alert_enabled ?? false,
-                        isUpdate: true
+                        emoji: updatedEvent.emoji || '📅',
+                        color: updatedEvent.color || 'primary',
+                        is_all_day: updatedEvent.is_all_day ?? !updatedEvent.event_time,
+                        isUpdate: true,
+                        _createdAt: Date.now() // Para calcular se deve mostrar botão editar
                       };
                     } else if (updateResumo) {
                       // Fallback: convert from Portuguese format (no id available)
@@ -666,7 +671,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         category: 'geral',
                         notification_enabled: true,
                         call_alert_enabled: false,
-                        isUpdate: true
+                        emoji: '📅',
+                        color: 'primary',
+                        is_all_day: updateResumo.hora === 'Dia inteiro',
+                        isUpdate: true,
+                        _createdAt: Date.now()
                       };
                     }
                   } else if (showCreatedCard) {
@@ -678,11 +687,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       title: eventFromDb?.title || eventResumo?.titulo,
                       event_date: eventFromDb?.event_date || eventResumo?.data,
                       event_time: eventFromDb?.event_time || (eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora),
+                      duration_minutes: eventFromDb?.duration_minutes,
                       location: eventFromDb?.location || eventResumo?.local,
                       category: eventFromDb?.category || 'geral',
                       notification_enabled: eventFromDb?.notification_enabled ?? true,
                       call_alert_enabled: eventFromDb?.call_alert_enabled ?? false,
-                      resumo_evento: eventResumo
+                      emoji: eventFromDb?.emoji || '📅',
+                      color: eventFromDb?.color || 'primary',
+                      is_all_day: eventFromDb?.is_all_day ?? !eventFromDb?.event_time,
+                      resumo_evento: eventResumo,
+                      _createdAt: Date.now() // Para calcular se deve mostrar botão editar
                     };
                   }
                   
