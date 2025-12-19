@@ -64,11 +64,11 @@ workflows:
       
       - name: Add Firebase to Podfile
         script: |
-          cat << 'EOF' >> ios/App/Podfile
-          
-          # Firebase
-          pod 'Firebase/Messaging'
-          EOF
+          # Insert Firebase pod inside the App target block
+          sed -i '' "/target 'App' do/a\\
+            # Firebase\\
+            pod 'Firebase\/Messaging'\\
+          " ios/App/Podfile
       
       - name: Configure AppDelegate for Firebase Messaging
         script: |
