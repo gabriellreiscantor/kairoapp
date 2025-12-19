@@ -64,11 +64,22 @@ workflows:
       
       - name: Add Firebase to Podfile
         script: |
-          # Insert Firebase pod inside the App target block
-          sed -i '' "/target 'App' do/a\\
-            # Firebase\\
-            pod 'Firebase\/Messaging'\\
-          " ios/App/Podfile
+          ruby <<EOF
+          podfile_path = 'ios/App/Podfile'
+          content = File.read(podfile_path)
+          
+          # Add Firebase pod inside the App target
+          firebase_pod = "  pod 'Firebase/Messaging'"
+          
+          # Insert after the first 'target' line that contains capacitor pods
+          if content.include?("pod 'Capacitor'") && !content.include?("Firebase/Messaging")
+            content = content.gsub(/(pod 'Capacitor'\n)/, "\\1#{firebase_pod}\n")
+          end
+          
+          File.write(podfile_path, content)
+          puts "Firebase added to Podfile"
+          puts File.read(podfile_path)
+          EOF
       
       - name: Configure AppDelegate for Firebase Messaging
         script: |
