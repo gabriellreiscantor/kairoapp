@@ -32,7 +32,7 @@ workflows:
       - name: Add and Sync Capacitor iOS
         script: |
           rm -rf ios
-          npx cap add ios --package-manager cocoapods
+          npx cap add ios --packagemanager cocoapods
           npx cap sync ios
       
       - name: Add Camera and Photo Library Permissions to Info.plist
