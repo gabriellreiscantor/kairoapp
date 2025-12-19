@@ -32,7 +32,7 @@ workflows:
       - name: Add and Sync Capacitor iOS
         script: |
           rm -rf ios
-          npx cap add ios
+          npx cap add ios --package-manager cocoapods
           npx cap sync ios
       
       - name: Add Camera and Photo Library Permissions to Info.plist
@@ -64,37 +64,50 @@ workflows:
       
       - name: Add Firebase to Podfile
         script: |
-          echo "=== Checking ios directory structure ==="
-          ls -la ios/ || echo "ios/ not found"
-          ls -la ios/App/ || echo "ios/App/ not found"
-          
           PODFILE_PATH="ios/App/Podfile"
           
           if [ ! -f "$PODFILE_PATH" ]; then
-            echo "=== Podfile not found, showing directory structure ==="
-            find ios -name "Podfile" 2>/dev/null || echo "No Podfile found anywhere"
-            find ios -type f | head -50
-            exit 1
-          fi
-          
-          echo "=== Podfile found, adding Firebase ==="
-          
-          cat > /tmp/add_firebase.rb << 'RUBY_SCRIPT'
-          podfile_path = ARGV[0]
-          content = File.read(podfile_path)
-          
-          firebase_pod = "  pod 'Firebase/Messaging'"
-          
-          if content.include?("pod 'Capacitor'") && !content.include?("Firebase/Messaging")
-            content = content.gsub(/(pod 'Capacitor.*'\n)/, "\\1#{firebase_pod}\n")
+            echo "=== Podfile not found, creating with Firebase ==="
+            cat > "$PODFILE_PATH" << 'PODFILE_CONTENT'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+          platform :ios, '13.0'
+          use_frameworks!
+
+          install! 'cocoapods', :disable_input_output_paths => true
+
+          def capacitor_pods
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
+            pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+            pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
+            pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
           end
-          
-          File.write(podfile_path, content)
-          puts "Firebase added to Podfile"
-          puts File.read(podfile_path)
-          RUBY_SCRIPT
-          
-          ruby /tmp/add_firebase.rb "$PODFILE_PATH"
+
+          target 'App' do
+            capacitor_pods
+            pod 'Firebase/Messaging'
+          end
+
+          post_install do |installer|
+            assertDeploymentTarget(installer)
+          end
+          PODFILE_CONTENT
+            echo "=== Podfile created ==="
+            cat "$PODFILE_PATH"
+          else
+            echo "=== Podfile exists, checking Firebase ==="
+            if ! grep -q "Firebase/Messaging" "$PODFILE_PATH"; then
+              sed -i '' '/capacitor_pods/a\
+            pod '"'"'Firebase/Messaging'"'"'
+          ' "$PODFILE_PATH"
+              echo "Firebase added"
+            else
+              echo "Firebase already present"
+            fi
+            cat "$PODFILE_PATH"
+          fi
       
       - name: Configure AppDelegate for Firebase Messaging
         script: |
@@ -184,7 +197,9 @@ workflows:
         script: npx capacitor-assets generate --ios
       
       - name: Install CocoaPods
-        script: cd ios/App && pod install
+        script: |
+          rm -rf ios/App/CapApp-SPM
+          cd ios/App && pod install
       
       - name: Initialize keychain
         script: keychain initialize
