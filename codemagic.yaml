@@ -15,7 +15,7 @@ workflows:
         VITE_SUPABASE_URL: "https://codkpccwtffhoacwswso.supabase.co"
         VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvZGtwY2N3dGZmaG9hY3dzd3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDEwNjIsImV4cCI6MjA4MTQxNzA2Mn0.X_FY1v9E0HLlHFoK6ZQMqPEXKRCxN9RaXj4IQi7VK9w"
         VITE_SUPABASE_PROJECT_ID: "codkpccwtffhoacwswso"
-      node: 22
+      node: v22
       xcode: latest
       cocoapods: default
     
@@ -32,8 +32,12 @@ workflows:
       - name: Add and Sync Capacitor iOS
         script: |
           rm -rf ios
-          PLATFORM=ios npx cap add ios
-          PLATFORM=ios npx cap sync ios
+          npx cap add ios
+          npx cap sync ios
+          echo "=== Verificando estrutura iOS ==="
+          ls -la ios/
+          ls -la ios/App/
+          cat ios/App/Podfile || echo "Podfile não encontrado!"
       
       - name: Generate App Icons and Splash Screens
         script: npx capacitor-assets generate --ios
