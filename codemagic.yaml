@@ -15,7 +15,7 @@ workflows:
         VITE_SUPABASE_URL: "https://codkpccwtffhoacwswso.supabase.co"
         VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvZGtwY2N3dGZmaG9hY3dzd3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDEwNjIsImV4cCI6MjA4MTQxNzA2Mn0.X_FY1v9E0HLlHFoK6ZQMqPEXKRCxN9RaXj4IQi7VK9w"
         VITE_SUPABASE_PROJECT_ID: "codkpccwtffhoacwswso"
-      node: v22
+      node: v20
       xcode: latest
       cocoapods: default
     
@@ -31,18 +31,128 @@ workflows:
       
       - name: Add and Sync Capacitor iOS
         script: |
-          # Garantir que Xcode está configurado corretamente
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          
           rm -rf ios
           npx cap add ios
-          
-          echo "=== Verificando estrutura iOS ==="
-          ls -la ios/ || echo "Pasta ios não existe!"
-          ls -la ios/App/ || echo "Pasta ios/App não existe!"
-          cat ios/App/Podfile || echo "Podfile não encontrado!"
-          
           npx cap sync ios
+      
+      - name: Add Camera and Photo Library Permissions to Info.plist
+        script: |
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'This app needs camera access to capture images'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'This app needs photo library access to select images'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'This app needs permission to save photos'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'This app needs microphone access for audio recording'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'This app needs location access'" ios/App/App/Info.plist || true
+          echo "Camera and Photo Library permissions added to Info.plist"
+      
+      - name: Copy and Add GoogleService-Info.plist to Xcode Project
+        script: |
+          cp GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+          
+          ruby <<EOF
+          require 'xcodeproj'
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          target = project.targets.first
+          
+          file_ref = project.main_group['App'].new_file('GoogleService-Info.plist')
+          target.add_file_references([file_ref])
+          
+          project.save
+          EOF
+          echo "GoogleService-Info.plist added to Xcode project and target"
+      
+      - name: Add Firebase to Podfile
+        script: |
+          cat << 'EOF' >> ios/App/Podfile
+          
+          # Firebase
+          pod 'Firebase/Messaging'
+          EOF
+      
+      - name: Configure AppDelegate for Firebase Messaging
+        script: |
+          cat > ios/App/App/AppDelegate.swift << 'EOF'
+          import UIKit
+          import Capacitor
+          import Firebase
+          import FirebaseMessaging
+          import UserNotifications
+
+          @UIApplicationMain
+          class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+
+              var window: UIWindow?
+
+              func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+                  FirebaseApp.configure()
+                  
+                  UNUserNotificationCenter.current().delegate = self
+                  Messaging.messaging().delegate = self
+                  
+                  let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+                  UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { _, _ in }
+                  application.registerForRemoteNotifications()
+                  
+                  return true
+              }
+
+              func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                  Messaging.messaging().apnsToken = deviceToken
+                  NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+              }
+
+              func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                  NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+              }
+
+              func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+                  completionHandler([.banner, .badge, .sound])
+              }
+
+              func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+                  NotificationCenter.default.post(name: Notification.Name("pushNotificationReceived"), object: response.notification.request.content.userInfo)
+                  completionHandler()
+              }
+
+              func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+                  if let token = fcmToken {
+                      NotificationCenter.default.post(name: Notification.Name("FCMToken"), object: nil, userInfo: ["token": token])
+                  }
+              }
+
+              func applicationWillResignActive(_ application: UIApplication) {}
+              func applicationDidEnterBackground(_ application: UIApplication) {}
+              func applicationWillEnterForeground(_ application: UIApplication) {}
+              func applicationDidBecomeActive(_ application: UIApplication) {}
+              func applicationWillTerminate(_ application: UIApplication) {}
+              func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+                  return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+              }
+              func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+                  return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
+              }
+          }
+          EOF
+      
+      - name: Add Push Notification Entitlement
+        script: |
+          cat > ios/App/App/App.entitlements << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>aps-environment</key>
+              <string>production</string>
+          </dict>
+          </plist>
+          EOF
+      
+      - name: Set iOS version
+        script: |
+          cd ios/App
+          agvtool new-version -all 1
+          agvtool new-marketing-version 1.0.0
       
       - name: Generate App Icons and Splash Screens
         script: npx capacitor-assets generate --ios
