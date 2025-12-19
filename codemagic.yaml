@@ -70,30 +70,31 @@ workflows:
           
           PODFILE_PATH="ios/App/Podfile"
           
-          if [ -f "$PODFILE_PATH" ]; then
-            echo "=== Podfile found, adding Firebase ==="
-            ruby <<EOF
-            podfile_path = 'ios/App/Podfile'
-            content = File.read(podfile_path)
-            
-            firebase_pod = "  pod 'Firebase/Messaging'"
-            
-            if content.include?("pod 'Capacitor'") && !content.include?("Firebase/Messaging")
-              content = content.gsub(/(pod 'Capacitor.*'\n)/, "\\1#{firebase_pod}\n")
-            end
-            
-            File.write(podfile_path, content)
-            puts "Firebase added to Podfile"
-            puts File.read(podfile_path)
-EOF
-          else
+          if [ ! -f "$PODFILE_PATH" ]; then
             echo "=== Podfile not found, showing directory structure ==="
             find ios -name "Podfile" 2>/dev/null || echo "No Podfile found anywhere"
-            find ios -type f -name "*.podspec" 2>/dev/null || echo "No podspec found"
-            echo "=== Full ios structure ==="
             find ios -type f | head -50
             exit 1
           fi
+          
+          echo "=== Podfile found, adding Firebase ==="
+          
+          cat > /tmp/add_firebase.rb << 'RUBY_SCRIPT'
+          podfile_path = ARGV[0]
+          content = File.read(podfile_path)
+          
+          firebase_pod = "  pod 'Firebase/Messaging'"
+          
+          if content.include?("pod 'Capacitor'") && !content.include?("Firebase/Messaging")
+            content = content.gsub(/(pod 'Capacitor.*'\n)/, "\\1#{firebase_pod}\n")
+          end
+          
+          File.write(podfile_path, content)
+          puts "Firebase added to Podfile"
+          puts File.read(podfile_path)
+          RUBY_SCRIPT
+          
+          ruby /tmp/add_firebase.rb "$PODFILE_PATH"
       
       - name: Configure AppDelegate for Firebase Messaging
         script: |
