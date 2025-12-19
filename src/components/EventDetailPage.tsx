@@ -122,7 +122,7 @@ const SingleEventCard = ({
               {event.isAllDay ? 'Dia' : event.time?.split(':')[0] || '--'}
             </span>
             {!event.isAllDay && event.time && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm font-semibold text-muted-foreground">
                 :{event.time.split(':')[1]}
               </span>
             )}
