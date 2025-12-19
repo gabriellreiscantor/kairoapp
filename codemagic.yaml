@@ -31,13 +31,18 @@ workflows:
       
       - name: Add and Sync Capacitor iOS
         script: |
+          # Garantir que Xcode está configurado corretamente
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          
           rm -rf ios
           npx cap add ios
-          npx cap sync ios
+          
           echo "=== Verificando estrutura iOS ==="
-          ls -la ios/
-          ls -la ios/App/
+          ls -la ios/ || echo "Pasta ios não existe!"
+          ls -la ios/App/ || echo "Pasta ios/App não existe!"
           cat ios/App/Podfile || echo "Podfile não encontrado!"
+          
+          npx cap sync ios
       
       - name: Generate App Icons and Splash Screens
         script: npx capacitor-assets generate --ios
