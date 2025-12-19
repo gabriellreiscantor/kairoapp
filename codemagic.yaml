@@ -68,6 +68,9 @@ workflows:
           }
           EOF
       
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App && pod install
       
       - name: Set up code signing settings on Xcode project
         script: |
