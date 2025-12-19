@@ -187,14 +187,14 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           <div className="px-5 pb-6">
             <button 
               onClick={() => handleNavigate('/settings/plan')}
-              className="w-full rounded-2xl p-4 relative overflow-hidden bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple shadow-xl"
+              className="w-full rounded-2xl p-4 relative overflow-hidden gradient-gold shadow-xl"
               style={{
                 boxShadow: '0 8px 32px rgba(255, 107, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
               }}
             >
               {/* Animated glow effect */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10" />
-              <div className="absolute -inset-1 bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple opacity-30 blur-xl" />
+              <div className="absolute -inset-1 gradient-gold opacity-30 blur-xl" />
               
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
