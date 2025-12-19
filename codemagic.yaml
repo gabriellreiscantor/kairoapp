@@ -2,88 +2,64 @@ workflows:
   ios-workflow:
     name: iOS Build
     instance_type: mac_mini_m2
-    max_build_duration: 60
+    max_build_duration: 120
     integrations:
       app_store_connect: iOS SouArtista
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.kairo
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        VITE_SUPABASE_URL: "https://codkpccwtffhoacwswso.supabase.co"
+        VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvZGtwY2N3dGZmaG9hY3dzd3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDEwNjIsImV4cCI6MjA4MTQxNzA2Mn0.X_FY1v9E0HLlHFoK6ZQMqPEXKRCxN9RaXj4IQi7VK9w"
+        VITE_SUPABASE_PROJECT_ID: "codkpccwtffhoacwswso"
       node: 22
       xcode: latest
       cocoapods: default
+    
     scripts:
-      - name: Install npm dependencies
-        script: |
-          npm install
+      - name: Install dependencies
+        script: npm install
       
-      - name: Build web app
-        script: |
-          npm run build
+      - name: Install capacitor-assets
+        script: npm install -g @capacitor/assets
       
-      - name: Add iOS platform
-        script: |
-          npx cap add ios || true
+      - name: Build web assets
+        script: npm run build
       
-      - name: Sync Capacitor iOS
+      - name: Add and Sync Capacitor iOS
         script: |
-          npx cap sync ios
+          rm -rf ios
+          PLATFORM=ios npx cap add ios
+          PLATFORM=ios npx cap sync ios
       
-      - name: Configure App Icon
-        script: |
-          ICON_SOURCE="dist/assets/app-icon-1024.png"
-          ICON_DIR="ios/App/App/Assets.xcassets/AppIcon.appiconset"
-          
-          # iOS app icon sizes needed
-          declare -a sizes=("20" "29" "40" "58" "60" "76" "80" "87" "120" "152" "167" "180" "1024")
-          
-          for size in "${sizes[@]}"; do
-            sips -z $size $size "$ICON_SOURCE" --out "$ICON_DIR/AppIcon-${size}x${size}.png"
-          done
-          
-          # Create Contents.json for AppIcon
-          cat > "$ICON_DIR/Contents.json" << 'EOF'
-          {
-            "images": [
-              {"size": "20x20", "idiom": "iphone", "filename": "AppIcon-40x40.png", "scale": "2x"},
-              {"size": "20x20", "idiom": "iphone", "filename": "AppIcon-60x60.png", "scale": "3x"},
-              {"size": "29x29", "idiom": "iphone", "filename": "AppIcon-58x58.png", "scale": "2x"},
-              {"size": "29x29", "idiom": "iphone", "filename": "AppIcon-87x87.png", "scale": "3x"},
-              {"size": "40x40", "idiom": "iphone", "filename": "AppIcon-80x80.png", "scale": "2x"},
-              {"size": "40x40", "idiom": "iphone", "filename": "AppIcon-120x120.png", "scale": "3x"},
-              {"size": "60x60", "idiom": "iphone", "filename": "AppIcon-120x120.png", "scale": "2x"},
-              {"size": "60x60", "idiom": "iphone", "filename": "AppIcon-180x180.png", "scale": "3x"},
-              {"size": "20x20", "idiom": "ipad", "filename": "AppIcon-20x20.png", "scale": "1x"},
-              {"size": "20x20", "idiom": "ipad", "filename": "AppIcon-40x40.png", "scale": "2x"},
-              {"size": "29x29", "idiom": "ipad", "filename": "AppIcon-29x29.png", "scale": "1x"},
-              {"size": "29x29", "idiom": "ipad", "filename": "AppIcon-58x58.png", "scale": "2x"},
-              {"size": "40x40", "idiom": "ipad", "filename": "AppIcon-40x40.png", "scale": "1x"},
-              {"size": "40x40", "idiom": "ipad", "filename": "AppIcon-80x80.png", "scale": "2x"},
-              {"size": "76x76", "idiom": "ipad", "filename": "AppIcon-76x76.png", "scale": "1x"},
-              {"size": "76x76", "idiom": "ipad", "filename": "AppIcon-152x152.png", "scale": "2x"},
-              {"size": "83.5x83.5", "idiom": "ipad", "filename": "AppIcon-167x167.png", "scale": "2x"},
-              {"size": "1024x1024", "idiom": "ios-marketing", "filename": "AppIcon-1024x1024.png", "scale": "1x"}
-            ],
-            "info": {"version": 1, "author": "xcode"}
-          }
-          EOF
+      - name: Generate App Icons and Splash Screens
+        script: npx capacitor-assets generate --ios
       
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios/App && pod install
+      - name: Install CocoaPods
+        script: cd ios/App && pod install
+      
+      - name: Initialize keychain
+        script: keychain initialize
+      
+      - name: Add certificates to keychain
+        script: keychain add-certificates
       
       - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
+        script: xcode-project use-profiles
       
-      - name: Build ipa for distribution
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+    
     publishing:
       app_store_connect:
         auth: integration
