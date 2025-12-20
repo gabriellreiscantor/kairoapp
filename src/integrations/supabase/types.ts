@@ -170,6 +170,7 @@ export type Database = {
           preferred_times: Json | null
           smart_suggestions_enabled: boolean | null
           updated_at: string | null
+          voip_token: string | null
           weather_forecast_enabled: boolean | null
           weather_forecast_time: string | null
         }
@@ -190,6 +191,7 @@ export type Database = {
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null
           updated_at?: string | null
+          voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
         }
@@ -210,6 +212,7 @@ export type Database = {
           preferred_times?: Json | null
           smart_suggestions_enabled?: boolean | null
           updated_at?: string | null
+          voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
         }

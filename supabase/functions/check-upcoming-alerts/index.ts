@@ -72,7 +72,23 @@ Deno.serve(async (req) => {
           // Format time for display
           const timeDisplay = event.event_time?.slice(0, 5) || '';
 
-          // Send push notification via send-push-notification function
+          // Send VoIP push for iOS CallKit (primary) and regular push as fallback
+          const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
+            body: {
+              user_id: event.user_id,
+              event_id: event.id,
+              event_title: event.title,
+              event_time: event.event_time,
+              event_location: event.location || '',
+              event_emoji: '📅',
+            },
+          });
+
+          if (voipError) {
+            console.log(`VoIP push failed for ${event.id}, falling back to regular push:`, voipError);
+          }
+
+          // Also send regular push as fallback for Android and web
           const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
             body: {
               user_id: event.user_id,

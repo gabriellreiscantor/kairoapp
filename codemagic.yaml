@@ -44,7 +44,11 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'This app needs microphone access for audio recording'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Kairo needs your location to provide location-based reminders and alerts'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string 'Kairo needs your location to provide location-based reminders and alerts even when the app is in the background'" ios/App/App/Info.plist || true
-          echo "All permissions added to Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string 'voip'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string 'remote-notification'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:2 string 'fetch'" ios/App/App/Info.plist || true
+          echo "All permissions and background modes added to Info.plist"
       
       - name: Copy and Add GoogleService-Info.plist to Xcode Project
         script: |
@@ -111,7 +115,7 @@ workflows:
             cat "$PODFILE_PATH"
           fi
       
-      - name: Configure AppDelegate for Firebase Messaging
+      - name: Configure AppDelegate for Firebase Messaging and VoIP CallKit
         script: |
           cat > ios/App/App/AppDelegate.swift << 'EOF'
           import UIKit
@@ -119,11 +123,17 @@ workflows:
           import Firebase
           import FirebaseMessaging
           import UserNotifications
+          import PushKit
+          import CallKit
 
           @UIApplicationMain
-          class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+          class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate, PKPushRegistryDelegate {
 
               var window: UIWindow?
+              var voipRegistry: PKPushRegistry?
+              var callKitProvider: CXProvider?
+              var callKitController: CXCallController?
+              var pendingCallData: [String: Any]?
 
               func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
                   FirebaseApp.configure()
@@ -135,7 +145,104 @@ workflows:
                   UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { _, _ in }
                   application.registerForRemoteNotifications()
                   
+                  // Setup VoIP Push Registry
+                  setupVoIPRegistry()
+                  
+                  // Setup CallKit
+                  setupCallKit()
+                  
                   return true
+              }
+              
+              // MARK: - VoIP Push Setup
+              private func setupVoIPRegistry() {
+                  voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
+                  voipRegistry?.delegate = self
+                  voipRegistry?.desiredPushTypes = [.voIP]
+              }
+              
+              // MARK: - CallKit Setup
+              private func setupCallKit() {
+                  let config = CXProviderConfiguration()
+                  config.supportsVideo = false
+                  config.maximumCallsPerCallGroup = 1
+                  config.supportedHandleTypes = [.generic]
+                  config.ringtoneSound = nil  // Use system ringtone
+                  
+                  if let iconImage = UIImage(named: "AppIcon") {
+                      config.iconTemplateImageData = iconImage.pngData()
+                  }
+                  
+                  callKitProvider = CXProvider(configuration: config)
+                  callKitProvider?.setDelegate(self, queue: DispatchQueue.main)
+                  callKitController = CXCallController()
+              }
+              
+              // MARK: - PKPushRegistryDelegate
+              func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
+                  if type == .voIP {
+                      let token = pushCredentials.token.map { String(format: "%02x", $0) }.joined()
+                      print("[VoIP] Token received: \(token.prefix(20))...")
+                      
+                      // Post notification to JS layer
+                      NotificationCenter.default.post(
+                          name: Notification.Name("VoIPTokenReceived"),
+                          object: nil,
+                          userInfo: ["token": token]
+                      )
+                      
+                      // Also notify Capacitor plugin if available
+                      if let plugin = bridge?.plugin(withName: "CallKitVoip") as? NSObject {
+                          plugin.perform(Selector(("notifyListeners:data:")), with: "registration", with: ["token": token])
+                      }
+                  }
+              }
+              
+              func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
+                  guard type == .voIP else {
+                      completion()
+                      return
+                  }
+                  
+                  print("[VoIP] Received VoIP push: \(payload.dictionaryPayload)")
+                  
+                  let callerName = payload.dictionaryPayload["callerName"] as? String ?? "Kairo"
+                  let uuid = UUID()
+                  let eventId = payload.dictionaryPayload["eventId"] as? String ?? uuid.uuidString
+                  
+                  // Store payload data for later
+                  pendingCallData = payload.dictionaryPayload as? [String: Any]
+                  
+                  // Report incoming call to CallKit
+                  reportIncomingCall(uuid: uuid, callerName: callerName, eventId: eventId)
+                  
+                  completion()
+              }
+              
+              private func reportIncomingCall(uuid: UUID, callerName: String, eventId: String) {
+                  let update = CXCallUpdate()
+                  update.remoteHandle = CXHandle(type: .generic, value: eventId)
+                  update.localizedCallerName = callerName
+                  update.hasVideo = false
+                  update.supportsGrouping = false
+                  update.supportsUngrouping = false
+                  update.supportsHolding = false
+                  update.supportsDTMF = false
+                  
+                  callKitProvider?.reportNewIncomingCall(with: uuid, update: update) { error in
+                      if let error = error {
+                          print("[CallKit] Error reporting incoming call: \(error.localizedDescription)")
+                      } else {
+                          print("[CallKit] Incoming call reported successfully")
+                          
+                          // Notify JS layer about incoming call
+                          NotificationCenter.default.post(
+                              name: Notification.Name("CallKitCallStarted"),
+                              object: nil,
+                              userInfo: self.pendingCallData
+                          )
+                      }
+                  }
               }
 
               func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -174,9 +281,55 @@ workflows:
                   return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
               }
           }
+
+          // MARK: - CXProviderDelegate
+          extension AppDelegate: CXProviderDelegate {
+              func providerDidReset(_ provider: CXProvider) {
+                  print("[CallKit] Provider did reset")
+              }
+              
+              func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+                  print("[CallKit] Call answered")
+                  
+                  // Notify JS layer
+                  NotificationCenter.default.post(
+                      name: Notification.Name("CallKitCallAnswered"),
+                      object: nil,
+                      userInfo: pendingCallData
+                  )
+                  
+                  action.fulfill()
+              }
+              
+              func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+                  print("[CallKit] Call ended")
+                  
+                  // Notify JS layer
+                  NotificationCenter.default.post(
+                      name: Notification.Name("CallKitCallEnded"),
+                      object: nil,
+                      userInfo: pendingCallData
+                  )
+                  
+                  pendingCallData = nil
+                  action.fulfill()
+              }
+              
+              func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
+                  action.fulfill()
+              }
+              
+              func provider(_ provider: CXProvider, perform action: CXSetHeldCallAction) {
+                  action.fulfill()
+              }
+              
+              func provider(_ provider: CXProvider, perform action: CXSetMutedCallAction) {
+                  action.fulfill()
+              }
+          }
           EOF
       
-      - name: Add Push Notification Entitlement
+      - name: Add Push Notification and VoIP Entitlements
         script: |
           cat > ios/App/App/App.entitlements << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -185,6 +338,8 @@ workflows:
           <dict>
               <key>aps-environment</key>
               <string>production</string>
+              <key>com.apple.developer.pushkit.voip</key>
+              <true/>
           </dict>
           </plist>
           EOF
