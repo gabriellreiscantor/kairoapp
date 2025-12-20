@@ -34,6 +34,7 @@ interface Event {
 type ViewType = 'chat' | 'list' | 'calendar';
 const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
 const SWIPE_THRESHOLD = 50;
+const SWIPE_ANGLE_THRESHOLD = 30; // Degrees - if angle > 30deg from horizontal, it's a scroll
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -117,6 +118,8 @@ const MainApp = () => {
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [isSwipeDecided, setIsSwipeDecided] = useState(false);
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
@@ -287,11 +290,14 @@ const MainApp = () => {
     setShowMonthPicker(false);
   };
 
-  // Swipe navigation handlers
+  // Swipe navigation handlers - improved to separate horizontal swipe from vertical scroll
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(true);
+    setIsSwipeDecided(false);
+    setIsHorizontalSwipe(false);
+    setSwipeX(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -300,7 +306,17 @@ const MainApp = () => {
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
     
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    // Decide direction on first significant movement (after 10px)
+    if (!isSwipeDecided && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+      setIsSwipeDecided(true);
+      // Calculate angle: if mostly horizontal (angle < 30deg), it's a swipe
+      const angle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
+      const isHorizontal = angle < SWIPE_ANGLE_THRESHOLD || angle > (180 - SWIPE_ANGLE_THRESHOLD);
+      setIsHorizontalSwipe(isHorizontal);
+    }
+    
+    // Only track horizontal movement if decided as horizontal swipe
+    if (isSwipeDecided && isHorizontalSwipe) {
       setSwipeX(deltaX);
     }
   };
@@ -308,16 +324,21 @@ const MainApp = () => {
   const handleTouchEnd = () => {
     if (!isSwiping) return;
     
-    const currentIndex = VIEW_ORDER.indexOf(activeView);
-    
-    if (swipeX > SWIPE_THRESHOLD && currentIndex > 0) {
-      setActiveView(VIEW_ORDER[currentIndex - 1]);
-    } else if (swipeX < -SWIPE_THRESHOLD && currentIndex < VIEW_ORDER.length - 1) {
-      setActiveView(VIEW_ORDER[currentIndex + 1]);
+    // Only navigate if it was a horizontal swipe
+    if (isSwipeDecided && isHorizontalSwipe) {
+      const currentIndex = VIEW_ORDER.indexOf(activeView);
+      
+      if (swipeX > SWIPE_THRESHOLD && currentIndex > 0) {
+        setActiveView(VIEW_ORDER[currentIndex - 1]);
+      } else if (swipeX < -SWIPE_THRESHOLD && currentIndex < VIEW_ORDER.length - 1) {
+        setActiveView(VIEW_ORDER[currentIndex + 1]);
+      }
     }
     
     setSwipeX(0);
     setIsSwiping(false);
+    setIsSwipeDecided(false);
+    setIsHorizontalSwipe(false);
   };
 
   // Floating Dock Component
@@ -337,7 +358,13 @@ const MainApp = () => {
           onClick={() => setActiveView('chat')}
           className="w-14 h-14 rounded-full overflow-hidden mx-1 shadow-lg shadow-primary/30 border-2 border-primary/30"
         >
-          <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
+          <img 
+            src={kairoLogo} 
+            alt="Kairo" 
+            className="w-full h-full object-cover pointer-events-none"
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+          />
         </button>
         
         {/* Calendar View */}
@@ -367,13 +394,13 @@ const MainApp = () => {
         />
         
         <div
-          className="h-screen"
+          className="h-screen touch-pan-y"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ 
-            transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
-            transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+            transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
+            transition: (isSwiping && isHorizontalSwipe) ? 'none' : 'transform 0.2s ease-out'
           }}
         >
           <ChatPage 
@@ -408,13 +435,13 @@ const MainApp = () => {
   // Calendar/List Views
   return (
     <div 
-      className="h-screen bg-background flex flex-col overflow-hidden"
+      className="h-screen bg-background flex flex-col overflow-hidden touch-pan-y"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ 
-        transform: isSwiping ? `translateX(${swipeX * 0.3}px)` : undefined,
-        transition: isSwiping ? 'none' : 'transform 0.2s ease-out'
+        transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
+        transition: (isSwiping && isHorizontalSwipe) ? 'none' : 'transform 0.2s ease-out'
       }}
     >
       {/* Gradient Overlay Top */}

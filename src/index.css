@@ -178,11 +178,18 @@
 }
 
 @layer base {
-  /* Global scrollbar hiding - applied to root elements */
+  /* Native iOS/Android touch performance */
   html, body, #root {
     overflow-x: hidden;
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
+  
+  /* Enable smooth scrolling on scrollable containers */
+  .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
   }
   
   html::-webkit-scrollbar,
@@ -201,6 +208,20 @@
     outline: none !important;
     --tw-ring-shadow: none !important;
     --tw-ring-offset-shadow: none !important;
+  }
+  
+  /* Prevent image download/context menu on mobile - protect all images */
+  img {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+  
+  /* Allow pointer events on images that need to be clickable */
+  img.clickable, button img, a img {
+    pointer-events: auto;
   }
 
   /* Plan card gradient - dark gradient that works on both themes */
@@ -352,17 +373,23 @@
     pointer-events: none;
   }
   
-  /* Floating dock navigation */
+  /* Floating dock navigation - GPU accelerated */
   .floating-dock {
     @apply backdrop-blur-xl rounded-full;
     @apply border border-border/20;
     @apply shadow-2xl;
     background-color: hsl(var(--kairo-surface-2) / 0.8);
     box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3), 0 0 60px hsl(var(--primary) / 0.1);
+    transform: translateZ(0);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
   
   .dock-item {
     @apply flex items-center justify-center transition-all duration-300;
+    transform: translateZ(0);
+    will-change: transform;
   }
   
   .dock-item.active {
@@ -375,10 +402,12 @@
     @apply transition-all duration-300;
     background: linear-gradient(135deg, hsl(12 95% 55%) 0%, hsl(350 85% 50%) 50%, hsl(280 70% 45%) 100%);
     box-shadow: 0 4px 20px hsl(var(--primary) / 0.4);
+    transform: translateZ(0);
+    will-change: transform;
   }
   
   .dock-item-center:active {
-    transform: scale(0.95);
+    transform: scale(0.95) translateZ(0);
   }
   
   /* Timeline connector (invisível mas presente para estrutura) */
