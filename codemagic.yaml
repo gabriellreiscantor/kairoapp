@@ -41,8 +41,9 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'This app needs photo library access to select images'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'This app needs permission to save photos'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'This app needs microphone access for audio recording'" ios/App/App/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'This app needs location access'" ios/App/App/Info.plist || true
-          echo "Camera and Photo Library permissions added to Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Kairo needs your location to provide location-based reminders and alerts'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string 'Kairo needs your location to provide location-based reminders and alerts even when the app is in the background'" ios/App/App/Info.plist || true
+          echo "All permissions added to Info.plist"
       
       - name: Copy and Add GoogleService-Info.plist to Xcode Project
         script: |
