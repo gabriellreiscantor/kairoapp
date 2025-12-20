@@ -32,9 +32,11 @@ interface Event {
 }
 
 type ViewType = 'chat' | 'list' | 'calendar';
-const VIEW_ORDER: ViewType[] = ['chat', 'list', 'calendar'];
+// Ordem: chat -> calendar -> list (swipe direita avança, swipe esquerda volta)
+const VIEW_ORDER: ViewType[] = ['chat', 'calendar', 'list'];
 const SWIPE_THRESHOLD = 50;
 const SWIPE_ANGLE_THRESHOLD = 30; // Degrees - if angle > 30deg from horizontal, it's a scroll
+const SWIPE_TRANSITION_DURATION = '0.4s'; // Duração da animação de transição
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -269,42 +271,57 @@ const MainApp = () => {
   const testMeLigue = useCallback(async () => {
     if (!user) return;
     
+    const testEventData = {
+      id: 'test-event',
+      title: 'Barbearia',
+      emoji: '✂️',
+      time: '15:00',
+      location: 'Centro',
+    };
+    
+    // Verificar se estamos em plataforma nativa
+    const isNative = Capacitor.isNativePlatform();
+    
+    if (!isNative) {
+      // Na web, sempre usar fallback direto
+      console.log('[MainApp] Web platform - using direct call screen');
+      showCall(testEventData, language);
+      return;
+    }
+    
     try {
       console.log('[MainApp] Testing real VoIP push...');
       const { data, error } = await supabase.functions.invoke('send-voip-push', {
         body: {
           user_id: user.id,
-          event_id: 'test-event',
-          event_title: 'Barbearia',
-          event_time: '15:00',
-          event_location: 'Centro',
-          event_emoji: '✂️',
+          event_id: testEventData.id,
+          event_title: testEventData.title,
+          event_time: testEventData.time,
+          event_location: testEventData.location,
+          event_emoji: testEventData.emoji,
         },
       });
       
       if (error) {
         console.error('[MainApp] VoIP push error:', error);
         // Fallback to web version if VoIP fails
-        showCall({
-          id: 'test-event',
-          title: 'Barbearia',
-          emoji: '✂️',
-          time: '15:00',
-          location: 'Centro',
-        }, language);
-      } else {
-        console.log('[MainApp] VoIP push sent:', data);
+        showCall(testEventData, language);
+        return;
       }
+      
+      // Verificar se o servidor retornou que não há token
+      if (data?.message?.includes('no token') || data?.error) {
+        console.log('[MainApp] No VoIP token registered, using fallback');
+        showCall(testEventData, language);
+        return;
+      }
+      
+      console.log('[MainApp] VoIP push sent:', data);
+      // Em native com sucesso, o CallKit vai mostrar a tela de chamada
     } catch (err) {
       console.error('[MainApp] Test VoIP error:', err);
       // Fallback to web version
-      showCall({
-        id: 'test-event',
-        title: 'Barbearia',
-        emoji: '✂️',
-        time: '15:00',
-        location: 'Centro',
-      }, language);
+      showCall(testEventData, language);
     }
   }, [user, showCall, language]);
 
@@ -360,10 +377,24 @@ const MainApp = () => {
     if (isSwipeDecided && isHorizontalSwipe) {
       const currentIndex = VIEW_ORDER.indexOf(activeView);
       
-      if (swipeX > SWIPE_THRESHOLD && currentIndex > 0) {
-        setActiveView(VIEW_ORDER[currentIndex - 1]);
-      } else if (swipeX < -SWIPE_THRESHOLD && currentIndex < VIEW_ORDER.length - 1) {
-        setActiveView(VIEW_ORDER[currentIndex + 1]);
+      // Swipe para ESQUERDA (negativo) = avança na ordem (chat -> calendar -> list)
+      // Swipe para DIREITA (positivo) = volta na ordem (list -> calendar -> chat)
+      if (swipeX < -SWIPE_THRESHOLD) {
+        // Swipe esquerda
+        if (activeView === 'chat') {
+          // No chat, swipe esquerda abre settings
+          setIsSettingsOpen(true);
+        } else if (currentIndex < VIEW_ORDER.length - 1) {
+          // Avança para próxima view (calendar -> list)
+          setActiveView(VIEW_ORDER[currentIndex + 1]);
+        }
+        // Na list view, swipe esquerda não faz nada (está no fim)
+      } else if (swipeX > SWIPE_THRESHOLD) {
+        // Swipe direita = volta
+        if (currentIndex > 0) {
+          setActiveView(VIEW_ORDER[currentIndex - 1]);
+        }
+        // No chat (índice 0), swipe direita não faz nada
       }
     }
     
@@ -388,14 +419,19 @@ const MainApp = () => {
         {/* Center - Chat/Kairo Button */}
         <button
           onClick={() => setActiveView('chat')}
-          className="w-14 h-14 rounded-full overflow-hidden mx-1 shadow-lg shadow-primary/30 border-2 border-primary/30"
+          onTouchEnd={(e) => {
+            e.stopPropagation();
+            setActiveView('chat');
+          }}
+          className="w-14 h-14 rounded-full overflow-hidden mx-1 shadow-lg shadow-primary/30 border-2 border-primary/30 active:scale-95 transition-transform"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <img 
             src={kairoLogo} 
             alt="Kairo" 
-            className="w-full h-full object-cover pointer-events-none"
+            className="w-full h-full object-cover"
             draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
+            style={{ pointerEvents: 'none' }}
           />
         </button>
         
@@ -432,7 +468,7 @@ const MainApp = () => {
           onTouchEnd={handleTouchEnd}
           style={{ 
             transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
-            transition: (isSwiping && isHorizontalSwipe) ? 'none' : 'transform 0.2s ease-out'
+            transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
           }}
         >
           <ChatPage 
@@ -473,7 +509,7 @@ const MainApp = () => {
       onTouchEnd={handleTouchEnd}
       style={{ 
         transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
-        transition: (isSwiping && isHorizontalSwipe) ? 'none' : 'transform 0.2s ease-out'
+        transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
       }}
     >
       {/* Gradient Overlay Top */}

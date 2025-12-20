@@ -29,10 +29,13 @@ export const useImageCapture = (): UseImageCaptureReturn => {
     });
   };
 
-  const createFileInput = (accept: string, capture?: string): HTMLInputElement => {
+  // Formatos de imagem suportados (JPEG, PNG, HEIC, HEIF, WEBP)
+  const ACCEPTED_IMAGE_FORMATS = 'image/jpeg,image/png,image/heic,image/heif,image/webp,.jpg,.jpeg,.png,.heic,.heif,.webp';
+
+  const createFileInput = (capture?: string): HTMLInputElement => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = accept;
+    input.accept = ACCEPTED_IMAGE_FORMATS;
     if (capture) {
       input.setAttribute('capture', capture);
     }
@@ -41,7 +44,7 @@ export const useImageCapture = (): UseImageCaptureReturn => {
 
   const captureFromCamera = useCallback(async (): Promise<{ base64: string; mimeType: string } | null> => {
     return new Promise((resolve) => {
-      const input = createFileInput('image/*', 'environment');
+      const input = createFileInput('environment');
       cameraInputRef.current = input;
 
       input.onchange = async (event) => {
@@ -64,7 +67,7 @@ export const useImageCapture = (): UseImageCaptureReturn => {
 
   const selectFromGallery = useCallback(async (): Promise<{ base64: string; mimeType: string } | null> => {
     return new Promise((resolve) => {
-      const input = createFileInput('image/*');
+      const input = createFileInput();
       galleryInputRef.current = input;
 
       input.onchange = async (event) => {
