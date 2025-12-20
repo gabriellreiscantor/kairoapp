@@ -20,6 +20,7 @@ import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 import EventListCard from "@/components/chat/EventListCard";
 import EditEventModal from "@/components/EditEventModal";
+import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -131,6 +132,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcribedText, setTranscribedText] = useState<string | null>(null);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [showWeeklySuggestion, setShowWeeklySuggestion] = useState(false);
   const [showCalendarSuggestion, setShowCalendarSuggestion] = useState(false);
@@ -1011,7 +1013,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     completeOnboarding();
   };
 
-  // AUDIO RECORDING
+  // AUDIO RECORDING - with preview before sending
   const handleMicPress = async () => {
     if (isRecording) {
       // Stop recording and transcribe
@@ -1043,21 +1045,45 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         console.log('Transcription result:', result);
 
         if (result.text) {
-          // Send transcribed text to chat
-          await handleSend(result.text);
+          // Show preview instead of sending immediately
+          setTranscribedText(result.text);
         }
       } catch (error) {
         console.error('Transcription error:', error);
+        setTranscribedText(null);
       } finally {
         setIsTranscribing(false);
       }
     } else {
       // Start recording
+      setTranscribedText(null);
       try {
         await startRecording();
       } catch (error) {
         console.error('Recording error:', error);
       }
+    }
+  };
+
+  // Audio overlay handlers
+  const handleCancelAudio = () => {
+    setTranscribedText(null);
+    setIsTranscribing(false);
+  };
+
+  const handleConfirmAudioSend = async () => {
+    if (transcribedText) {
+      await handleSend(transcribedText);
+      setTranscribedText(null);
+    }
+  };
+
+  const handleRetryAudio = async () => {
+    setTranscribedText(null);
+    try {
+      await startRecording();
+    } catch (error) {
+      console.error('Recording error:', error);
     }
   };
 
@@ -1503,6 +1529,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           }}
         />
       )}
+
+      {/* Audio Recording Overlay */}
+      <AudioRecordingOverlay
+        isRecording={isRecording}
+        isTranscribing={isTranscribing}
+        transcribedText={transcribedText}
+        onCancel={handleCancelAudio}
+        onConfirmSend={handleConfirmAudioSend}
+        onRetry={handleRetryAudio}
+      />
     </div>
   );
 };
