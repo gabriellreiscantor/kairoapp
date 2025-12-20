@@ -265,16 +265,48 @@ const MainApp = () => {
     setIsCreateModalOpen(true);
   };
 
-  // Test function to simulate a "Me Ligue" call
-  const testMeLigue = useCallback(() => {
-    showCall({
-      id: 'test-event',
-      title: 'Barbearia',
-      emoji: '✂️',
-      time: '15:00',
-      location: 'Centro',
-    }, language);
-  }, [showCall, language]);
+  // Test function to trigger REAL VoIP push (native CallKit)
+  const testMeLigue = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      console.log('[MainApp] Testing real VoIP push...');
+      const { data, error } = await supabase.functions.invoke('send-voip-push', {
+        body: {
+          user_id: user.id,
+          event_id: 'test-event',
+          event_title: 'Barbearia',
+          event_time: '15:00',
+          event_location: 'Centro',
+          event_emoji: '✂️',
+        },
+      });
+      
+      if (error) {
+        console.error('[MainApp] VoIP push error:', error);
+        // Fallback to web version if VoIP fails
+        showCall({
+          id: 'test-event',
+          title: 'Barbearia',
+          emoji: '✂️',
+          time: '15:00',
+          location: 'Centro',
+        }, language);
+      } else {
+        console.log('[MainApp] VoIP push sent:', data);
+      }
+    } catch (err) {
+      console.error('[MainApp] Test VoIP error:', err);
+      // Fallback to web version
+      showCall({
+        id: 'test-event',
+        title: 'Barbearia',
+        emoji: '✂️',
+        time: '15:00',
+        location: 'Centro',
+      }, language);
+    }
+  }, [user, showCall, language]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);

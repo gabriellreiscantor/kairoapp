@@ -683,3 +683,17 @@
 .animate-pulse-ring {
   animation: pulse-ring 1.5s ease-out infinite;
 }
+
+/* Audio wave animation for recording */
+@keyframes audio-wave {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.audio-wave {
+  animation: audio-wave 0.8s ease-in-out infinite;
+}
