@@ -191,10 +191,6 @@ workflows:
                           userInfo: ["token": token]
                       )
                       
-                      // Also notify Capacitor plugin if available
-                      if let plugin = bridge?.plugin(withName: "CallKitVoip") as? NSObject {
-                          plugin.perform(Selector(("notifyListeners:data:")), with: "registration", with: ["token": token])
-                      }
                   }
               }
               
