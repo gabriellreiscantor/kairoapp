@@ -343,7 +343,7 @@ workflows:
       - name: Set iOS version
         script: |
           cd ios/App
-          agvtool new-version -all $(($(date +%s) / 60))
+          agvtool new-version -all $BUILD_NUMBER
           agvtool new-marketing-version 1.0.1
       
       - name: Generate App Icons and Splash Screens
