@@ -191,8 +191,8 @@ workflows:
       - name: Set iOS version
         script: |
           cd ios/App
-          agvtool new-version -all 1
-          agvtool new-marketing-version 1.0.0
+          agvtool new-version -all $(($(date +%s) / 60))
+          agvtool new-marketing-version 1.0.1
       
       - name: Generate App Icons and Splash Screens
         script: npx capacitor-assets generate --ios
