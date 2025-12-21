@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight
+  Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight, Trash2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,6 +41,34 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEditButton, setShowEditButton] = useState(isRecentlyCreated);
   const [showCallAlertTooltip, setShowCallAlertTooltip] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isCheckingDeleted, setIsCheckingDeleted] = useState(false);
+  
+  // Check if the event still exists in the database
+  useEffect(() => {
+    const checkIfEventExists = async () => {
+      if (!event.id) return;
+      
+      setIsCheckingDeleted(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('id')
+          .eq('id', event.id)
+          .maybeSingle();
+        
+        if (error || !data) {
+          setIsDeleted(true);
+        }
+      } catch (err) {
+        console.error('Error checking event existence:', err);
+      } finally {
+        setIsCheckingDeleted(false);
+      }
+    };
+    
+    checkIfEventExists();
+  }, [event.id]);
   
   // Timer to hide edit button after 15 seconds (only if recently created)
   useEffect(() => {
@@ -176,6 +204,53 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       onEdit(event.id);
     }
   };
+
+  // Render deleted state
+  if (isDeleted) {
+    const formatDateDeleted = (dateStr: string) => {
+      try {
+        const date = parseISO(dateStr);
+        return format(date, "d 'de' MMM", { locale: ptBR });
+      } catch {
+        return dateStr;
+      }
+    };
+
+    return (
+      <div ref={ref} className="w-full max-w-[320px]">
+        {/* Header text with deleted indicator */}
+        <div className="flex items-center gap-2 mb-3">
+          <Trash2 className="w-4 h-4 text-red-500/60" />
+          <p className="text-sm text-muted-foreground/60">Evento removido</p>
+        </div>
+        
+        {/* Deleted Event Card */}
+        <div className="bg-kairo-surface-2/50 border border-red-500/20 rounded-2xl p-4 space-y-2 opacity-70">
+          {/* Header: Emoji + Title (strikethrough) */}
+          <div className="flex items-center gap-3">
+            <span className="text-xl flex-shrink-0 opacity-50">{event.emoji || '📅'}</span>
+            <span className="text-base font-semibold text-foreground/60 line-through flex-1 truncate">
+              {event.title}
+            </span>
+          </div>
+          
+          {/* Date */}
+          <div className="text-sm text-muted-foreground/50 pl-9 line-through">
+            {formatDateDeleted(event.event_date)}
+            {event.event_time && ` às ${event.event_time.slice(0, 5)}`}
+          </div>
+          
+          {/* Location if exists */}
+          {event.location && (
+            <div className="flex items-center gap-2 pl-9 text-muted-foreground/50">
+              <MapPin className="w-3 h-3" />
+              <span className="text-sm line-through">{event.location}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="w-full max-w-[320px] animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
