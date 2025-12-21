@@ -16,7 +16,7 @@ import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
 import CallScreen from "@/components/CallScreen";
 import { useCallAlert } from "@/hooks/useCallAlert";
-import { useCallKitAlert } from "@/hooks/useCallKitAlert";
+import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useToast } from "@/hooks/use-toast";
@@ -63,8 +63,8 @@ const MainApp = () => {
     isPlaying 
   } = useCallAlert();
   
-  // CallKit hook for VoIP (iOS native only) - auto-registers on login
-  const { registerVoIPToken } = useCallKitAlert();
+  // CallKit context for VoIP (iOS native only) - agora roda no app start
+  const { registerVoIPToken } = useCallKit();
 
   // Push notifications hook - registers FCM token on native platforms
   usePushNotifications({

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CallKitProvider } from "@/contexts/CallKitContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -36,37 +37,40 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <LanguageProvider>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <OfflineOverlay />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<AuthPage />} />
-                
-                {/* Settings Routes */}
-                <Route path="/settings/calendars" element={<CalendarSettingsPage />} />
-                <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
-                <Route path="/settings/smart-tasks" element={<SmartTasksPage />} />
-                <Route path="/settings/features" element={<SpecialFeaturesPage />} />
-                <Route path="/settings/account" element={<AccountPage />} />
-                <Route path="/settings/appearance" element={<AppearancePage />} />
-                <Route path="/settings/language" element={<LanguagePage />} />
-                <Route path="/settings/help" element={<HelpPage />} />
-                <Route path="/settings/about" element={<AboutPage />} />
-                <Route path="/settings/plan" element={<MyPlanPage />} />
-                <Route path="/settings/subscription" element={<SubscriptionPage />} />
-                
-                {/* Legal Routes */}
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/eula" element={<EULAPage />} />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          {/* ⚡ CallKitProvider roda IMEDIATAMENTE - antes de qualquer login */}
+          <CallKitProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <OfflineOverlay />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  
+                  {/* Settings Routes */}
+                  <Route path="/settings/calendars" element={<CalendarSettingsPage />} />
+                  <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+                  <Route path="/settings/smart-tasks" element={<SmartTasksPage />} />
+                  <Route path="/settings/features" element={<SpecialFeaturesPage />} />
+                  <Route path="/settings/account" element={<AccountPage />} />
+                  <Route path="/settings/appearance" element={<AppearancePage />} />
+                  <Route path="/settings/language" element={<LanguagePage />} />
+                  <Route path="/settings/help" element={<HelpPage />} />
+                  <Route path="/settings/about" element={<AboutPage />} />
+                  <Route path="/settings/plan" element={<MyPlanPage />} />
+                  <Route path="/settings/subscription" element={<SubscriptionPage />} />
+                  
+                  {/* Legal Routes */}
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/eula" element={<EULAPage />} />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </CallKitProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
