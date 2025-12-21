@@ -664,6 +664,10 @@ const MainApp = () => {
             setEventsVersion(v => v + 1);
             setIsDateSheetOpen(false);
           }}
+          onDelete={() => {
+            setEventsVersion(v => v + 1);
+            setIsDateSheetOpen(false);
+          }}
         />
       )}
     </div>

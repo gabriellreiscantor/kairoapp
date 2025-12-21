@@ -59,6 +59,7 @@ interface EditEventModalProps {
   onClose: () => void;
   event: EventData;
   onSave?: () => void;
+  onDelete?: (deletedEvent: EventData) => void;
 }
 
 type ScreenView = 'main' | 'location' | 'emoji' | 'repeat' | 'color' | 'alerts';
@@ -67,7 +68,7 @@ interface Alert {
   time: string;
 }
 
-const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps) => {
+const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventModalProps) => {
   const { isLoading: isGeoLoading, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [isSaving, setIsSaving] = useState(false);
@@ -171,6 +172,8 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
 
       if (error) throw error;
 
+      // Call onDelete with the deleted event data so chat can show the deleted card
+      onDelete?.(event);
       onSave?.();
       onClose();
     } catch (error) {

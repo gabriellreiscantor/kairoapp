@@ -1527,6 +1527,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           onSave={() => {
             onEventCreated?.();
           }}
+          onDelete={async (deletedEvent) => {
+            // Add deleted event message to chat
+            const deletedEventData = {
+              id: deletedEvent.id,
+              title: deletedEvent.title,
+              event_date: deletedEvent.event_date,
+              event_time: deletedEvent.event_time,
+              location: deletedEvent.location,
+              category: deletedEvent.category,
+            };
+            
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              type: 'assistant',
+              content: '',
+              createdAt: new Date(),
+              deletedEventData,
+            };
+            
+            setMessages(prev => [...prev, newMessage]);
+            
+            // Save to database
+            await saveMessage('assistant', '', { deletedEventData });
+            
+            // Trigger refresh
+            onEventCreated?.();
+          }}
         />
       )}
 
