@@ -161,8 +161,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   // Get the time the call will be made (1h before)
   const callAlertTime = getCallAlertTime(event.event_time);
 
-  // É dia inteiro se: is_all_day é true OU não tem hora OU não tem duração
-  const isAllDay = event.is_all_day === true || !event.event_time || !event.duration_minutes;
+  // É dia inteiro APENAS se: is_all_day é true OU não tem hora
+  // Ter hora sem duração = mostrar só o horário de início (não o intervalo)
+  const isAllDay = event.is_all_day === true || !event.event_time;
+  const hasDuration = event.duration_minutes && event.duration_minutes > 0;
   const eventEmoji = event.emoji || '📅';
   const eventColor = event.color || 'primary';
 
@@ -212,11 +214,15 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         {/* Date and time / All day badge */}
         <div className="flex items-center justify-between text-sm pl-6">
           <span className="text-foreground capitalize">{formatDate(event.event_date)}</span>
-          {isAllDay ? (
+        {isAllDay ? (
             <span className="text-muted-foreground text-sm whitespace-nowrap">☀️ Dia inteiro</span>
-          ) : (
+          ) : hasDuration ? (
             <span className="text-muted-foreground font-medium">
               {formatTime(event.event_time)} - {calculateEndTime(event.event_time!, event.duration_minutes!)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground font-medium">
+              {formatTime(event.event_time)}
             </span>
           )}
         </div>

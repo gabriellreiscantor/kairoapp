@@ -536,8 +536,9 @@ async function executeAction(
           };
         }
 
-        // É dia inteiro se: não tem hora OU não tem duração explícita
-        const isAllDay = !action.hora || !action.duracao_minutos;
+        // É dia inteiro APENAS se não tem hora definida
+        // Ter hora sem duração NÃO é dia inteiro - é evento com horário sem duração explícita
+        const isAllDay = !action.hora;
         
         const { data, error } = await supabase
           .from('events')
@@ -1479,7 +1480,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
           local: args.local || null,
           prioridade: args.prioridade || 'low',
           categoria: args.categoria || 'pessoal',
-          duracao_minutos: 60,
+          duracao_minutos: args.duracao_minutos || null, // Só inclui duração se o usuário especificou
           resposta_usuario: args.resposta_usuario,
           resumo_evento: {
             titulo: args.titulo,
