@@ -381,31 +381,64 @@ function getCategoryEmoji(category: string, title?: string): string {
   return emojiMap[category?.toLowerCase()] || '📅';
 }
 
+// Calculate timezone offset dynamically (works for ANY timezone and handles DST)
+function getTimezoneOffset(timezone: string): number {
+  try {
+    // Use the Intl API to get the current offset for the timezone
+    const now = new Date();
+    
+    // Format the same moment in UTC and in the target timezone
+    const utcFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'UTC',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    
+    const tzFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    
+    // Parse the formatted dates
+    const utcParts = utcFormatter.formatToParts(now);
+    const tzParts = tzFormatter.formatToParts(now);
+    
+    const getPart = (parts: Intl.DateTimeFormatPart[], type: string) => 
+      parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+    
+    const utcHour = getPart(utcParts, 'hour');
+    const utcDay = getPart(utcParts, 'day');
+    const tzHour = getPart(tzParts, 'hour');
+    const tzDay = getPart(tzParts, 'day');
+    
+    // Calculate hour difference, accounting for day boundary
+    let hourDiff = tzHour - utcHour;
+    
+    // Handle day boundary (if timezone crossed midnight)
+    if (tzDay > utcDay) {
+      hourDiff += 24;
+    } else if (tzDay < utcDay) {
+      hourDiff -= 24;
+    }
+    
+    console.log(`[getTimezoneOffset] Timezone: ${timezone}, UTC hour: ${utcHour}, TZ hour: ${tzHour}, Offset: ${hourDiff}h`);
+    
+    return hourDiff;
+  } catch (e) {
+    console.error(`[getTimezoneOffset] Invalid timezone: ${timezone}, defaulting to 0 (UTC)`, e);
+    return 0;
+  }
+}
+
 // Check if date/time is in the past considering user's timezone
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
   
-  // Get timezone offset in hours (negative means behind UTC)
-  const timezoneOffsets: { [key: string]: number } = {
-    'America/Sao_Paulo': -3,
-    'America/Cuiaba': -4,
-    'America/Manaus': -4,
-    'America/Belem': -3,
-    'America/Fortaleza': -3,
-    'America/Recife': -3,
-    'America/Bahia': -3,
-    'America/Rio_Branco': -5,
-    'America/New_York': -5,
-    'America/Los_Angeles': -8,
-    'America/Chicago': -6,
-    'Europe/London': 0,
-    'Europe/Paris': 1,
-    'Europe/Lisbon': 0,
-    'Asia/Tokyo': 9,
-    'UTC': 0
-  };
-  
-  const offsetHours = timezoneOffsets[tz] ?? -3; // Default to São Paulo
+  // Get dynamic timezone offset (handles DST automatically)
+  const offsetHours = getTimezoneOffset(tz);
   
   // Get current UTC time
   const nowUtcMs = Date.now();
@@ -435,11 +468,10 @@ function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boo
   const isPast = eventUtcMs < (nowUtcMs - marginMs);
   
   // For debugging - calculate what time it is now in user's timezone
-  // Current UTC time converted to local: UTC + offset (e.g., UTC - 3 for São Paulo)
   const nowLocalHours = new Date(nowUtcMs).getUTCHours() + offsetHours;
   const nowLocalMinutes = new Date(nowUtcMs).getUTCMinutes();
   
-  console.log(`[isDateInPast] Timezone: ${tz} (offset: ${offsetHours}h)`);
+  console.log(`[isDateInPast] Timezone: ${tz} (dynamic offset: ${offsetHours}h)`);
   console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'}`);
   console.log(`[isDateInPast] Now UTC: ${new Date(nowUtcMs).toISOString()}`);
   console.log(`[isDateInPast] Now local (approx): ${(nowLocalHours + 24) % 24}:${String(nowLocalMinutes).padStart(2, '0')}`);
@@ -455,9 +487,11 @@ async function executeAction(
   supabase: any, 
   userId: string, 
   action: KairoAction,
-  profile: UserProfile
+  profile: UserProfile,
+  timezone?: string // User's device timezone
 ): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; pastDate?: boolean; attemptedEvent?: any }> {
   console.log(`Backend executing action: ${action.acao}`, action);
+  console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
 
   try {
     switch (action.acao) {
@@ -467,7 +501,7 @@ async function executeAction(
         }
 
         // Check if date is in the past
-        if (isDateInPast(action.data, action.hora)) {
+        if (isDateInPast(action.data, action.hora, timezone)) {
           console.log('Event date is in the past - blocking creation');
           return { 
             success: false, 
@@ -1665,7 +1699,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
-      executionResult = await executeAction(supabase, userId, action, userProfile);
+      executionResult = await executeAction(supabase, userId, action, userProfile, userTimezone);
       console.log('Execution result:', executionResult);
       
       // Handle past date error - change action to data_passada
