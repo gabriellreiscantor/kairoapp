@@ -385,7 +385,7 @@ function getCategoryEmoji(category: string, title?: string): string {
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
   
-  // Get timezone offset in hours
+  // Get timezone offset in hours (negative means behind UTC)
   const timezoneOffsets: { [key: string]: number } = {
     'America/Sao_Paulo': -3,
     'America/Cuiaba': -4,
@@ -407,7 +407,7 @@ function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boo
   
   const offsetHours = timezoneOffsets[tz] ?? -3; // Default to São Paulo
   
-  // Get current UTC time in milliseconds
+  // Get current UTC time
   const nowUtcMs = Date.now();
   
   // Parse event date/time components
@@ -421,26 +421,31 @@ function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boo
     seconds = 0;
   }
   
-  // Create event time in UTC by considering the user's timezone offset
-  // If user is in UTC-3 (São Paulo) and event is at 11:00, 
-  // that means 11:00 São Paulo = 14:00 UTC
-  // So we subtract the offset (which is negative, so we add)
-  const eventUtcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds) - (offsetHours * 60 * 60 * 1000);
+  // Create event time in UTC:
+  // Date.UTC creates a timestamp as if the time was in UTC
+  // For São Paulo (UTC-3), if event is at 15:20 local, it's 18:20 UTC
+  // So we need to SUBTRACT the offset (offsetHours is -3, so -(-3) = +3 hours)
+  const eventLocalAsUtcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+  const eventUtcMs = eventLocalAsUtcMs - (offsetHours * 60 * 60 * 1000);
   
-  // Calculate current time in user's timezone for logging
-  const nowInUserTzMs = nowUtcMs + (offsetHours * 60 * 60 * 1000);
-  const nowInUserTz = new Date(nowInUserTzMs);
-  const eventInUserTz = new Date(eventUtcMs + (offsetHours * 60 * 60 * 1000));
+  // Add 2-minute margin to avoid race conditions when scheduling "now"
+  const marginMs = 2 * 60 * 1000;
   
-  const isPast = eventUtcMs < nowUtcMs;
+  // Event is past if it's more than 2 minutes before now
+  const isPast = eventUtcMs < (nowUtcMs - marginMs);
+  
+  // For debugging - calculate what time it is now in user's timezone
+  // Current UTC time converted to local: UTC + offset (e.g., UTC - 3 for São Paulo)
+  const nowLocalHours = new Date(nowUtcMs).getUTCHours() + offsetHours;
+  const nowLocalMinutes = new Date(nowUtcMs).getUTCMinutes();
   
   console.log(`[isDateInPast] Timezone: ${tz} (offset: ${offsetHours}h)`);
   console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'}`);
-  console.log(`[isDateInPast] Now UTC ms: ${nowUtcMs}`);
-  console.log(`[isDateInPast] Event UTC ms: ${eventUtcMs}`);
-  console.log(`[isDateInPast] Now in user TZ: ${nowInUserTz.toISOString()} (${nowInUserTz.getHours()}:${String(nowInUserTz.getMinutes()).padStart(2, '0')})`);
-  console.log(`[isDateInPast] Event in user TZ: ${eventInUserTz.toISOString()} (${eventInUserTz.getHours()}:${String(eventInUserTz.getMinutes()).padStart(2, '0')})`);
-  console.log(`[isDateInPast] Is past: ${isPast}`);
+  console.log(`[isDateInPast] Now UTC: ${new Date(nowUtcMs).toISOString()}`);
+  console.log(`[isDateInPast] Now local (approx): ${(nowLocalHours + 24) % 24}:${String(nowLocalMinutes).padStart(2, '0')}`);
+  console.log(`[isDateInPast] Event local: ${hours}:${String(minutes).padStart(2, '0')}`);
+  console.log(`[isDateInPast] Event UTC: ${new Date(eventUtcMs).toISOString()}`);
+  console.log(`[isDateInPast] Is past (with 2min margin): ${isPast}`);
   
   return isPast;
 }
