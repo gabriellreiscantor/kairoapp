@@ -64,7 +64,7 @@ const MainApp = () => {
   } = useCallAlert();
   
   // CallKit hook for VoIP (iOS native only) - auto-registers on login
-  useCallKitAlert();
+  const { registerVoIPToken } = useCallKitAlert();
 
   // Push notifications hook - registers FCM token on native platforms
   usePushNotifications({
@@ -466,6 +466,64 @@ const MainApp = () => {
             className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
           >
             📞
+          </button>
+          
+          {/* Botão de debug - Forçar registro VoIP Token */}
+          <button
+            onClick={async () => {
+              if (!user) {
+                toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
+                return;
+              }
+              
+              toast({ title: '🔄 Registrando VoIP...', description: 'Forçando registro do token' });
+              
+              try {
+                // Força o registro do VoIP token
+                const success = await registerVoIPToken();
+                
+                if (success) {
+                  toast({ title: '✅ Registro iniciado!', description: 'Aguarde 3s para verificar no banco...' });
+                  
+                  // Aguarda 3 segundos para o token ser salvo
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                  
+                  // Verifica no banco se o token foi salvo
+                  const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('voip_token')
+                    .eq('id', user.id)
+                    .single();
+                  
+                  if (error) {
+                    toast({ title: '❌ Erro ao verificar', description: error.message, variant: 'destructive' });
+                  } else if (profile?.voip_token) {
+                    toast({ 
+                      title: '✅ Token salvo com sucesso!', 
+                      description: `Token: ${profile.voip_token.substring(0, 20)}...`,
+                    });
+                  } else {
+                    toast({ 
+                      title: '⚠️ Token ainda NULL', 
+                      description: 'O registro pode ter falhado. Verifique logs do Xcode.',
+                      variant: 'destructive' 
+                    });
+                  }
+                } else {
+                  toast({ 
+                    title: '❌ Falha no registro', 
+                    description: 'Verifique se está em iOS nativo com CallKit configurado',
+                    variant: 'destructive' 
+                  });
+                }
+              } catch (err) {
+                console.error('[Debug VoIP] Exception:', err);
+                toast({ title: 'Erro', description: String(err), variant: 'destructive' });
+              }
+            }}
+            className="fixed bottom-24 left-4 z-50 w-14 h-14 rounded-full bg-purple-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform text-xs font-bold"
+          >
+            VoIP
           </button>
           
           
