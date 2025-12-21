@@ -331,7 +331,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
         </header>
 
         <div className="flex-1 px-4 pt-4 overflow-y-auto">
-          <p className="text-xs text-muted-foreground mb-3">Arraste para a esquerda para remover</p>
+          <p className="text-xs text-muted-foreground mb-3">Arraste para a esquerda ou clique no X para remover</p>
           
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden mb-4">
             {alerts.map((alert, index) => (
@@ -347,15 +347,23 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                   style={{ transform: swipingAlertIndex === index ? `translateX(-${swipeOffset}px)` : 'translateX(0)' }}
                 >
                   <span className="text-foreground">Alerta {index + 1}</span>
-                  <select 
-                    value={alert.time} 
-                    onChange={(e) => updateAlertTime(index, e.target.value)}
-                    className="bg-transparent text-muted-foreground text-right focus:outline-none"
-                  >
-                    {ALERT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select 
+                      value={alert.time} 
+                      onChange={(e) => updateAlertTime(index, e.target.value)}
+                      className="bg-transparent text-muted-foreground text-right focus:outline-none"
+                    >
+                      {ALERT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={() => removeAlert(index)} 
+                      className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-destructive" />
+                    </button>
+                  </div>
                 </div>
                 <div className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 flex items-center justify-center" style={{ transform: `translateX(${80 - swipeOffset}px)` }}>
                   <Trash2 className="w-5 h-5 text-white" />

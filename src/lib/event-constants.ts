@@ -25,6 +25,7 @@ export const REPEAT_OPTIONS = [
 
 // Alert time options
 export const ALERT_OPTIONS = [
+  { value: 'exact', label: 'No momento exato' },
   { value: '5min', label: '5 minutos antes' },
   { value: '15min', label: '15 minutos antes' },
   { value: '30min', label: '30 minutos antes' },
