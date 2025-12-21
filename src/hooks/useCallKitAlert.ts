@@ -151,19 +151,20 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] Available methods:', Object.keys(CallKitVoip || {}));
         
         // Listen for registration token BEFORE registering
+        // IMPORTANT: Plugin sends token as "value" not "token"
         console.log('[CallKit] Setting up registration listener...');
-        const registrationListener = (CallKitVoip as any).addListener('registration', async (data: { token: string }) => {
+        const registrationListener = (CallKitVoip as any).addListener('registration', async (data: { value: string }) => {
           console.log('[CallKit] ====== VOIP TOKEN RECEIVED FROM iOS ======');
           console.log('[CallKit] Raw data:', JSON.stringify(data));
-          console.log('[CallKit] Token exists:', !!data?.token);
-          console.log('[CallKit] Token length:', data?.token?.length);
-          console.log('[CallKit] Token preview:', data?.token?.substring(0, 50) + '...');
+          console.log('[CallKit] Token (data.value) exists:', !!data?.value);
+          console.log('[CallKit] Token length:', data?.value?.length);
+          console.log('[CallKit] Token preview:', data?.value?.substring(0, 50) + '...');
           
-          if (data?.token) {
-            const saved = await saveVoIPToken(data.token);
+          if (data?.value) {
+            const saved = await saveVoIPToken(data.value);
             console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'FAILED');
           } else {
-            console.error('[CallKit] No token in registration data!');
+            console.error('[CallKit] No value in registration data! Keys received:', Object.keys(data || {}));
           }
         });
         console.log('[CallKit] Registration listener set up:', registrationListener);
