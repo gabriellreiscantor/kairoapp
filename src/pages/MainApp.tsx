@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone, Key } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,6 +16,7 @@ import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
 import CallScreen from "@/components/CallScreen";
 import { useCallAlert } from "@/hooks/useCallAlert";
+import { useCallKitAlert } from "@/hooks/useCallKitAlert";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import kairoLogo from "@/assets/kairo-logo.png";
@@ -58,6 +59,9 @@ const MainApp = () => {
     handleSnooze,
     isPlaying 
   } = useCallAlert();
+  
+  // CallKit hook for VoIP token registration (iOS native only)
+  const { registerVoIPToken } = useCallKitAlert();
 
   // Push notifications hook - registers FCM token on native platforms
   usePushNotifications({
@@ -377,24 +381,24 @@ const MainApp = () => {
     if (isSwipeDecided && isHorizontalSwipe) {
       const currentIndex = VIEW_ORDER.indexOf(activeView);
       
-      // Swipe para ESQUERDA (negativo) = avança na ordem (chat -> calendar -> list)
-      // Swipe para DIREITA (positivo) = volta na ordem (list -> calendar -> chat)
-      if (swipeX < -SWIPE_THRESHOLD) {
-        // Swipe esquerda
+      // Swipe para DIREITA (positivo) = avança na ordem (chat -> calendar -> list)
+      // Swipe para ESQUERDA (negativo) = volta na ordem (list -> calendar -> chat) ou abre settings
+      if (swipeX > SWIPE_THRESHOLD) {
+        // Swipe DIREITA = avança
+        if (currentIndex < VIEW_ORDER.length - 1) {
+          // Avança para próxima view (chat -> calendar -> list)
+          setActiveView(VIEW_ORDER[currentIndex + 1]);
+        }
+        // Na list view (índice 2), swipe direita não faz nada (está no fim)
+      } else if (swipeX < -SWIPE_THRESHOLD) {
+        // Swipe ESQUERDA = volta ou abre settings
         if (activeView === 'chat') {
           // No chat, swipe esquerda abre settings
           setIsSettingsOpen(true);
-        } else if (currentIndex < VIEW_ORDER.length - 1) {
-          // Avança para próxima view (calendar -> list)
-          setActiveView(VIEW_ORDER[currentIndex + 1]);
-        }
-        // Na list view, swipe esquerda não faz nada (está no fim)
-      } else if (swipeX > SWIPE_THRESHOLD) {
-        // Swipe direita = volta
-        if (currentIndex > 0) {
+        } else if (currentIndex > 0) {
+          // Volta para view anterior (list -> calendar -> chat)
           setActiveView(VIEW_ORDER[currentIndex - 1]);
         }
-        // No chat (índice 0), swipe direita não faz nada
       }
     }
     
@@ -487,6 +491,14 @@ const MainApp = () => {
             className="fixed left-5 bottom-28 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg z-50"
           >
             <Phone className="w-5 h-5 text-white" />
+          </button>
+          
+          {/* Register VoIP Token Button (debug) */}
+          <button
+            onClick={registerVoIPToken}
+            className="fixed left-5 bottom-44 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg z-50"
+          >
+            <Key className="w-5 h-5 text-white" />
           </button>
           
           <SettingsDrawer
