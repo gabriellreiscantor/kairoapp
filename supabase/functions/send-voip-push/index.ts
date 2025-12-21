@@ -128,16 +128,18 @@ Deno.serve(async (req) => {
     // Create APNs JWT
     const jwt = await createAPNsJWT(apnsTeamId, apnsKeyId, apnsPrivateKey);
     
-    // VoIP Push payload - must trigger CallKit
+    // VoIP Push payload - MUST use fields the capacitor-plugin-callkit-voip expects
+    // Required fields: id, name, media, duration
     const payload = {
       aps: {
         'content-available': 1,
       },
-      uuid: event_id,
-      callerName: `${event_emoji || '📅'} ${event_title}`,
-      handle: event_time || 'Kairo',
-      hasVideo: false,
-      // Custom data for the app
+      // Fields required by capacitor-plugin-callkit-voip to show native CallKit screen
+      id: event_id,
+      name: `${event_emoji || '📅'} ${event_title}`,
+      media: 'audio',
+      duration: '0',
+      // Custom data for our app to use after call is answered
       eventId: event_id,
       eventTitle: event_title,
       eventTime: event_time || '',
@@ -145,14 +147,20 @@ Deno.serve(async (req) => {
       eventEmoji: event_emoji || '📅',
     };
     
+    console.log(`[VoIP] Sending payload:`, JSON.stringify(payload));
+    
     // Send to APNs HTTP/2
+    // CRITICAL: apns-topic MUST end with .voip for VoIP pushes!
     const apnsUrl = `https://api.push.apple.com/3/device/${voipToken}`;
+    const voipTopic = `${appBundleId}.voip`; // = 'com.kairo.voip'
+    
+    console.log(`[VoIP] Using topic: ${voipTopic}`);
     
     const response = await fetch(apnsUrl, {
       method: 'POST',
       headers: {
         'authorization': `bearer ${jwt}`,
-        'apns-topic': appBundleId,
+        'apns-topic': voipTopic, // MUST be 'com.kairo.voip' not 'com.kairo'
         'apns-push-type': 'voip',
         'apns-priority': '10',
         'apns-expiration': '0',

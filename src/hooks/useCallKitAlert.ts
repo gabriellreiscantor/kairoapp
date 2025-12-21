@@ -18,7 +18,7 @@ interface UseCallKitAlertReturn {
   handleDecline: () => void;
   handleSnooze: () => void;
   isPlaying: boolean;
-  registerVoIPToken: () => Promise<void>;
+  registerVoIPToken: () => Promise<{ success: boolean; message: string }>;
 }
 
 // Check if running on iOS native device
@@ -130,16 +130,18 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     };
   }, []);
 
-  // Save VoIP token to Supabase
-  const saveVoIPToken = async (token: string) => {
+  // Save VoIP token to Supabase - returns success status
+  const saveVoIPToken = async (token: string): Promise<boolean> => {
     console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
+    console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       console.log('[CallKit] Current user:', user?.id);
       
       if (!user) {
         console.log('[CallKit] No user logged in, cannot save VoIP token');
-        return;
+        return false;
       }
       
       console.log('[CallKit] Updating profile with token...');
@@ -154,24 +156,35 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       if (error) {
         console.error('[CallKit] Failed to save VoIP token:', error);
         console.error('[CallKit] Error details:', JSON.stringify(error));
+        return false;
       } else {
         console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
         console.log('[CallKit] Updated profile:', JSON.stringify(data));
+        console.log('[CallKit] VoIP token is now active in database!');
+        return true;
       }
     } catch (error) {
       console.error('[CallKit] Error saving VoIP token:', error);
+      return false;
     }
   };
 
-  // Register for VoIP (called manually if needed)
-  const registerVoIPToken = useCallback(async () => {
+  // Register for VoIP (called manually if needed) - returns status
+  const registerVoIPToken = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     console.log('[CallKit] ====== MANUAL REGISTRATION ======');
     console.log('[CallKit] Is iOS native:', isIOSNative());
     console.log('[CallKit] Plugin loaded:', !!callKitPluginRef.current);
     
     if (!isIOSNative()) {
       console.log('[CallKit] Not on iOS native, skipping manual registration');
-      return;
+      return { success: false, message: 'Disponível apenas em dispositivos iOS' };
+    }
+    
+    // Check if user is logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('[CallKit] No user logged in');
+      return { success: false, message: 'Usuário não logado' };
     }
     
     if (!callKitPluginRef.current) {
@@ -182,7 +195,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] Plugin loaded dynamically');
       } catch (e) {
         console.error('[CallKit] Failed to load plugin:', e);
-        return;
+        return { success: false, message: 'Plugin CallKit não disponível' };
       }
     }
     
@@ -190,9 +203,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] Calling register()...');
       const result = await callKitPluginRef.current.register();
       console.log('[CallKit] Manual registration result:', JSON.stringify(result));
-      console.log('[CallKit] Manual registration triggered successfully');
+      console.log('[CallKit] Manual registration triggered - waiting for token callback...');
+      
+      // Token will be saved via the 'registration' listener
+      return { success: true, message: 'Registro iniciado. Aguardando token do iOS...' };
     } catch (error) {
       console.error('[CallKit] Manual registration failed:', error);
+      return { success: false, message: `Erro: ${(error as Error).message}` };
     }
   }, []);
 

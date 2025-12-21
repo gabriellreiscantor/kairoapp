@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone, Key } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone, Key, Loader2 } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -19,6 +19,7 @@ import { useCallAlert } from "@/hooks/useCallAlert";
 import { useCallKitAlert } from "@/hooks/useCallKitAlert";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useToast } from "@/hooks/use-toast";
 import kairoLogo from "@/assets/kairo-logo.png";
 
 interface Event {
@@ -42,9 +43,13 @@ const SWIPE_TRANSITION_DURATION = '0.4s'; // Duração da animação de transiç
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
   const dateLocale = getDateLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const settingsParamProcessed = useRef(false);
+  
+  // State for VoIP registration button
+  const [isRegisteringVoIP, setIsRegisteringVoIP] = useState(false);
   
   // Check if settings should be open from URL param
   const shouldOpenSettings = searchParams.get('settings') === 'open';
@@ -329,6 +334,40 @@ const MainApp = () => {
     }
   }, [user, showCall, language]);
 
+  // Handler para registro de VoIP com feedback visual
+  const handleRegisterVoIP = useCallback(async () => {
+    if (isRegisteringVoIP) return;
+    
+    setIsRegisteringVoIP(true);
+    try {
+      const result = await registerVoIPToken();
+      
+      if (result.success) {
+        toast({
+          title: "VoIP Token",
+          description: result.message,
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "VoIP Token",
+          description: result.message,
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao registrar VoIP token",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsRegisteringVoIP(false);
+    }
+  }, [registerVoIPToken, toast, isRegisteringVoIP]);
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setIsDateSheetOpen(true);
@@ -495,10 +534,17 @@ const MainApp = () => {
           
           {/* Register VoIP Token Button (debug) */}
           <button
-            onClick={registerVoIPToken}
-            className="fixed left-5 bottom-44 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg z-50"
+            onClick={handleRegisterVoIP}
+            disabled={isRegisteringVoIP}
+            className={`fixed left-5 bottom-44 w-12 h-12 rounded-full flex items-center justify-center shadow-lg z-50 transition-colors ${
+              isRegisteringVoIP ? 'bg-orange-400' : 'bg-orange-500'
+            }`}
           >
-            <Key className="w-5 h-5 text-white" />
+            {isRegisteringVoIP ? (
+              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            ) : (
+              <Key className="w-5 h-5 text-white" />
+            )}
           </button>
           
           <SettingsDrawer
