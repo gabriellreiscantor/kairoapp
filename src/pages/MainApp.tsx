@@ -429,6 +429,42 @@ const MainApp = () => {
             onClearInitialEditMessage={() => setInitialEditMessage(null)}
           />
           
+          {/* Botão de teste VoIP temporário */}
+          <button
+            onClick={async () => {
+              if (!user) {
+                toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
+                return;
+              }
+              
+              toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
+              
+              try {
+                const { data, error } = await supabase.functions.invoke('send-voip-push', {
+                  body: {
+                    user_id: user.id,
+                    event_id: 'test-' + Date.now(),
+                    event_title: 'Teste VoIP',
+                    event_time: format(new Date(), 'HH:mm'),
+                  },
+                });
+                
+                if (error) {
+                  console.error('[Test VoIP] Error:', error);
+                  toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                } else {
+                  console.log('[Test VoIP] Success:', data);
+                  toast({ title: 'VoIP enviado!', description: 'A chamada deve aparecer em segundos' });
+                }
+              } catch (err) {
+                console.error('[Test VoIP] Exception:', err);
+                toast({ title: 'Erro', description: 'Falha ao enviar', variant: 'destructive' });
+              }
+            }}
+            className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          >
+            📞
+          </button>
           
           <SettingsDrawer
             isOpen={isSettingsOpen}
