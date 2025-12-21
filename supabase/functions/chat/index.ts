@@ -381,24 +381,57 @@ function getCategoryEmoji(category: string, title?: string): string {
   return emojiMap[category?.toLowerCase()] || '📅';
 }
 
-// Check if date/time is in the past
+// Check if date/time is in the past considering user's timezone
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
-  const now = new Date();
   
-  // Create event date with time if provided
+  // Get timezone offset in hours (São Paulo is UTC-3)
+  const timezoneOffsets: { [key: string]: number } = {
+    'America/Sao_Paulo': -3,
+    'America/New_York': -5,
+    'America/Los_Angeles': -8,
+    'Europe/London': 0,
+    'Europe/Paris': 1,
+    'Asia/Tokyo': 9,
+    'UTC': 0
+  };
+  
+  const offsetHours = timezoneOffsets[tz] ?? -3; // Default to São Paulo
+  
+  // Get current time in user's timezone
+  const now = new Date();
+  const nowInUserTz = new Date(now.getTime() + (offsetHours * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
+  
+  // Parse event date/time as if it's already in user's timezone (no conversion needed)
   let eventDateTime: Date;
   if (timeStr) {
-    eventDateTime = new Date(`${dateStr}T${timeStr}:00`);
+    // Parse the time components directly
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    eventDateTime = new Date(year, month - 1, day, hours, minutes, 0);
   } else {
     // If no time, compare just dates (event at end of day)
-    eventDateTime = new Date(`${dateStr}T23:59:59`);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    eventDateTime = new Date(year, month - 1, day, 23, 59, 59);
   }
   
-  console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'} vs now: ${now.toISOString()}`);
-  console.log(`[isDateInPast] Event datetime: ${eventDateTime.toISOString()}, is past: ${eventDateTime < now}`);
+  // Create comparable values in same "timezone" context
+  const nowComparable = new Date(
+    nowInUserTz.getFullYear(),
+    nowInUserTz.getMonth(),
+    nowInUserTz.getDate(),
+    nowInUserTz.getHours(),
+    nowInUserTz.getMinutes(),
+    nowInUserTz.getSeconds()
+  );
   
-  return eventDateTime < now;
+  console.log(`[isDateInPast] Timezone: ${tz} (offset: ${offsetHours}h)`);
+  console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'}`);
+  console.log(`[isDateInPast] Now in user TZ: ${nowComparable.toISOString()}`);
+  console.log(`[isDateInPast] Event datetime: ${eventDateTime.toISOString()}`);
+  console.log(`[isDateInPast] Is past: ${eventDateTime < nowComparable}`);
+  
+  return eventDateTime < nowComparable;
 }
 
 // Execute action in database - THIS IS THE BACKEND LOGIC
