@@ -127,63 +127,91 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   // Initialize CallKit plugin on iOS
   useEffect(() => {
     const initCallKit = async () => {
+      console.log('[CallKit] ====== INIT CHECK ======');
+      console.log('[CallKit] Platform:', Capacitor.getPlatform());
+      console.log('[CallKit] Is native platform:', Capacitor.isNativePlatform());
+      console.log('[CallKit] isIOSNative():', isIOSNative());
+      
       if (!isIOSNative()) {
         console.log('[CallKit] Not on iOS native, skipping initialization');
+        console.log('[CallKit] This is expected in browser/web preview');
         return;
       }
 
       try {
-        console.log('[CallKit] ====== STARTING CALLKIT INIT ======');
-        console.log('[CallKit] Platform:', Capacitor.getPlatform());
-        console.log('[CallKit] Is native:', Capacitor.isNativePlatform());
+        console.log('[CallKit] ====== STARTING CALLKIT INIT ON iOS ======');
         
         // Dynamic import to avoid errors on non-native platforms
+        console.log('[CallKit] Importing capacitor-plugin-callkit-voip...');
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
         callKitPluginRef.current = CallKitVoip;
         
-        console.log('[CallKit] Plugin loaded successfully');
-        console.log('[CallKit] Available methods:', Object.keys(CallKitVoip));
+        console.log('[CallKit] Plugin imported successfully');
+        console.log('[CallKit] CallKitVoip object:', CallKitVoip);
+        console.log('[CallKit] Available methods:', Object.keys(CallKitVoip || {}));
         
         // Listen for registration token BEFORE registering
         console.log('[CallKit] Setting up registration listener...');
-        (CallKitVoip as any).addListener('registration', async (data: { token: string }) => {
-          console.log('[CallKit] ====== VOIP TOKEN RECEIVED ======');
-          console.log('[CallKit] Token length:', data.token?.length);
-          console.log('[CallKit] Token preview:', data.token?.substring(0, 30) + '...');
-          await saveVoIPToken(data.token);
+        const registrationListener = (CallKitVoip as any).addListener('registration', async (data: { token: string }) => {
+          console.log('[CallKit] ====== VOIP TOKEN RECEIVED FROM iOS ======');
+          console.log('[CallKit] Raw data:', JSON.stringify(data));
+          console.log('[CallKit] Token exists:', !!data?.token);
+          console.log('[CallKit] Token length:', data?.token?.length);
+          console.log('[CallKit] Token preview:', data?.token?.substring(0, 50) + '...');
+          
+          if (data?.token) {
+            const saved = await saveVoIPToken(data.token);
+            console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'FAILED');
+          } else {
+            console.error('[CallKit] No token in registration data!');
+          }
         });
+        console.log('[CallKit] Registration listener set up:', registrationListener);
         
         // Register for VoIP notifications with retry
+        console.log('[CallKit] Calling attemptVoIPRegistration()...');
         await attemptVoIPRegistration();
+        console.log('[CallKit] attemptVoIPRegistration() completed');
         
         // Listen for call answered
+        console.log('[CallKit] Setting up callAnswered listener...');
         CallKitVoip.addListener('callAnswered', (data: any) => {
           console.log('[CallKit] ====== CALL ANSWERED ======');
           console.log('[CallKit] Answer data:', JSON.stringify(data));
           const event = currentEventRef.current;
+          console.log('[CallKit] Current event ref:', JSON.stringify(event));
           if (event) {
+            console.log('[CallKit] Playing TTS for event:', event.title);
             playTTS(event);
+          } else {
+            console.warn('[CallKit] No current event to play TTS for!');
           }
         });
         
         // Listen for call started (incoming call)
+        console.log('[CallKit] Setting up callStarted listener...');
         CallKitVoip.addListener('callStarted', (data: any) => {
           console.log('[CallKit] ====== CALL STARTED ======');
           console.log('[CallKit] Start data:', JSON.stringify(data));
           // Store the event data from push notification
           if (data.eventId) {
-            setCurrentEvent({
+            const eventData = {
               id: data.eventId,
               title: data.eventTitle || data.name || 'Evento',
               emoji: data.eventEmoji || '📅',
               time: data.eventTime,
               location: data.eventLocation,
-            });
+            };
+            console.log('[CallKit] Setting current event:', JSON.stringify(eventData));
+            setCurrentEvent(eventData);
             setIsCallVisible(true);
+          } else {
+            console.warn('[CallKit] No eventId in callStarted data');
           }
         });
         
         // Listen for call ended
+        console.log('[CallKit] Setting up callEnded listener...');
         CallKitVoip.addListener('callEnded', (data: any) => {
           console.log('[CallKit] ====== CALL ENDED ======');
           console.log('[CallKit] End data:', JSON.stringify(data));
@@ -191,11 +219,14 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         });
         
         console.log('[CallKit] ====== CALLKIT INIT COMPLETE ======');
+        console.log('[CallKit] All listeners are now active');
         
       } catch (error) {
         console.error('[CallKit] ====== INIT FAILED ======');
+        console.error('[CallKit] Error type:', typeof error);
         console.error('[CallKit] Error:', error);
         console.error('[CallKit] Error message:', (error as any)?.message);
+        console.error('[CallKit] Error stack:', (error as any)?.stack);
       }
     };
 
@@ -203,7 +234,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
 
     return () => {
       if (callKitPluginRef.current) {
-        console.log('[CallKit] Removing all listeners');
+        console.log('[CallKit] Cleanup: Removing all listeners');
         callKitPluginRef.current.removeAllListeners?.();
       }
     };

@@ -385,53 +385,64 @@ function getCategoryEmoji(category: string, title?: string): string {
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
   
-  // Get timezone offset in hours (São Paulo is UTC-3)
+  // Get timezone offset in hours
   const timezoneOffsets: { [key: string]: number } = {
     'America/Sao_Paulo': -3,
+    'America/Cuiaba': -4,
+    'America/Manaus': -4,
+    'America/Belem': -3,
+    'America/Fortaleza': -3,
+    'America/Recife': -3,
+    'America/Bahia': -3,
+    'America/Rio_Branco': -5,
     'America/New_York': -5,
     'America/Los_Angeles': -8,
+    'America/Chicago': -6,
     'Europe/London': 0,
     'Europe/Paris': 1,
+    'Europe/Lisbon': 0,
     'Asia/Tokyo': 9,
     'UTC': 0
   };
   
   const offsetHours = timezoneOffsets[tz] ?? -3; // Default to São Paulo
   
-  // Get current time in user's timezone
-  const now = new Date();
-  const nowInUserTz = new Date(now.getTime() + (offsetHours * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
+  // Get current UTC time in milliseconds
+  const nowUtcMs = Date.now();
   
-  // Parse event date/time as if it's already in user's timezone (no conversion needed)
-  let eventDateTime: Date;
+  // Parse event date/time components
+  const [year, month, day] = dateStr.split('-').map(Number);
+  let hours = 23, minutes = 59, seconds = 59; // Default to end of day for all-day events
+  
   if (timeStr) {
-    // Parse the time components directly
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const [year, month, day] = dateStr.split('-').map(Number);
-    eventDateTime = new Date(year, month - 1, day, hours, minutes, 0);
-  } else {
-    // If no time, compare just dates (event at end of day)
-    const [year, month, day] = dateStr.split('-').map(Number);
-    eventDateTime = new Date(year, month - 1, day, 23, 59, 59);
+    const timeParts = timeStr.split(':').map(Number);
+    hours = timeParts[0] || 0;
+    minutes = timeParts[1] || 0;
+    seconds = 0;
   }
   
-  // Create comparable values in same "timezone" context
-  const nowComparable = new Date(
-    nowInUserTz.getFullYear(),
-    nowInUserTz.getMonth(),
-    nowInUserTz.getDate(),
-    nowInUserTz.getHours(),
-    nowInUserTz.getMinutes(),
-    nowInUserTz.getSeconds()
-  );
+  // Create event time in UTC by considering the user's timezone offset
+  // If user is in UTC-3 (São Paulo) and event is at 11:00, 
+  // that means 11:00 São Paulo = 14:00 UTC
+  // So we subtract the offset (which is negative, so we add)
+  const eventUtcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds) - (offsetHours * 60 * 60 * 1000);
+  
+  // Calculate current time in user's timezone for logging
+  const nowInUserTzMs = nowUtcMs + (offsetHours * 60 * 60 * 1000);
+  const nowInUserTz = new Date(nowInUserTzMs);
+  const eventInUserTz = new Date(eventUtcMs + (offsetHours * 60 * 60 * 1000));
+  
+  const isPast = eventUtcMs < nowUtcMs;
   
   console.log(`[isDateInPast] Timezone: ${tz} (offset: ${offsetHours}h)`);
   console.log(`[isDateInPast] Checking: ${dateStr} ${timeStr || 'all day'}`);
-  console.log(`[isDateInPast] Now in user TZ: ${nowComparable.toISOString()}`);
-  console.log(`[isDateInPast] Event datetime: ${eventDateTime.toISOString()}`);
-  console.log(`[isDateInPast] Is past: ${eventDateTime < nowComparable}`);
+  console.log(`[isDateInPast] Now UTC ms: ${nowUtcMs}`);
+  console.log(`[isDateInPast] Event UTC ms: ${eventUtcMs}`);
+  console.log(`[isDateInPast] Now in user TZ: ${nowInUserTz.toISOString()} (${nowInUserTz.getHours()}:${String(nowInUserTz.getMinutes()).padStart(2, '0')})`);
+  console.log(`[isDateInPast] Event in user TZ: ${eventInUserTz.toISOString()} (${eventInUserTz.getHours()}:${String(eventInUserTz.getMinutes()).padStart(2, '0')})`);
+  console.log(`[isDateInPast] Is past: ${isPast}`);
   
-  return eventDateTime < nowComparable;
+  return isPast;
 }
 
 // Execute action in database - THIS IS THE BACKEND LOGIC
