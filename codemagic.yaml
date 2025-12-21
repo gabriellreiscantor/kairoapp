@@ -68,13 +68,12 @@ workflows:
           EOF
           echo "GoogleService-Info.plist added to Xcode project and target"
       
-      - name: Add Firebase to Podfile
+      - name: Add Firebase and CallKit VoIP to Podfile
         script: |
           PODFILE_PATH="ios/App/Podfile"
           
-          if [ ! -f "$PODFILE_PATH" ]; then
-            echo "=== Podfile not found, creating with Firebase ==="
-            cat > "$PODFILE_PATH" << 'PODFILE_CONTENT'
+          echo "=== Creating Podfile with Firebase + CallKit VoIP ==="
+          cat > "$PODFILE_PATH" << 'PODFILE_CONTENT'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
           platform :ios, '13.0'
@@ -89,6 +88,7 @@ workflows:
             pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
             pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
             pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+            pod 'CapacitorPluginCallkitVoip', :path => '../../node_modules/capacitor-plugin-callkit-voip'
           end
 
           target 'App' do
@@ -100,20 +100,8 @@ workflows:
             assertDeploymentTarget(installer)
           end
           PODFILE_CONTENT
-            echo "=== Podfile created ==="
-            cat "$PODFILE_PATH"
-          else
-            echo "=== Podfile exists, checking Firebase ==="
-            if ! grep -q "Firebase/Messaging" "$PODFILE_PATH"; then
-              sed -i '' '/capacitor_pods/a\
-            pod '"'"'Firebase/Messaging'"'"'
-          ' "$PODFILE_PATH"
-              echo "Firebase added"
-            else
-              echo "Firebase already present"
-            fi
-            cat "$PODFILE_PATH"
-          fi
+          echo "=== Podfile created with CallKit VoIP plugin ==="
+          cat "$PODFILE_PATH"
       
       - name: Configure AppDelegate for Firebase Messaging (Plugin handles VoIP)
         script: |
@@ -185,6 +173,7 @@ workflows:
       
       - name: Add Push Notification and VoIP Entitlements
         script: |
+          # Create entitlements file
           cat > ios/App/App/App.entitlements << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -197,6 +186,27 @@ workflows:
           </dict>
           </plist>
           EOF
+          
+          # Link entitlements to Xcode target
+          ruby <<RUBY
+          require 'xcodeproj'
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          target = project.targets.first
+          
+          # Add entitlements file to project
+          entitlements_path = 'App/App.entitlements'
+          file_ref = project.main_group['App'].new_file('App.entitlements')
+          
+          # Set CODE_SIGN_ENTITLEMENTS build setting for all configurations
+          target.build_configurations.each do |config|
+            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = entitlements_path
+          end
+          
+          project.save
+          puts "✅ App.entitlements linked to target with CODE_SIGN_ENTITLEMENTS"
+          RUBY
       
       - name: Set iOS version
         script: |
