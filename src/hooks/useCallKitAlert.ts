@@ -350,7 +350,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     setCurrentEvent(null);
   }, []);
 
-  // Play TTS after call is answered
+  // Play TTS after call is answered - max 15 seconds with loop
   const playTTS = useCallback(async (event: CallKitEvent) => {
     if (isCallingTTSRef.current) {
       console.log('[CallKit] TTS already in progress');
@@ -360,10 +360,48 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     isCallingTTSRef.current = true;
     setIsPlaying(true);
     
+    const MAX_CALL_DURATION = 15000; // 15 segundos máximo
+    let callTimeoutId: NodeJS.Timeout | null = null;
+    let audioUrl: string | null = null;
+    
+    // Função para encerrar chamada
+    const endCallAndCleanup = () => {
+      console.log('[CallKit] Ending call after timeout or completion');
+      
+      if (callTimeoutId) {
+        clearTimeout(callTimeoutId);
+        callTimeoutId = null;
+      }
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        audioUrl = null;
+      }
+      
+      setIsPlaying(false);
+      isCallingTTSRef.current = false;
+      
+      // End CallKit call
+      if (callKitPluginRef.current && currentEventRef.current) {
+        callKitPluginRef.current.endCall?.({ 
+          id: currentEventRef.current.id 
+        });
+      }
+      
+      setTimeout(() => {
+        cleanupCall();
+      }, 500);
+    };
+    
     try {
       const language = currentLanguageRef.current;
       
-      console.log('[CallKit] Requesting TTS for:', event.title);
+      console.log('[CallKit] Requesting TTS for:', event.title, 'time:', event.time);
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
@@ -387,51 +425,44 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         }
         
         const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
-        const audioUrl = URL.createObjectURL(audioBlob);
+        audioUrl = URL.createObjectURL(audioBlob);
         
-        let playCount = 0;
-        const maxPlays = 3;
+        // Timeout máximo de 15 segundos
+        callTimeoutId = setTimeout(() => {
+          console.log('[CallKit] Max call duration reached (15s)');
+          endCallAndCleanup();
+        }, MAX_CALL_DURATION);
         
-        const playAudio = () => {
+        // Loop infinito do TTS até o timeout
+        const playAudioLoop = () => {
+          if (!isCallingTTSRef.current || !audioUrl) {
+            return;
+          }
+          
           audioRef.current = new Audio(audioUrl);
           
           audioRef.current.onended = () => {
-            playCount++;
-            if (playCount < maxPlays && isCallingTTSRef.current) {
+            // Continua repetindo enquanto estiver ativo
+            if (isCallingTTSRef.current) {
               setTimeout(() => {
                 if (isCallingTTSRef.current) {
-                  playAudio();
+                  playAudioLoop();
                 }
-              }, 1000);
-            } else {
-              setIsPlaying(false);
-              isCallingTTSRef.current = false;
-              URL.revokeObjectURL(audioUrl);
-              
-              // End CallKit call after TTS
-              if (callKitPluginRef.current && currentEventRef.current) {
-                callKitPluginRef.current.endCall?.({ 
-                  id: currentEventRef.current.id 
-                });
-              }
-              
-              setTimeout(() => {
-                cleanupCall();
-              }, 500);
+              }, 800); // Pequena pausa entre repetições
             }
           };
           
           audioRef.current.onerror = () => {
             console.error('[CallKit] Audio playback error');
-            setIsPlaying(false);
-            isCallingTTSRef.current = false;
-            URL.revokeObjectURL(audioUrl);
+            endCallAndCleanup();
           };
           
-          audioRef.current.play();
+          audioRef.current.play().catch(err => {
+            console.error('[CallKit] Failed to play audio:', err);
+          });
         };
         
-        playAudio();
+        playAudioLoop();
       }
     } catch (error) {
       console.error('[CallKit] Failed to play TTS:', error);
