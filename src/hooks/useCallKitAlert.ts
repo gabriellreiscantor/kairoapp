@@ -51,19 +51,36 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       }
 
       try {
+        console.log('[CallKit] ====== STARTING CALLKIT INIT ======');
+        console.log('[CallKit] Platform:', Capacitor.getPlatform());
+        console.log('[CallKit] Is native:', Capacitor.isNativePlatform());
+        
         // Dynamic import to avoid errors on non-native platforms
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
         callKitPluginRef.current = CallKitVoip;
         
-        console.log('[CallKit] Plugin loaded, registering...');
+        console.log('[CallKit] Plugin loaded successfully');
+        console.log('[CallKit] Available methods:', Object.keys(CallKitVoip));
+        
+        // Listen for registration token BEFORE registering
+        console.log('[CallKit] Setting up registration listener...');
+        (CallKitVoip as any).addListener('registration', async (data: { token: string }) => {
+          console.log('[CallKit] ====== VOIP TOKEN RECEIVED ======');
+          console.log('[CallKit] Token length:', data.token?.length);
+          console.log('[CallKit] Token preview:', data.token?.substring(0, 30) + '...');
+          await saveVoIPToken(data.token);
+        });
         
         // Register for VoIP notifications
-        await CallKitVoip.register();
-        console.log('[CallKit] Registered for VoIP push');
+        console.log('[CallKit] Calling register()...');
+        const registerResult = await CallKitVoip.register();
+        console.log('[CallKit] Register result:', JSON.stringify(registerResult));
+        console.log('[CallKit] Registered for VoIP push successfully');
         
         // Listen for call answered
         CallKitVoip.addListener('callAnswered', (data: any) => {
-          console.log('[CallKit] Call answered:', data);
+          console.log('[CallKit] ====== CALL ANSWERED ======');
+          console.log('[CallKit] Answer data:', JSON.stringify(data));
           const event = currentEventRef.current;
           if (event) {
             playTTS(event);
@@ -72,7 +89,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         // Listen for call started (incoming call)
         CallKitVoip.addListener('callStarted', (data: any) => {
-          console.log('[CallKit] Call started (incoming):', data);
+          console.log('[CallKit] ====== CALL STARTED ======');
+          console.log('[CallKit] Start data:', JSON.stringify(data));
           // Store the event data from push notification
           if (data.eventId) {
             setCurrentEvent({
@@ -88,18 +106,17 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         // Listen for call ended
         CallKitVoip.addListener('callEnded', (data: any) => {
-          console.log('[CallKit] Call ended:', data);
+          console.log('[CallKit] ====== CALL ENDED ======');
+          console.log('[CallKit] End data:', JSON.stringify(data));
           cleanupCall();
         });
         
-        // Listen for registration token (using any type as plugin types may not include all events)
-        (CallKitVoip as any).addListener('registration', async (data: { token: string }) => {
-          console.log('[CallKit] Received VoIP token:', data.token.substring(0, 20) + '...');
-          await saveVoIPToken(data.token);
-        });
+        console.log('[CallKit] ====== CALLKIT INIT COMPLETE ======');
         
       } catch (error) {
-        console.error('[CallKit] Failed to initialize:', error);
+        console.error('[CallKit] ====== INIT FAILED ======');
+        console.error('[CallKit] Error:', error);
+        console.error('[CallKit] Error message:', (error as any)?.message);
       }
     };
 
@@ -107,6 +124,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
 
     return () => {
       if (callKitPluginRef.current) {
+        console.log('[CallKit] Removing all listeners');
         callKitPluginRef.current.removeAllListeners?.();
       }
     };
@@ -114,24 +132,31 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
 
   // Save VoIP token to Supabase
   const saveVoIPToken = async (token: string) => {
+    console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('[CallKit] Current user:', user?.id);
+      
       if (!user) {
         console.log('[CallKit] No user logged in, cannot save VoIP token');
         return;
       }
       
-      const { error } = await supabase
+      console.log('[CallKit] Updating profile with token...');
+      const { error, data } = await supabase
         .from('profiles')
         .update({ 
           voip_token: token,
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
       
       if (error) {
         console.error('[CallKit] Failed to save VoIP token:', error);
+        console.error('[CallKit] Error details:', JSON.stringify(error));
       } else {
-        console.log('[CallKit] VoIP token saved to profile');
+        console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
+        console.log('[CallKit] Updated profile:', JSON.stringify(data));
       }
     } catch (error) {
       console.error('[CallKit] Error saving VoIP token:', error);
@@ -140,14 +165,32 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
 
   // Register for VoIP (called manually if needed)
   const registerVoIPToken = useCallback(async () => {
-    if (!isIOSNative() || !callKitPluginRef.current) {
-      console.log('[CallKit] Cannot register VoIP - not on iOS or plugin not loaded');
+    console.log('[CallKit] ====== MANUAL REGISTRATION ======');
+    console.log('[CallKit] Is iOS native:', isIOSNative());
+    console.log('[CallKit] Plugin loaded:', !!callKitPluginRef.current);
+    
+    if (!isIOSNative()) {
+      console.log('[CallKit] Not on iOS native, skipping manual registration');
       return;
     }
     
+    if (!callKitPluginRef.current) {
+      console.log('[CallKit] Plugin not loaded, trying to load...');
+      try {
+        const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
+        callKitPluginRef.current = CallKitVoip;
+        console.log('[CallKit] Plugin loaded dynamically');
+      } catch (e) {
+        console.error('[CallKit] Failed to load plugin:', e);
+        return;
+      }
+    }
+    
     try {
-      await callKitPluginRef.current.register();
-      console.log('[CallKit] Manual registration triggered');
+      console.log('[CallKit] Calling register()...');
+      const result = await callKitPluginRef.current.register();
+      console.log('[CallKit] Manual registration result:', JSON.stringify(result));
+      console.log('[CallKit] Manual registration triggered successfully');
     } catch (error) {
       console.error('[CallKit] Manual registration failed:', error);
     }
