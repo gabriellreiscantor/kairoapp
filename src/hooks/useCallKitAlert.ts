@@ -179,13 +179,37 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         CallKitVoip.addListener('callAnswered', (data: any) => {
           console.log('[CallKit] ====== CALL ANSWERED ======');
           console.log('[CallKit] Answer data:', JSON.stringify(data));
-          const event = currentEventRef.current;
-          console.log('[CallKit] Current event ref:', JSON.stringify(event));
-          if (event) {
-            console.log('[CallKit] Playing TTS for event:', event.title);
-            playTTS(event);
+          console.log('[CallKit] Data keys:', Object.keys(data || {}));
+          
+          // FIRST: Try to use data directly from the callback payload
+          let eventToPlay: CallKitEvent | null = null;
+          
+          if (data?.eventId || data?.eventTitle || data?.name) {
+            console.log('[CallKit] Building event from payload data');
+            eventToPlay = {
+              id: data.eventId || data.id || data.connectionId || 'call-event',
+              title: data.eventTitle || data.name || 'Evento',
+              emoji: data.eventEmoji || '📅',
+              time: data.eventTime,
+              location: data.eventLocation,
+            };
+            // Also update the ref for consistency
+            setCurrentEvent(eventToPlay);
           } else {
-            console.warn('[CallKit] No current event to play TTS for!');
+            // FALLBACK: Use the ref if available
+            console.log('[CallKit] Payload has no event data, trying ref...');
+            eventToPlay = currentEventRef.current;
+          }
+          
+          console.log('[CallKit] Event to play TTS:', JSON.stringify(eventToPlay));
+          
+          if (eventToPlay) {
+            console.log('[CallKit] Playing TTS for event:', eventToPlay.title);
+            playTTS(eventToPlay);
+          } else {
+            console.error('[CallKit] NO EVENT DATA AVAILABLE FOR TTS!');
+            console.error('[CallKit] currentEventRef.current:', currentEventRef.current);
+            console.error('[CallKit] Payload data:', data);
           }
         });
         
