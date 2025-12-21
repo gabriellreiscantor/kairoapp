@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, Phone, Key, Loader2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -48,8 +48,6 @@ const MainApp = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const settingsParamProcessed = useRef(false);
   
-  // State for VoIP registration button
-  const [isRegisteringVoIP, setIsRegisteringVoIP] = useState(false);
   
   // Check if settings should be open from URL param
   const shouldOpenSettings = searchParams.get('settings') === 'open';
@@ -65,8 +63,8 @@ const MainApp = () => {
     isPlaying 
   } = useCallAlert();
   
-  // CallKit hook for VoIP token registration (iOS native only)
-  const { registerVoIPToken } = useCallKitAlert();
+  // CallKit hook for VoIP (iOS native only) - auto-registers on login
+  useCallKitAlert();
 
   // Push notifications hook - registers FCM token on native platforms
   usePushNotifications({
@@ -275,99 +273,6 @@ const MainApp = () => {
     setCreateEventDate(date || selectedDate);
     setIsCreateModalOpen(true);
   };
-
-  // Test function to trigger REAL VoIP push (native CallKit)
-  const testMeLigue = useCallback(async () => {
-    if (!user) return;
-    
-    const testEventData = {
-      id: 'test-event',
-      title: 'Barbearia',
-      emoji: '✂️',
-      time: '15:00',
-      location: 'Centro',
-    };
-    
-    // Verificar se estamos em plataforma nativa
-    const isNative = Capacitor.isNativePlatform();
-    
-    if (!isNative) {
-      // Na web, sempre usar fallback direto
-      console.log('[MainApp] Web platform - using direct call screen');
-      showCall(testEventData, language);
-      return;
-    }
-    
-    try {
-      console.log('[MainApp] Testing real VoIP push...');
-      const { data, error } = await supabase.functions.invoke('send-voip-push', {
-        body: {
-          user_id: user.id,
-          event_id: testEventData.id,
-          event_title: testEventData.title,
-          event_time: testEventData.time,
-          event_location: testEventData.location,
-          event_emoji: testEventData.emoji,
-        },
-      });
-      
-      if (error) {
-        console.error('[MainApp] VoIP push error:', error);
-        // Fallback to web version if VoIP fails
-        showCall(testEventData, language);
-        return;
-      }
-      
-      // Verificar se o servidor retornou que não há token
-      if (data?.message?.includes('no token') || data?.error) {
-        console.log('[MainApp] No VoIP token registered, using fallback');
-        showCall(testEventData, language);
-        return;
-      }
-      
-      console.log('[MainApp] VoIP push sent:', data);
-      // Em native com sucesso, o CallKit vai mostrar a tela de chamada
-    } catch (err) {
-      console.error('[MainApp] Test VoIP error:', err);
-      // Fallback to web version
-      showCall(testEventData, language);
-    }
-  }, [user, showCall, language]);
-
-  // Handler para registro de VoIP com feedback visual
-  const handleRegisterVoIP = useCallback(async () => {
-    if (isRegisteringVoIP) return;
-    
-    setIsRegisteringVoIP(true);
-    try {
-      const result = await registerVoIPToken();
-      
-      if (result.success) {
-        toast({
-          title: "VoIP Token",
-          description: result.message,
-          duration: 3000,
-        });
-      } else {
-        toast({
-          title: "VoIP Token",
-          description: result.message,
-          variant: "destructive",
-          duration: 3000,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao registrar VoIP token",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsRegisteringVoIP(false);
-    }
-  }, [registerVoIPToken, toast, isRegisteringVoIP]);
-
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setIsDateSheetOpen(true);
@@ -524,28 +429,6 @@ const MainApp = () => {
             onClearInitialEditMessage={() => setInitialEditMessage(null)}
           />
           
-          {/* Test "Me Ligue" Button */}
-          <button
-            onClick={testMeLigue}
-            className="fixed left-5 bottom-28 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg z-50"
-          >
-            <Phone className="w-5 h-5 text-white" />
-          </button>
-          
-          {/* Register VoIP Token Button (debug) */}
-          <button
-            onClick={handleRegisterVoIP}
-            disabled={isRegisteringVoIP}
-            className={`fixed left-5 bottom-44 w-12 h-12 rounded-full flex items-center justify-center shadow-lg z-50 transition-colors ${
-              isRegisteringVoIP ? 'bg-orange-400' : 'bg-orange-500'
-            }`}
-          >
-            {isRegisteringVoIP ? (
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
-            ) : (
-              <Key className="w-5 h-5 text-white" />
-            )}
-          </button>
           
           <SettingsDrawer
             isOpen={isSettingsOpen}

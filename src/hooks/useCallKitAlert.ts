@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CallKitEvent {
   id: string;
@@ -30,17 +31,98 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const [isCallVisible, setIsCallVisible] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CallKitEvent | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { toast } = useToast();
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentLanguageRef = useRef('pt-BR');
   const currentEventRef = useRef<CallKitEvent | null>(null);
   const isCallingTTSRef = useRef(false);
   const callKitPluginRef = useRef<any>(null);
+  const hasRegisteredRef = useRef(false);
+  const pendingTokenRef = useRef<string | null>(null);
 
   // Sync currentEvent to ref
   useEffect(() => {
     currentEventRef.current = currentEvent;
   }, [currentEvent]);
+
+  // Save VoIP token to Supabase - returns success status
+  const saveVoIPToken = useCallback(async (token: string): Promise<boolean> => {
+    console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
+    console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[CallKit] Current user:', user?.id);
+      
+      if (!user) {
+        console.log('[CallKit] No user logged in, storing token for later');
+        pendingTokenRef.current = token;
+        return false;
+      }
+      
+      console.log('[CallKit] Updating profile with token...');
+      const { error, data } = await supabase
+        .from('profiles')
+        .update({ 
+          voip_token: token,
+        })
+        .eq('id', user.id)
+        .select();
+      
+      if (error) {
+        console.error('[CallKit] Failed to save VoIP token:', error);
+        console.error('[CallKit] Error details:', JSON.stringify(error));
+        return false;
+      } else {
+        console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
+        console.log('[CallKit] Updated profile:', JSON.stringify(data));
+        console.log('[CallKit] VoIP token is now active in database!');
+        pendingTokenRef.current = null;
+        toast({
+          title: "Me Ligue ativado",
+          description: "Você receberá chamadas nativas para seus lembretes",
+          duration: 3000,
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error('[CallKit] Error saving VoIP token:', error);
+      return false;
+    }
+  }, [toast]);
+
+  // Try to register VoIP with retries
+  const attemptVoIPRegistration = useCallback(async (retryCount = 0): Promise<void> => {
+    if (!isIOSNative() || hasRegisteredRef.current) {
+      return;
+    }
+
+    const maxRetries = 3;
+    
+    try {
+      console.log(`[CallKit] Registration attempt ${retryCount + 1}/${maxRetries + 1}`);
+      
+      if (!callKitPluginRef.current) {
+        const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
+        callKitPluginRef.current = CallKitVoip;
+      }
+      
+      await callKitPluginRef.current.register();
+      hasRegisteredRef.current = true;
+      console.log('[CallKit] Registration successful');
+    } catch (error) {
+      console.error('[CallKit] Registration attempt failed:', error);
+      
+      if (retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        console.log(`[CallKit] Retrying in ${delay}ms...`);
+        setTimeout(() => attemptVoIPRegistration(retryCount + 1), delay);
+      } else {
+        console.error('[CallKit] All registration attempts failed');
+      }
+    }
+  }, []);
 
   // Initialize CallKit plugin on iOS
   useEffect(() => {
@@ -71,11 +153,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           await saveVoIPToken(data.token);
         });
         
-        // Register for VoIP notifications
-        console.log('[CallKit] Calling register()...');
-        const registerResult = await CallKitVoip.register();
-        console.log('[CallKit] Register result:', JSON.stringify(registerResult));
-        console.log('[CallKit] Registered for VoIP push successfully');
+        // Register for VoIP notifications with retry
+        await attemptVoIPRegistration();
         
         // Listen for call answered
         CallKitVoip.addListener('callAnswered', (data: any) => {
@@ -128,46 +207,36 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         callKitPluginRef.current.removeAllListeners?.();
       }
     };
-  }, []);
+  }, [saveVoIPToken, attemptVoIPRegistration]);
 
-  // Save VoIP token to Supabase - returns success status
-  const saveVoIPToken = async (token: string): Promise<boolean> => {
-    console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
-    console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('[CallKit] Current user:', user?.id);
+  // Listen for auth state changes to register VoIP token when user logs in
+  useEffect(() => {
+    if (!isIOSNative()) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[CallKit] Auth state changed:', event);
       
-      if (!user) {
-        console.log('[CallKit] No user logged in, cannot save VoIP token');
-        return false;
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[CallKit] User signed in, checking for pending token...');
+        
+        // If we have a pending token, save it now
+        if (pendingTokenRef.current) {
+          console.log('[CallKit] Saving pending token after login');
+          await saveVoIPToken(pendingTokenRef.current);
+        } else {
+          // Re-trigger registration to get a fresh token
+          console.log('[CallKit] No pending token, re-registering...');
+          hasRegisteredRef.current = false;
+          await attemptVoIPRegistration();
+        }
       }
-      
-      console.log('[CallKit] Updating profile with token...');
-      const { error, data } = await supabase
-        .from('profiles')
-        .update({ 
-          voip_token: token,
-        })
-        .eq('id', user.id)
-        .select();
-      
-      if (error) {
-        console.error('[CallKit] Failed to save VoIP token:', error);
-        console.error('[CallKit] Error details:', JSON.stringify(error));
-        return false;
-      } else {
-        console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
-        console.log('[CallKit] Updated profile:', JSON.stringify(data));
-        console.log('[CallKit] VoIP token is now active in database!');
-        return true;
-      }
-    } catch (error) {
-      console.error('[CallKit] Error saving VoIP token:', error);
-      return false;
-    }
-  };
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [saveVoIPToken, attemptVoIPRegistration]);
+
 
   // Register for VoIP (called manually if needed) - returns status
   const registerVoIPToken = useCallback(async (): Promise<{ success: boolean; message: string }> => {
