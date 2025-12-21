@@ -429,16 +429,39 @@ const MainApp = () => {
             onClearInitialEditMessage={() => setInitialEditMessage(null)}
           />
           
-          {/* Botão de teste temporário - Me Ligue */}
+          {/* Botão de teste temporário - VoIP Push Nativo */}
           <button
-            onClick={() => {
-              showCall({
-                id: 'test-call',
-                title: 'Evento de Teste',
-                emoji: '📞',
-                time: format(new Date(), 'HH:mm'),
-                location: 'Local de teste',
-              }, language);
+            onClick={async () => {
+              if (!user) {
+                toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
+                return;
+              }
+              
+              toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
+              
+              try {
+                const { data, error } = await supabase.functions.invoke('send-voip-push', {
+                  body: {
+                    user_id: user.id,
+                    event_id: 'test-call-' + Date.now(),
+                    event_title: 'Evento de Teste',
+                    event_time: format(new Date(), 'HH:mm'),
+                    event_location: 'Local de teste',
+                    event_emoji: '📞',
+                  },
+                });
+                
+                if (error) {
+                  console.error('[Test VoIP] Error:', error);
+                  toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                } else {
+                  console.log('[Test VoIP] Success:', data);
+                  toast({ title: 'VoIP push enviado!', description: 'A chamada nativa deve aparecer em segundos' });
+                }
+              } catch (err) {
+                console.error('[Test VoIP] Exception:', err);
+                toast({ title: 'Erro', description: 'Falha ao enviar VoIP push', variant: 'destructive' });
+              }
             }}
             className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
           >
