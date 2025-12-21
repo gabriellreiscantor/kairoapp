@@ -429,6 +429,22 @@ const MainApp = () => {
             onClearInitialEditMessage={() => setInitialEditMessage(null)}
           />
           
+          {/* Botão de teste temporário - Me Ligue */}
+          <button
+            onClick={() => {
+              showCall({
+                id: 'test-call',
+                title: 'Evento de Teste',
+                emoji: '📞',
+                time: format(new Date(), 'HH:mm'),
+                location: 'Local de teste',
+              }, language);
+            }}
+            className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          >
+            📞
+          </button>
+          
           
           <SettingsDrawer
             isOpen={isSettingsOpen}
