@@ -23,6 +23,16 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel } from "@/lib/event-constants";
 
 interface EventData {
@@ -61,6 +71,8 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
   const { isLoading: isGeoLoading, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -146,6 +158,26 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
       console.error('Error updating event:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      onSave?.();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -580,7 +612,41 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }: EditEventModalProps)
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas" rows={4} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
         </div>
+
+        {/* Delete Event Button */}
+        <div className="mx-4 mb-8">
+          <button 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full bg-destructive/10 text-destructive rounded-2xl px-4 py-4 flex items-center justify-center gap-3 hover:bg-destructive/20 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span className="font-medium">Apagar Evento</span>
+          </button>
+        </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-background border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O evento "{title}" será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteEvent} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bottom Sheet para selecionar repetição */}
       <Sheet open={repeatSheetOpen} onOpenChange={setRepeatSheetOpen}>
