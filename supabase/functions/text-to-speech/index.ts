@@ -185,6 +185,7 @@ serve(async (req) => {
         input: ttsText,
         voice: selectedVoice,
         response_format: 'mp3',
+        speed: 0.9, // Slower speech for better comprehension
       }),
     });
 

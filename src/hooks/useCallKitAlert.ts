@@ -199,12 +199,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           
           if (data?.eventId || data?.eventTitle || data?.name) {
             console.log('[CallKit] Building event from payload data');
+            // Capture time from multiple possible fields
+            const eventTime = data.eventTime || data.time || '';
+            console.log('[CallKit] Captured eventTime:', eventTime, 'from data.eventTime:', data.eventTime, 'data.time:', data.time);
+            
             eventToPlay = {
               id: data.eventId || data.id || data.connectionId || 'call-event',
               title: data.eventTitle || data.name || 'Evento',
               emoji: data.eventEmoji || '📅',
-              time: data.eventTime,
-              location: data.eventLocation,
+              time: eventTime,
+              location: data.eventLocation || data.location || '',
             };
             // Also update the ref for consistency
             setCurrentEvent(eventToPlay);
@@ -215,22 +219,14 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           }
           
           console.log('[CallKit] Event to play TTS:', JSON.stringify(eventToPlay));
+          console.log('[CallKit] Event time for TTS:', eventToPlay?.time);
           
           if (eventToPlay) {
-            console.log('[CallKit] Playing TTS for event:', eventToPlay.title);
-            // Play TTS - call stays active during audio
+            console.log('[CallKit] Playing TTS for event:', eventToPlay.title, 'time:', eventToPlay.time);
+            // Play TTS - DO NOT end call automatically, let the user hang up or timeout
             await playTTS(eventToPlay);
-            
-            // After TTS finishes, explicitly end the call
-            console.log('[CallKit] TTS finished, ending call properly...');
-            try {
-              if ((CallKitVoip as any).endCall) {
-                await (CallKitVoip as any).endCall({ id: eventToPlay.id });
-                console.log('[CallKit] Call ended after TTS completion');
-              }
-            } catch (e) {
-              console.log('[CallKit] Error ending call after TTS:', e);
-            }
+            console.log('[CallKit] TTS playback finished');
+            // Call stays active - user can hang up manually or it will timeout
           } else {
             console.error('[CallKit] NO EVENT DATA AVAILABLE FOR TTS!');
             console.error('[CallKit] currentEventRef.current:', currentEventRef.current);
@@ -269,8 +265,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           // IMPORTANT: Stop TTS immediately when call ends
           isCallingTTSRef.current = false;
           
+          // Stop audio completely - clear source first to stop all playback
           if (audioRef.current) {
-            audioRef.current.pause();
+            console.log('[CallKit] Stopping audio playback...');
+            try {
+              audioRef.current.pause();
+              audioRef.current.src = ''; // Clear source to fully stop
+              audioRef.current.load(); // Reset audio element
+            } catch (e) {
+              console.log('[CallKit] Error stopping audio:', e);
+            }
             audioRef.current = null;
           }
           
