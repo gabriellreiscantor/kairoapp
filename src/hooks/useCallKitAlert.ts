@@ -425,6 +425,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   }, []);
 
   // Play TTS after call is answered - max 15 seconds with loop
+  // Play TTS via native Swift (AVAudioPlayer) - works during CallKit call
   const playTTS = useCallback(async (event: CallKitEvent) => {
     if (isCallingTTSRef.current) {
       console.log('[CallKit] TTS already in progress');
@@ -434,12 +435,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     isCallingTTSRef.current = true;
     setIsPlaying(true);
     
-    const MAX_CALL_DURATION = 15000; // 15 segundos máximo
+    const MAX_CALL_DURATION = 20000; // 20 segundos máximo
     let callTimeoutId: NodeJS.Timeout | null = null;
-    let audioUrl: string | null = null;
     
     // Função para encerrar chamada
-    const endCallAndCleanup = () => {
+    const endCallAndCleanup = async () => {
       console.log('[CallKit] Ending call after timeout or completion');
       
       if (callTimeoutId) {
@@ -447,26 +447,35 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         callTimeoutId = null;
       }
       
+      // Stop native TTS playback
+      if (isIOSNative() && callKitPluginRef.current?.stopTTSAudio) {
+        try {
+          await callKitPluginRef.current.stopTTSAudio();
+          console.log('[CallKit] Native TTS stopped');
+        } catch (e) {
+          console.log('[CallKit] Error stopping native TTS:', e);
+        }
+      }
+      
+      // Also stop web audio fallback if used
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
       
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-        audioUrl = null;
-      }
-      
       setIsPlaying(false);
       isCallingTTSRef.current = false;
       
-      // End CallKit call using endCallFromJS (from forked plugin)
+      // End CallKit call using endCallFromJS
       if (callKitPluginRef.current && currentEventRef.current) {
-        // Try endCallFromJS first (forked plugin), fallback to endCall
         const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
         if (endCallFn) {
           console.log('[CallKit] Calling endCallFromJS to end call after TTS');
-          endCallFn({ id: currentEventRef.current.id });
+          try {
+            await endCallFn({ id: currentEventRef.current.id });
+          } catch (e) {
+            console.log('[CallKit] Error ending call:', e);
+          }
         }
       }
       
@@ -494,21 +503,43 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       }
 
       if (data?.audioContent) {
-        const base64 = data.audioContent;
-        const binaryString = atob(base64);
+        const base64Audio = data.audioContent;
+        console.log('[CallKit] TTS audio received, base64 length:', base64Audio.length);
+        
+        // Timeout máximo de 20 segundos
+        callTimeoutId = setTimeout(() => {
+          console.log('[CallKit] Max call duration reached (20s)');
+          endCallAndCleanup();
+        }, MAX_CALL_DURATION);
+        
+        // Try to play via native Swift AVAudioPlayer (works during CallKit call)
+        if (isIOSNative() && callKitPluginRef.current?.playTTSAudio) {
+          console.log('[CallKit] Playing TTS via native Swift AVAudioPlayer');
+          
+          try {
+            const result = await callKitPluginRef.current.playTTSAudio({ audio: base64Audio });
+            console.log('[CallKit] Native TTS playback result:', JSON.stringify(result));
+            
+            if (result?.playing) {
+              console.log('[CallKit] ✅ Native TTS is playing!');
+              // Let it play until timeout, native player handles loops
+              return;
+            }
+          } catch (nativeError) {
+            console.error('[CallKit] Native TTS failed, trying web fallback:', nativeError);
+          }
+        }
+        
+        // FALLBACK: Web Audio API (may not work during CallKit call)
+        console.log('[CallKit] Using web audio fallback');
+        const binaryString = atob(base64Audio);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
         const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
-        audioUrl = URL.createObjectURL(audioBlob);
-        
-        // Timeout máximo de 15 segundos
-        callTimeoutId = setTimeout(() => {
-          console.log('[CallKit] Max call duration reached (15s)');
-          endCallAndCleanup();
-        }, MAX_CALL_DURATION);
+        const audioUrl = URL.createObjectURL(audioBlob);
         
         // Loop infinito do TTS até o timeout
         const playAudioLoop = () => {
@@ -519,18 +550,18 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           audioRef.current = new Audio(audioUrl);
           
           audioRef.current.onended = () => {
-            // Continua repetindo enquanto estiver ativo
             if (isCallingTTSRef.current) {
               setTimeout(() => {
                 if (isCallingTTSRef.current) {
                   playAudioLoop();
                 }
-              }, 800); // Pequena pausa entre repetições
+              }, 800);
             }
           };
           
           audioRef.current.onerror = () => {
             console.error('[CallKit] Audio playback error');
+            URL.revokeObjectURL(audioUrl);
             endCallAndCleanup();
           };
           
