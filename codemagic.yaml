@@ -52,8 +52,7 @@ workflows:
               private var silencePlayer: AVAudioPlayer?
               
               @objc override public func load() {
-                  let config = CXProviderConfiguration()
-                  config.localizedName = "Kairo"
+                  let config = CXProviderConfiguration(localizedName: "Kairo")
                   config.supportsVideo = false
                   config.supportedHandleTypes = [.generic]
                   config.maximumCallGroups = 1
@@ -102,7 +101,7 @@ workflows:
               private func configureAudioSession() {
                   do {
                       let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothA2DP])
                       try session.setActive(true)
                       print("[CallKit] Audio session configured for TTS playback")
                   } catch {
@@ -424,24 +423,29 @@ workflows:
             
             app_group = project.main_group['App']
             
-            # Add toqueios.caf
+            # Get resources build phase
+            resources_phase = target.resources_build_phase
+            
+            # Add toqueios.caf to Resources (not Compile Sources)
             existing_ringtone = app_group.files.find { |f| f.path == 'toqueios.caf' }
             if existing_ringtone.nil?
-              puts "Adding toqueios.caf to project..."
+              puts "Adding toqueios.caf to project as resource..."
               file_ref = app_group.new_file('toqueios.caf')
-              target.add_file_references([file_ref])
-              puts "✅ toqueios.caf added to project and target"
+              file_ref.last_known_file_type = 'audio.caf'
+              build_file = resources_phase.add_file_reference(file_ref)
+              puts "✅ toqueios.caf added to Resources build phase"
             else
               puts "ℹ️ toqueios.caf already exists in project"
             end
             
-            # Add silence.caf
+            # Add silence.caf to Resources (not Compile Sources)
             existing_silence = app_group.files.find { |f| f.path == 'silence.caf' }
             if existing_silence.nil?
-              puts "Adding silence.caf to project..."
+              puts "Adding silence.caf to project as resource..."
               file_ref = app_group.new_file('silence.caf')
-              target.add_file_references([file_ref])
-              puts "✅ silence.caf added to project and target"
+              file_ref.last_known_file_type = 'audio.caf'
+              build_file = resources_phase.add_file_reference(file_ref)
+              puts "✅ silence.caf added to Resources build phase"
             else
               puts "ℹ️ silence.caf already exists in project"
             end
