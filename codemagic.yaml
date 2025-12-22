@@ -50,6 +50,7 @@ workflows:
               private var callController = CXCallController()
               private var currentCallUUID: UUID?
               private var silencePlayer: AVAudioPlayer?
+              private var currentEventData: [String: Any] = [:]  // Store event data for TTS
               
               @objc override public func load() {
                   let config = CXProviderConfiguration(localizedName: "Kairo")
@@ -167,6 +168,17 @@ workflows:
                   
                   print("[CallKit] displayName: '\(displayName)' | handleValue: '\(handleValue)'")
                   
+                  // Store event data for TTS playback
+                  currentEventData = [
+                      "eventId": idString,
+                      "eventTitle": rawName,
+                      "eventEmoji": payload.dictionaryPayload["eventEmoji"] as? String ?? "📅",
+                      "eventTime": payload.dictionaryPayload["eventTime"] as? String ?? "",
+                      "eventLocation": payload.dictionaryPayload["eventLocation"] as? String ?? "",
+                      "name": displayName
+                  ]
+                  print("[CallKit] Stored event data: \(currentEventData)")
+                  
                   currentCallUUID = callUUID
                   
                   // Start audio anchor BEFORE reporting the call
@@ -233,22 +245,24 @@ workflows:
                   // Configure audio session for TTS playback
                   configureAudioSession()
                   
-                  // Notify JavaScript that call was answered
+                  // Notify JavaScript that call was answered with event data for TTS
                   // DO NOT end the call here - let JavaScript handle it after TTS
                   if let uuid = currentCallUUID {
-                      notifyListeners("callAnswered", data: [
-                          "id": uuid.uuidString,
-                          "connectionId": uuid.uuidString
-                      ])
+                      var answeredData = currentEventData
+                      answeredData["id"] = uuid.uuidString
+                      answeredData["connectionId"] = uuid.uuidString
+                      print("[CallKit] Sending callAnswered with data: \(answeredData)")
+                      notifyListeners("callAnswered", data: answeredData)
                   }
                   
                   action.fulfill()
                   
-                  // Notify that call has started (audio connected)
-                  notifyListeners("callStarted", data: [
-                      "id": currentCallUUID?.uuidString ?? "",
-                      "connectionId": currentCallUUID?.uuidString ?? ""
-                  ])
+                  // Notify that call has started (audio connected) with event data
+                  var startedData = currentEventData
+                  startedData["id"] = currentCallUUID?.uuidString ?? ""
+                  startedData["connectionId"] = currentCallUUID?.uuidString ?? ""
+                  print("[CallKit] Sending callStarted with data: \(startedData)")
+                  notifyListeners("callStarted", data: startedData)
               }
               
               public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
