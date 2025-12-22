@@ -294,10 +294,65 @@ workflows:
                   action.fulfill()
               }
               
+              // MARK: - TTS Audio Player
+              private var ttsPlayer: AVAudioPlayer?
+              
               // MARK: - Plugin Methods
               
               @objc func register(_ call: CAPPluginCall) {
                   // VoIP registration is automatic in load()
+                  call.resolve()
+              }
+              
+              @objc func playTTSAudio(_ call: CAPPluginCall) {
+                  print("[CallKit] ====== PLAY TTS AUDIO ======")
+                  
+                  guard let base64Audio = call.getString("audio") else {
+                      print("[CallKit] No audio data provided")
+                      call.reject("No audio data")
+                      return
+                  }
+                  
+                  print("[CallKit] Received base64 audio, length: \(base64Audio.count)")
+                  
+                  guard let audioData = Data(base64Encoded: base64Audio) else {
+                      print("[CallKit] Invalid base64 encoding")
+                      call.reject("Invalid base64")
+                      return
+                  }
+                  
+                  print("[CallKit] Decoded audio data, size: \(audioData.count) bytes")
+                  
+                  do {
+                      // Configure audio session for playback during call
+                      let session = AVAudioSession.sharedInstance()
+                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                      try session.setActive(true)
+                      print("[CallKit] Audio session configured for TTS playback")
+                      
+                      // Create player from data
+                      ttsPlayer = try AVAudioPlayer(data: audioData)
+                      ttsPlayer?.numberOfLoops = 5  // Repeat 5 times
+                      ttsPlayer?.volume = 1.0
+                      
+                      let started = ttsPlayer?.play() ?? false
+                      print("[CallKit] TTS playback started: \(started)")
+                      
+                      if started {
+                          call.resolve(["playing": true])
+                      } else {
+                          call.reject("Failed to start playback")
+                      }
+                  } catch {
+                      print("[CallKit] Failed to play TTS audio: \(error)")
+                      call.reject("Failed to play: \(error.localizedDescription)")
+                  }
+              }
+              
+              @objc func stopTTSAudio(_ call: CAPPluginCall) {
+                  print("[CallKit] Stopping TTS audio")
+                  ttsPlayer?.stop()
+                  ttsPlayer = nil
                   call.resolve()
               }
               
@@ -307,6 +362,9 @@ workflows:
                       return
                   }
                   
+                  // Stop TTS when ending call
+                  ttsPlayer?.stop()
+                  ttsPlayer = nil
                   stopAudioAnchor()
                   
                   let endCallAction = CXEndCallAction(call: uuid)
@@ -333,6 +391,9 @@ workflows:
                       return
                   }
                   
+                  // Stop TTS when ending call
+                  ttsPlayer?.stop()
+                  ttsPlayer = nil
                   stopAudioAnchor()
                   
                   let endCallAction = CXEndCallAction(call: uuid)
@@ -363,6 +424,8 @@ workflows:
               CAP_PLUGIN_METHOD(register, CAPPluginReturnPromise);
               CAP_PLUGIN_METHOD(endCall, CAPPluginReturnPromise);
               CAP_PLUGIN_METHOD(endCallFromJS, CAPPluginReturnPromise);
+              CAP_PLUGIN_METHOD(playTTSAudio, CAPPluginReturnPromise);
+              CAP_PLUGIN_METHOD(stopTTSAudio, CAPPluginReturnPromise);
           )
           OBJC_EOF
           
