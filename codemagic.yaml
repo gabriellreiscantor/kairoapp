@@ -75,15 +75,23 @@ workflows:
                       try session.setActive(true)
                       print("[CallKit] Audio session activated for anchor")
                       
+                      // Debug: list bundle resources
+                      if let resourcePath = Bundle.main.resourcePath {
+                          let files = try? FileManager.default.contentsOfDirectory(atPath: resourcePath)
+                          let cafFiles = files?.filter { $0.hasSuffix(".caf") } ?? []
+                          print("[CallKit] CAF files in bundle: \(cafFiles)")
+                      }
+                      
                       // Play silence.caf in infinite loop to keep call anchored
                       if let url = Bundle.main.url(forResource: "silence", withExtension: "caf") {
+                          print("[CallKit] Found silence.caf at: \(url.path)")
                           silencePlayer = try AVAudioPlayer(contentsOf: url)
                           silencePlayer?.numberOfLoops = -1  // Infinite loop
                           silencePlayer?.volume = 0.01  // Almost inaudible
-                          silencePlayer?.play()
-                          print("[CallKit] Silence audio anchor started")
+                          let started = silencePlayer?.play() ?? false
+                          print("[CallKit] Silence audio anchor started: \(started)")
                       } else {
-                          print("[CallKit] silence.caf not found in bundle")
+                          print("[CallKit] ❌ silence.caf NOT found in bundle!")
                       }
                   } catch {
                       print("[CallKit] Failed to start audio anchor: \(error)")
@@ -134,7 +142,12 @@ workflows:
                       return
                   }
                   
-                  let callerName = payload.dictionaryPayload["name"] as? String ?? "Lembrete Kairo"
+                  // Validate callerName - empty string causes "Unknown" in CallKit
+                  let rawName = payload.dictionaryPayload["name"] as? String ?? ""
+                  let callerName = rawName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
+                      ? "Lembrete Kairo" 
+                      : rawName
+                  print("[CallKit] Caller name: '\(callerName)' (raw: '\(rawName)')")
                   
                   currentCallUUID = uuid
                   
