@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const apnsKeyId = Deno.env.get('APNS_KEY_ID');
     const apnsTeamId = Deno.env.get('APNS_TEAM_ID');
     const apnsPrivateKey = Deno.env.get('APNS_PRIVATE_KEY');
-    const appBundleId = 'app.lovable.c22861fc467c41aa89f70d5fb35a5ac2'; // App bundle ID for VoIP
+    const appBundleId = 'com.kairo'; // App bundle ID for VoIP
     
     if (!apnsKeyId || !apnsTeamId || !apnsPrivateKey) {
       console.error('Missing APNs configuration');
