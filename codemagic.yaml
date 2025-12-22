@@ -34,7 +34,7 @@ workflows:
             exit 1
           fi
           
-          echo "Creating patched CallKitVoipPlugin.swift..."
+          echo "Creating patched CallKitVoipPlugin.swift with DEBUG EVENTS + FIXES..."
           
           cat > "$PLUGIN_FILE" << 'SWIFT_EOF'
           import Foundation
@@ -68,7 +68,11 @@ workflows:
               }
               
               // Start audio anchor - plays silence.caf in loop to keep call alive
-              private func startAudioAnchor() {
+              // Returns tuple with (found, started) for debugging
+              private func startAudioAnchor() -> (found: Bool, started: Bool) {
+                  var silenceFound = false
+                  var silenceStarted = false
+                  
                   do {
                       let session = AVAudioSession.sharedInstance()
                       try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
@@ -76,26 +80,31 @@ workflows:
                       print("[CallKit] Audio session activated for anchor")
                       
                       // Debug: list bundle resources
+                      var cafFiles: [String] = []
                       if let resourcePath = Bundle.main.resourcePath {
                           let files = try? FileManager.default.contentsOfDirectory(atPath: resourcePath)
-                          let cafFiles = files?.filter { $0.hasSuffix(".caf") } ?? []
+                          cafFiles = files?.filter { $0.hasSuffix(".caf") } ?? []
                           print("[CallKit] CAF files in bundle: \(cafFiles)")
                       }
                       
                       // Play silence.caf in infinite loop to keep call anchored
                       if let url = Bundle.main.url(forResource: "silence", withExtension: "caf") {
                           print("[CallKit] Found silence.caf at: \(url.path)")
+                          silenceFound = true
                           silencePlayer = try AVAudioPlayer(contentsOf: url)
                           silencePlayer?.numberOfLoops = -1  // Infinite loop
                           silencePlayer?.volume = 0.01  // Almost inaudible
-                          let started = silencePlayer?.play() ?? false
-                          print("[CallKit] Silence audio anchor started: \(started)")
+                          silenceStarted = silencePlayer?.play() ?? false
+                          print("[CallKit] Silence audio anchor started: \(silenceStarted)")
                       } else {
                           print("[CallKit] ❌ silence.caf NOT found in bundle!")
+                          silenceFound = false
                       }
                   } catch {
                       print("[CallKit] Failed to start audio anchor: \(error)")
                   }
+                  
+                  return (silenceFound, silenceStarted)
               }
               
               // Stop audio anchor
@@ -126,50 +135,79 @@ workflows:
               }
               
               public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-                  print("[CallKit] Received VoIP push: \(payload.dictionaryPayload)")
+                  print("[CallKit] ====== VOIP PUSH RECEIVED ======")
+                  print("[CallKit] Full payload: \(payload.dictionaryPayload)")
                   
-                  guard let idString = payload.dictionaryPayload["id"] as? String,
-                        let uuid = UUID(uuidString: idString) else {
-                      print("[CallKit] Invalid or missing 'id' in payload")
-                      // Must report a call even if invalid, per Apple requirements
-                      let fallbackUUID = UUID()
-                      let update = CXCallUpdate()
-                      update.remoteHandle = CXHandle(type: .generic, value: "Unknown")
-                      provider?.reportNewIncomingCall(with: fallbackUUID, update: update) { _ in
-                          self.provider?.reportCall(with: fallbackUUID, endedAt: nil, reason: .failed)
-                          completion()
-                      }
-                      return
-                  }
+                  // Extract payload data for debugging
+                  let payloadId = payload.dictionaryPayload["id"] as? String ?? "NIL"
+                  let payloadName = payload.dictionaryPayload["name"] as? String ?? "NIL"
                   
-                  // Validate callerName - empty string causes "Unknown" in CallKit
+                  // DEBUG EVENT 1: Push received - sends to JavaScript
+                  notifyListeners("debug", data: [
+                      "stage": "push_received",
+                      "payload_id": payloadId,
+                      "payload_name": payloadName,
+                      "payload_full": String(describing: payload.dictionaryPayload)
+                  ])
+                  
+                  // FIX CALL CURTA: Never fail just because ID is not a valid UUID
+                  // Generate a new UUID if the provided one is invalid
+                  let idString = payload.dictionaryPayload["id"] as? String ?? ""
+                  let callUUID = UUID(uuidString: idString) ?? UUID()
+                  print("[CallKit] Using UUID: \(callUUID.uuidString) (original id: '\(idString)')")
+                  
+                  // FIX UNKNOWN: Separate displayName and handleValue
+                  // displayName = full name with emoji (for localizedCallerName display)
+                  // handleValue = fixed "Kairo" (iOS CXHandle doesn't like emojis)
                   let rawName = payload.dictionaryPayload["name"] as? String ?? ""
-                  let callerName = rawName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
+                  let displayName = rawName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
                       ? "Lembrete Kairo" 
                       : rawName
-                  print("[CallKit] Caller name: '\(callerName)' (raw: '\(rawName)')")
+                  let handleValue = "Kairo"  // Fixed handle - no emoji!
                   
-                  currentCallUUID = uuid
+                  print("[CallKit] displayName: '\(displayName)' | handleValue: '\(handleValue)'")
+                  
+                  currentCallUUID = callUUID
                   
                   // Start audio anchor BEFORE reporting the call
-                  startAudioAnchor()
+                  let anchorResult = startAudioAnchor()
+                  
+                  // DEBUG EVENT 2: Audio anchor status
+                  notifyListeners("debug", data: [
+                      "stage": "anchor_start",
+                      "silence_found": anchorResult.found,
+                      "silence_started": anchorResult.started
+                  ])
                   
                   let update = CXCallUpdate()
-                  update.remoteHandle = CXHandle(type: .generic, value: callerName)
-                  update.localizedCallerName = callerName
+                  update.remoteHandle = CXHandle(type: .generic, value: handleValue)  // FIX: Fixed "Kairo" without emoji
+                  update.localizedCallerName = displayName  // FIX: Full name with emoji for display
                   update.hasVideo = false
                   update.supportsHolding = false
                   update.supportsGrouping = false
                   update.supportsUngrouping = false
                   update.supportsDTMF = false
                   
-                  provider?.reportNewIncomingCall(with: uuid, update: update) { error in
+                  provider?.reportNewIncomingCall(with: callUUID, update: update) { error in
+                      var errorMessage: String? = nil
+                      
                       if let error = error {
                           print("[CallKit] Failed to report incoming call: \(error)")
+                          errorMessage = error.localizedDescription
                           self.stopAudioAnchor()
                       } else {
-                          print("[CallKit] Incoming call reported successfully with audio anchor")
+                          print("[CallKit] ✅ Incoming call reported successfully")
                       }
+                      
+                      // DEBUG EVENT 3: Call reported - final status
+                      self.notifyListeners("debug", data: [
+                          "stage": "call_reported",
+                          "displayName": displayName,
+                          "handleValue": handleValue,
+                          "uuid": callUUID.uuidString,
+                          "error": errorMessage ?? "none"
+                      ])
+                      
                       completion()
                   }
               }
@@ -315,10 +353,11 @@ workflows:
           OBJC_EOF
           
           echo "✅ CallKit VoIP plugin patched successfully"
+          echo "   - DEBUG EVENTS: push_received, anchor_start, call_reported"
+          echo "   - FIX UNKNOWN: localizedCallerName=displayName, remoteHandle=Kairo"
+          echo "   - FIX CALL CURTA: UUID(uuidString:) ?? UUID() - never fails"
           echo "   - Custom ringtone: toqueios.caf"
-          echo "   - Audio session configured for TTS"
           echo "   - endCallFromJS method exposed"
-          echo "   - Call stays active until JS ends it"
       
       - name: Install capacitor-assets
         script: npm install -g @capacitor/assets
@@ -689,6 +728,63 @@ workflows:
         script: |
           rm -rf ios/App/CapApp-SPM
           cd ios/App && pod install
+      
+      - name: Verify Swift Patch Applied
+        script: |
+          echo "=== VERIFYING SWIFT PATCH IN PODS ==="
+          SWIFT_FILE="ios/App/Pods/capacitor-plugin-callkit-voip/Plugin/CallKitVoipPlugin.swift"
+          
+          if [ ! -f "$SWIFT_FILE" ]; then
+            echo "❌ Swift file not found at $SWIFT_FILE"
+            echo "Listing Pods directory..."
+            ls -la ios/App/Pods/ || echo "Pods directory not found"
+            exit 1
+          fi
+          
+          echo "--- First 60 lines of patched Swift file ---"
+          head -60 "$SWIFT_FILE"
+          
+          echo ""
+          echo "--- Searching for CRITICAL MARKERS ---"
+          echo ""
+          
+          # Check for debug events
+          if grep -n 'notifyListeners.*debug' "$SWIFT_FILE"; then
+            echo "✅ DEBUG LISTENER FOUND"
+          else
+            echo "❌ DEBUG LISTENER NOT FOUND - PATCH MAY NOT BE APPLIED!"
+          fi
+          
+          # Check for silence.caf reference
+          if grep -n 'silence.caf' "$SWIFT_FILE"; then
+            echo "✅ SILENCE.CAF REFERENCE FOUND"
+          else
+            echo "❌ SILENCE.CAF REFERENCE NOT FOUND"
+          fi
+          
+          # Check for localizedCallerName (the fix for Unknown)
+          if grep -n 'localizedCallerName = displayName' "$SWIFT_FILE"; then
+            echo "✅ LOCALIZED CALLER NAME FIX FOUND"
+          else
+            echo "❌ LOCALIZED CALLER NAME FIX NOT FOUND"
+          fi
+          
+          # Check for handleValue = "Kairo" (the fix for emoji in handle)
+          if grep -n 'handleValue = "Kairo"' "$SWIFT_FILE"; then
+            echo "✅ HANDLE VALUE FIX FOUND (no emoji)"
+          else
+            echo "❌ HANDLE VALUE FIX NOT FOUND"
+          fi
+          
+          # Check for UUID fallback (the fix for call curta)
+          if grep -n 'UUID(uuidString: idString) ?? UUID()' "$SWIFT_FILE"; then
+            echo "✅ UUID FALLBACK FIX FOUND (no more .failed)"
+          else
+            echo "❌ UUID FALLBACK FIX NOT FOUND"
+          fi
+          
+          echo ""
+          echo "=== END VERIFICATION ==="
       
       - name: Initialize keychain
         script: keychain initialize

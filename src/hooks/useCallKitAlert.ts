@@ -150,6 +150,37 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] CallKitVoip object:', CallKitVoip);
         console.log('[CallKit] Available methods:', Object.keys(CallKitVoip || {}));
         
+        // Listen for DEBUG events from Swift - THIS IS THE KEY FOR DEBUGGING WITHOUT XCODE
+        console.log('[CallKit] Setting up DEBUG listener...');
+        (CallKitVoip as any).addListener('debug', (data: any) => {
+          console.log('[CallKit DEBUG] ====================================');
+          console.log('[CallKit DEBUG] Stage:', data.stage);
+          console.log('[CallKit DEBUG] Full data:', JSON.stringify(data, null, 2));
+          console.log('[CallKit DEBUG] ====================================');
+          
+          // Show toast with debug info so user can see it on device
+          if (data.stage === 'push_received') {
+            toast({
+              title: `📥 Push: ${data.payload_name}`,
+              description: `ID: ${data.payload_id}`,
+              duration: 5000,
+            });
+          } else if (data.stage === 'anchor_start') {
+            toast({
+              title: `🔇 Silence.caf`,
+              description: `Found: ${data.silence_found}, Started: ${data.silence_started}`,
+              duration: 5000,
+            });
+          } else if (data.stage === 'call_reported') {
+            toast({
+              title: `📞 Call: ${data.displayName}`,
+              description: `Handle: ${data.handleValue}, Error: ${data.error}`,
+              duration: 5000,
+            });
+          }
+        });
+        console.log('[CallKit] DEBUG listener set up');
+        
         // Listen for registration token BEFORE registering
         // IMPORTANT: Plugin sends token as "value" not "token"
         console.log('[CallKit] Setting up registration listener...');
