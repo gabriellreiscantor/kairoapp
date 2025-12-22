@@ -176,10 +176,23 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         // Listen for call answered
         console.log('[CallKit] Setting up callAnswered listener...');
-        CallKitVoip.addListener('callAnswered', (data: any) => {
+        CallKitVoip.addListener('callAnswered', async (data: any) => {
           console.log('[CallKit] ====== CALL ANSWERED ======');
           console.log('[CallKit] Answer data:', JSON.stringify(data));
           console.log('[CallKit] Data keys:', Object.keys(data || {}));
+          
+          // Configure audio session to keep call active during TTS
+          try {
+            if ((CallKitVoip as any).configureAudioSession) {
+              console.log('[CallKit] Configuring audio session to keep call active...');
+              await (CallKitVoip as any).configureAudioSession();
+              console.log('[CallKit] Audio session configured');
+            } else {
+              console.log('[CallKit] configureAudioSession not available');
+            }
+          } catch (e) {
+            console.log('[CallKit] configureAudioSession error (non-critical):', e);
+          }
           
           // FIRST: Try to use data directly from the callback payload
           let eventToPlay: CallKitEvent | null = null;
@@ -205,7 +218,19 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           
           if (eventToPlay) {
             console.log('[CallKit] Playing TTS for event:', eventToPlay.title);
-            playTTS(eventToPlay);
+            // Play TTS - call stays active during audio
+            await playTTS(eventToPlay);
+            
+            // After TTS finishes, explicitly end the call
+            console.log('[CallKit] TTS finished, ending call properly...');
+            try {
+              if ((CallKitVoip as any).endCall) {
+                await (CallKitVoip as any).endCall({ id: eventToPlay.id });
+                console.log('[CallKit] Call ended after TTS completion');
+              }
+            } catch (e) {
+              console.log('[CallKit] Error ending call after TTS:', e);
+            }
           } else {
             console.error('[CallKit] NO EVENT DATA AVAILABLE FOR TTS!');
             console.error('[CallKit] currentEventRef.current:', currentEventRef.current);
