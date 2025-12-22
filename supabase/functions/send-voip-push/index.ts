@@ -129,7 +129,8 @@ Deno.serve(async (req) => {
     const jwt = await createAPNsJWT(apnsTeamId, apnsKeyId, apnsPrivateKey);
     
     // VoIP Push payload - MUST use fields the capacitor-plugin-callkit-voip expects
-    // Required fields: id, name, media, duration
+    // Required fields: id, name, media
+    // NOTE: duration REMOVED to prevent premature call termination
     const payload = {
       aps: {
         'content-available': 1,
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
       id: event_id,
       name: `${event_emoji || '📅'} ${event_title}`,
       media: 'audio',
-      duration: '0',
+      // duration removed - call stays active until endCallFromJS is called
       // Custom data for our app to use after call is answered
       eventId: event_id,
       eventTitle: event_title,

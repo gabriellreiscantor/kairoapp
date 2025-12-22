@@ -424,11 +424,14 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       setIsPlaying(false);
       isCallingTTSRef.current = false;
       
-      // End CallKit call
+      // End CallKit call using endCallFromJS (from forked plugin)
       if (callKitPluginRef.current && currentEventRef.current) {
-        callKitPluginRef.current.endCall?.({ 
-          id: currentEventRef.current.id 
-        });
+        // Try endCallFromJS first (forked plugin), fallback to endCall
+        const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
+        if (endCallFn) {
+          console.log('[CallKit] Calling endCallFromJS to end call after TTS');
+          endCallFn({ id: currentEventRef.current.id });
+        }
       }
       
       setTimeout(() => {
@@ -541,9 +544,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   // Handle decline
   const handleDecline = useCallback(() => {
     if (callKitPluginRef.current && currentEventRef.current) {
-      callKitPluginRef.current.endCall?.({ 
-        id: currentEventRef.current.id 
-      });
+      // Use endCallFromJS (forked plugin) or fallback to endCall
+      const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
+      endCallFn?.({ id: currentEventRef.current.id });
     }
     cleanupCall();
   }, [cleanupCall]);
@@ -554,7 +557,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     const language = currentLanguageRef.current;
     
     if (callKitPluginRef.current && event) {
-      callKitPluginRef.current.endCall?.({ id: event.id });
+      // Use endCallFromJS (forked plugin) or fallback to endCall
+      const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
+      endCallFn?.({ id: event.id });
     }
     
     cleanupCall();
