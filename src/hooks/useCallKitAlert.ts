@@ -40,6 +40,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const callKitPluginRef = useRef<any>(null);
   const hasRegisteredRef = useRef(false);
   const pendingTokenRef = useRef<string | null>(null);
+  const preloadedTTSRef = useRef<string | null>(null); // Pre-loaded TTS audio base64
+  const preloadingTTSRef = useRef<Promise<string | null> | null>(null); // TTS loading promise
 
   // Sync currentEvent to ref
   useEffect(() => {
@@ -255,11 +257,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           if (eventToPlay) {
             console.log('[CallKit] Playing TTS for event:', eventToPlay.title, 'time:', eventToPlay.time);
             
-            // Aguardar 1.5s para sessão de áudio estabilizar após atender
-            console.log('[CallKit] Waiting 1.5s for audio session to stabilize...');
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Wait only 300ms for audio session to stabilize (TTS is already pre-loaded)
+            console.log('[CallKit] Waiting 300ms for audio session...');
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Play TTS - DO NOT end call automatically, let the user hang up or timeout
+            // Play TTS using pre-loaded audio if available
             await playTTS(eventToPlay);
             console.log('[CallKit] TTS playback finished');
             // Call stays active - user can hang up manually or it will timeout
@@ -270,11 +272,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           }
         });
         
-        // Listen for call started (incoming call)
+        // Listen for call started (incoming call) - PRE-LOAD TTS HERE
         console.log('[CallKit] Setting up callStarted listener...');
-        CallKitVoip.addListener('callStarted', (data: any) => {
+        CallKitVoip.addListener('callStarted', async (data: any) => {
           console.log('[CallKit] ====== CALL STARTED ======');
           console.log('[CallKit] Start data:', JSON.stringify(data));
+          
+          // Clear previous preloaded TTS
+          preloadedTTSRef.current = null;
+          preloadingTTSRef.current = null;
+          
           // Store the event data from push notification
           if (data.eventId) {
             const eventData = {
@@ -286,7 +293,37 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             };
             console.log('[CallKit] Setting current event:', JSON.stringify(eventData));
             setCurrentEvent(eventData);
-            // REMOVED: setIsCallVisible(true) - keep user on native CallKit screen
+            
+            // PRE-LOAD TTS IMMEDIATELY when phone starts ringing
+            console.log('[CallKit] 🚀 PRE-LOADING TTS while phone rings...');
+            const language = currentLanguageRef.current;
+            
+            preloadingTTSRef.current = (async () => {
+              try {
+                const { data: ttsData, error } = await supabase.functions.invoke('text-to-speech', {
+                  body: { 
+                    titulo: eventData.title,
+                    hora: eventData.time || '',
+                    language: language,
+                  }
+                });
+                
+                if (error) {
+                  console.error('[CallKit] Pre-load TTS error:', error);
+                  return null;
+                }
+                
+                if (ttsData?.audioContent) {
+                  console.log('[CallKit] ✅ TTS PRE-LOADED! Length:', ttsData.audioContent.length);
+                  preloadedTTSRef.current = ttsData.audioContent;
+                  return ttsData.audioContent;
+                }
+                return null;
+              } catch (e) {
+                console.error('[CallKit] Pre-load TTS exception:', e);
+                return null;
+              }
+            })();
           } else {
             console.warn('[CallKit] No eventId in callStarted data');
           }
@@ -489,21 +526,37 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       
       console.log('[CallKit] Requesting TTS for:', event.title, 'time:', event.time);
       
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { 
-          titulo: event.title,
-          hora: event.time || '',
-          language: language,
-        }
-      });
+      // Check if TTS was pre-loaded during callStarted
+      let base64Audio: string | null = preloadedTTSRef.current;
+      
+      if (base64Audio) {
+        console.log('[CallKit] ✅ Using PRE-LOADED TTS audio!');
+      } else if (preloadingTTSRef.current) {
+        // TTS is still loading, wait for it
+        console.log('[CallKit] ⏳ Waiting for pre-loading TTS to finish...');
+        base64Audio = await preloadingTTSRef.current;
+      }
+      
+      // Fallback: fetch TTS if not pre-loaded
+      if (!base64Audio) {
+        console.log('[CallKit] 📥 Fetching TTS (not pre-loaded)...');
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { 
+            titulo: event.title,
+            hora: event.time || '',
+            language: language,
+          }
+        });
 
-      if (error) {
-        console.error('[CallKit] TTS error:', error);
-        throw error;
+        if (error) {
+          console.error('[CallKit] TTS error:', error);
+          throw error;
+        }
+        
+        base64Audio = data?.audioContent || null;
       }
 
-      if (data?.audioContent) {
-        const base64Audio = data.audioContent;
+      if (base64Audio) {
         console.log('[CallKit] TTS audio received, base64 length:', base64Audio.length);
         
         // Timeout máximo de 20 segundos
