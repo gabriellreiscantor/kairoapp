@@ -49,9 +49,11 @@ workflows:
               private var provider: CXProvider?
               private var callController = CXCallController()
               private var currentCallUUID: UUID?
+              private var silencePlayer: AVAudioPlayer?
               
               @objc override public func load() {
                   let config = CXProviderConfiguration()
+                  config.localizedName = "Kairo"
                   config.supportsVideo = false
                   config.supportedHandleTypes = [.generic]
                   config.maximumCallGroups = 1
@@ -64,6 +66,36 @@ workflows:
                   let voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
                   voipRegistry.delegate = self
                   voipRegistry.desiredPushTypes = [.voIP]
+              }
+              
+              // Start audio anchor - plays silence.caf in loop to keep call alive
+              private func startAudioAnchor() {
+                  do {
+                      let session = AVAudioSession.sharedInstance()
+                      try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                      try session.setActive(true)
+                      print("[CallKit] Audio session activated for anchor")
+                      
+                      // Play silence.caf in infinite loop to keep call anchored
+                      if let url = Bundle.main.url(forResource: "silence", withExtension: "caf") {
+                          silencePlayer = try AVAudioPlayer(contentsOf: url)
+                          silencePlayer?.numberOfLoops = -1  // Infinite loop
+                          silencePlayer?.volume = 0.01  // Almost inaudible
+                          silencePlayer?.play()
+                          print("[CallKit] Silence audio anchor started")
+                      } else {
+                          print("[CallKit] silence.caf not found in bundle")
+                      }
+                  } catch {
+                      print("[CallKit] Failed to start audio anchor: \(error)")
+                  }
+              }
+              
+              // Stop audio anchor
+              private func stopAudioAnchor() {
+                  silencePlayer?.stop()
+                  silencePlayer = nil
+                  print("[CallKit] Silence audio anchor stopped")
               }
               
               // Configure audio session for TTS playback during call
@@ -103,9 +135,12 @@ workflows:
                       return
                   }
                   
-                  let callerName = payload.dictionaryPayload["name"] as? String ?? "Incoming Call"
+                  let callerName = payload.dictionaryPayload["name"] as? String ?? "Lembrete Kairo"
                   
                   currentCallUUID = uuid
+                  
+                  // Start audio anchor BEFORE reporting the call
+                  startAudioAnchor()
                   
                   let update = CXCallUpdate()
                   update.remoteHandle = CXHandle(type: .generic, value: callerName)
@@ -119,8 +154,9 @@ workflows:
                   provider?.reportNewIncomingCall(with: uuid, update: update) { error in
                       if let error = error {
                           print("[CallKit] Failed to report incoming call: \(error)")
+                          self.stopAudioAnchor()
                       } else {
-                          print("[CallKit] Incoming call reported successfully")
+                          print("[CallKit] Incoming call reported successfully with audio anchor")
                       }
                       completion()
                   }
@@ -134,11 +170,15 @@ workflows:
               
               public func providerDidReset(_ provider: CXProvider) {
                   print("[CallKit] Provider did reset")
+                  stopAudioAnchor()
                   currentCallUUID = nil
               }
               
               public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
                   print("[CallKit] Call answered")
+                  
+                  // Stop silence anchor before configuring for TTS
+                  stopAudioAnchor()
                   
                   // Configure audio session for TTS playback
                   configureAudioSession()
@@ -163,6 +203,9 @@ workflows:
               
               public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
                   print("[CallKit] Call ended")
+                  
+                  // Stop audio anchor
+                  stopAudioAnchor()
                   
                   if let uuid = currentCallUUID {
                       notifyListeners("callEnded", data: [
@@ -200,6 +243,8 @@ workflows:
                       return
                   }
                   
+                  stopAudioAnchor()
+                  
                   let endCallAction = CXEndCallAction(call: uuid)
                   let transaction = CXTransaction(action: endCallAction)
                   
@@ -223,6 +268,8 @@ workflows:
                       call.reject("No active call")
                       return
                   }
+                  
+                  stopAudioAnchor()
                   
                   let endCallAction = CXEndCallAction(call: uuid)
                   let transaction = CXTransaction(action: endCallAction)
@@ -274,10 +321,76 @@ workflows:
           npx cap add ios --packagemanager cocoapods
           npx cap sync ios
       
-      - name: Copy Ringtone to iOS Bundle
+      - name: Generate Silence Audio File for CallKit Anchor
         script: |
-          echo "=== Copying toqueios.caf to iOS bundle ==="
+          echo "=== Generating silence.caf for CallKit audio anchor ==="
           
+          # Create a 2-second silent audio file using afconvert
+          # First create a raw silence file
+          dd if=/dev/zero bs=88200 count=1 2>/dev/null | xxd -r -p > /tmp/silence.raw 2>/dev/null || true
+          
+          # Use sox if available, otherwise create with python
+          if command -v sox &> /dev/null; then
+            sox -n -r 44100 -c 1 -b 16 resources/silence.caf trim 0.0 2.0
+            echo "✅ silence.caf created with sox"
+          else
+            # Create silence.caf using python
+            python3 << 'PYTHON'
+import struct
+import os
+
+# CAF file format for 2 seconds of silence at 44100 Hz, 16-bit mono
+sample_rate = 44100
+duration = 2
+channels = 1
+bits_per_sample = 16
+num_samples = sample_rate * duration
+
+# CAF header
+caf_header = b'caff'  # File type
+caf_header += struct.pack('>H', 1)  # File version
+caf_header += struct.pack('>H', 0)  # Flags
+
+# Audio Description chunk
+desc_chunk = b'desc'
+desc_chunk += struct.pack('>Q', 32)  # Chunk size
+desc_chunk += struct.pack('>d', float(sample_rate))  # Sample rate
+desc_chunk += b'lpcm'  # Format ID (Linear PCM)
+desc_chunk += struct.pack('>I', 12)  # Format flags (little endian, signed integer)
+desc_chunk += struct.pack('>I', 2)  # Bytes per packet
+desc_chunk += struct.pack('>I', 1)  # Frames per packet
+desc_chunk += struct.pack('>I', channels)  # Channels per frame
+desc_chunk += struct.pack('>I', bits_per_sample)  # Bits per channel
+
+# Data chunk
+audio_data = b'\x00' * (num_samples * channels * (bits_per_sample // 8))
+data_chunk = b'data'
+data_chunk += struct.pack('>Q', len(audio_data) + 4)  # Chunk size
+data_chunk += struct.pack('>I', 0)  # Edit count
+data_chunk += audio_data
+
+# Write file
+os.makedirs('resources', exist_ok=True)
+with open('resources/silence.caf', 'wb') as f:
+    f.write(caf_header + desc_chunk + data_chunk)
+
+print("✅ silence.caf created with Python")
+PYTHON
+          fi
+          
+          if [ -f "resources/silence.caf" ]; then
+            echo "✅ resources/silence.caf created successfully"
+            ls -la resources/silence.caf
+          else
+            echo "❌ Failed to create silence.caf"
+            exit 1
+          fi
+      
+      - name: Copy Ringtone and Silence to iOS Bundle
+        script: |
+          echo "=== Copying audio files to iOS bundle ==="
+          
+          # Copy toqueios.caf (ringtone)
           if [ -f "resources/toqueios.caf" ]; then
             cp resources/toqueios.caf ios/App/App/toqueios.caf
             echo "✅ toqueios.caf copied to ios/App/App/"
@@ -286,7 +399,16 @@ workflows:
             exit 1
           fi
           
-          echo "=== Adding toqueios.caf to Xcode project ==="
+          # Copy silence.caf (audio anchor)
+          if [ -f "resources/silence.caf" ]; then
+            cp resources/silence.caf ios/App/App/silence.caf
+            echo "✅ silence.caf copied to ios/App/App/"
+          else
+            echo "❌ resources/silence.caf not found!"
+            exit 1
+          fi
+          
+          echo "=== Adding audio files to Xcode project ==="
           
           ruby <<'RUBY'
           require 'xcodeproj'
@@ -301,16 +423,26 @@ workflows:
             
             app_group = project.main_group['App']
             
-            # Check if file already exists
-            existing_file = app_group.files.find { |f| f.path == 'toqueios.caf' }
-            
-            if existing_file.nil?
+            # Add toqueios.caf
+            existing_ringtone = app_group.files.find { |f| f.path == 'toqueios.caf' }
+            if existing_ringtone.nil?
               puts "Adding toqueios.caf to project..."
               file_ref = app_group.new_file('toqueios.caf')
               target.add_file_references([file_ref])
               puts "✅ toqueios.caf added to project and target"
             else
               puts "ℹ️ toqueios.caf already exists in project"
+            end
+            
+            # Add silence.caf
+            existing_silence = app_group.files.find { |f| f.path == 'silence.caf' }
+            if existing_silence.nil?
+              puts "Adding silence.caf to project..."
+              file_ref = app_group.new_file('silence.caf')
+              target.add_file_references([file_ref])
+              puts "✅ silence.caf added to project and target"
+            else
+              puts "ℹ️ silence.caf already exists in project"
             end
             
             project.save
@@ -323,7 +455,7 @@ workflows:
           end
           RUBY
           
-          echo "✅ Ringtone configuration complete"
+          echo "✅ Audio files configuration complete"
       
       - name: Add Camera and Photo Library Permissions to Info.plist
         script: |
