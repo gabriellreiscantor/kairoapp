@@ -731,13 +731,13 @@ workflows:
       
       - name: Verify Swift Patch Applied
         script: |
-          echo "=== VERIFYING SWIFT PATCH IN PODS ==="
-          SWIFT_FILE="ios/App/Pods/capacitor-plugin-callkit-voip/Plugin/CallKitVoipPlugin.swift"
+          echo "=== VERIFYING SWIFT PATCH IN NODE_MODULES ==="
+          SWIFT_FILE="node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.swift"
           
           if [ ! -f "$SWIFT_FILE" ]; then
             echo "❌ Swift file not found at $SWIFT_FILE"
-            echo "Listing Pods directory..."
-            ls -la ios/App/Pods/ || echo "Pods directory not found"
+            echo "Listing node_modules plugin directory..."
+            ls -la node_modules/capacitor-plugin-callkit-voip/ios/Plugin/ || echo "Plugin directory not found"
             exit 1
           fi
           
