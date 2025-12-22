@@ -325,58 +325,12 @@ workflows:
         script: |
           echo "=== Generating silence.caf for CallKit audio anchor ==="
           
-          # Create a 2-second silent audio file using afconvert
-          # First create a raw silence file
-          dd if=/dev/zero bs=88200 count=1 2>/dev/null | xxd -r -p > /tmp/silence.raw 2>/dev/null || true
+          # Create 2 seconds of silence using afconvert (available on macOS)
+          # First create a raw PCM silence file (2 seconds at 44100Hz, 16-bit mono = 176400 bytes)
+          dd if=/dev/zero bs=176400 count=1 of=/tmp/silence.raw 2>/dev/null
           
-          # Use sox if available, otherwise create with python
-          if command -v sox &> /dev/null; then
-            sox -n -r 44100 -c 1 -b 16 resources/silence.caf trim 0.0 2.0
-            echo "✅ silence.caf created with sox"
-          else
-            # Create silence.caf using python
-            python3 << 'PYTHON'
-import struct
-import os
-
-# CAF file format for 2 seconds of silence at 44100 Hz, 16-bit mono
-sample_rate = 44100
-duration = 2
-channels = 1
-bits_per_sample = 16
-num_samples = sample_rate * duration
-
-# CAF header
-caf_header = b'caff'  # File type
-caf_header += struct.pack('>H', 1)  # File version
-caf_header += struct.pack('>H', 0)  # Flags
-
-# Audio Description chunk
-desc_chunk = b'desc'
-desc_chunk += struct.pack('>Q', 32)  # Chunk size
-desc_chunk += struct.pack('>d', float(sample_rate))  # Sample rate
-desc_chunk += b'lpcm'  # Format ID (Linear PCM)
-desc_chunk += struct.pack('>I', 12)  # Format flags (little endian, signed integer)
-desc_chunk += struct.pack('>I', 2)  # Bytes per packet
-desc_chunk += struct.pack('>I', 1)  # Frames per packet
-desc_chunk += struct.pack('>I', channels)  # Channels per frame
-desc_chunk += struct.pack('>I', bits_per_sample)  # Bits per channel
-
-# Data chunk
-audio_data = b'\x00' * (num_samples * channels * (bits_per_sample // 8))
-data_chunk = b'data'
-data_chunk += struct.pack('>Q', len(audio_data) + 4)  # Chunk size
-data_chunk += struct.pack('>I', 0)  # Edit count
-data_chunk += audio_data
-
-# Write file
-os.makedirs('resources', exist_ok=True)
-with open('resources/silence.caf', 'wb') as f:
-    f.write(caf_header + desc_chunk + data_chunk)
-
-print("✅ silence.caf created with Python")
-PYTHON
-          fi
+          # Convert raw PCM to CAF format using afconvert
+          afconvert -f caff -d LEI16@44100 -c 1 /tmp/silence.raw resources/silence.caf
           
           if [ -f "resources/silence.caf" ]; then
             echo "✅ resources/silence.caf created successfully"
