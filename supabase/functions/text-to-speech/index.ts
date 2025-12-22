@@ -14,23 +14,34 @@ const HOURS_WORDS: Record<number, string> = {
   7: 'sete', 8: 'oito', 9: 'nove', 10: 'dez', 11: 'onze', 12: 'doze'
 };
 
-// Converter minutos para palavras
+// Converter minutos para palavras em português
 function minutesToWords(minutes: number): string {
   if (minutes === 0) return '';
   if (minutes === 15) return 'e quinze';
   if (minutes === 30) return 'e meia';
   if (minutes === 45) return 'e quarenta e cinco';
   
-  const units = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  // Números 1-9 (usando formas corretas para minutos)
+  const units = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  // Números 10-19
   const teens = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-  const tens = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta'];
+  // Dezenas 20-50
+  const tens = ['zero', 'dez', 'vinte', 'trinta', 'quarenta', 'cinquenta'];
   
-  if (minutes < 10) return `e ${units[minutes]}`;
-  if (minutes < 20) return `e ${teens[minutes - 10]}`;
+  if (minutes >= 1 && minutes <= 9) {
+    return `e ${units[minutes]}`;
+  }
+  if (minutes >= 10 && minutes <= 19) {
+    return `e ${teens[minutes - 10]}`;
+  }
   
   const ten = Math.floor(minutes / 10);
   const unit = minutes % 10;
-  if (unit === 0) return `e ${tens[ten]}`;
+  
+  if (unit === 0) {
+    return `e ${tens[ten]}`;
+  }
+  
   return `e ${tens[ten]} e ${units[unit]}`;
 }
 
@@ -116,6 +127,7 @@ function buildTTSMessage(language: string, titulo: string, hora: string): string
   const template = TTS_TEMPLATES[language] || TTS_TEMPLATES['pt-BR'];
   // Formatar o horário para fala natural
   const horaFormatada = formatTimeForSpeech(hora, language);
+  console.log('[TTS] Building message - titulo:', titulo, 'hora:', hora, 'formatted:', horaFormatada);
   return template.replace('{titulo}', titulo).replace('{hora}', horaFormatada);
 }
 

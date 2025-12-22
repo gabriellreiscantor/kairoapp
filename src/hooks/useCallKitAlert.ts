@@ -240,6 +240,15 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         CallKitVoip.addListener('callEnded', (data: any) => {
           console.log('[CallKit] ====== CALL ENDED ======');
           console.log('[CallKit] End data:', JSON.stringify(data));
+          
+          // IMPORTANT: Stop TTS immediately when call ends
+          isCallingTTSRef.current = false;
+          
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+          }
+          
           cleanupCall();
         });
         
