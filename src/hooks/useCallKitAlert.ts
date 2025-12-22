@@ -286,7 +286,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             };
             console.log('[CallKit] Setting current event:', JSON.stringify(eventData));
             setCurrentEvent(eventData);
-            setIsCallVisible(true);
+            // REMOVED: setIsCallVisible(true) - keep user on native CallKit screen
           } else {
             console.warn('[CallKit] No eventId in callStarted data');
           }

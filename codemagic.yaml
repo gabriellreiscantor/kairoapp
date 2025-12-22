@@ -324,11 +324,12 @@ workflows:
                   print("[CallKit] Decoded audio data, size: \(audioData.count) bytes")
                   
                   do {
-                      // Configure audio session for playback during call
+                      // Configure audio session for MAXIMUM volume TTS playback
                       let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                      try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothA2DP, .duckOthers])
                       try session.setActive(true)
-                      print("[CallKit] Audio session configured for TTS playback")
+                      try session.overrideOutputAudioPort(.speaker)  // Force speaker at max volume
+                      print("[CallKit] Audio session configured for HIGH VOLUME TTS playback")
                       
                       // Create player from data
                       ttsPlayer = try AVAudioPlayer(data: audioData)
