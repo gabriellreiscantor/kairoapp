@@ -223,6 +223,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           
           if (eventToPlay) {
             console.log('[CallKit] Playing TTS for event:', eventToPlay.title, 'time:', eventToPlay.time);
+            
+            // Aguardar 1.5s para sessão de áudio estabilizar após atender
+            console.log('[CallKit] Waiting 1.5s for audio session to stabilize...');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
             // Play TTS - DO NOT end call automatically, let the user hang up or timeout
             await playTTS(eventToPlay);
             console.log('[CallKit] TTS playback finished');
