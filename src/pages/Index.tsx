@@ -34,15 +34,24 @@ const Index = () => {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
+  // Loading screen component with solid background (theme-safe)
+  const LoadingScreen = () => (
+    <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
+
   if (appState === 'loading') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  return <MainApp />;
+  // Only render MainApp when we have confirmed user
+  if (appState === 'app' && user) {
+    return <MainApp />;
+  }
+
+  // Safety fallback - prevents black screen in any edge case
+  return <LoadingScreen />;
 };
 
 export default Index;
