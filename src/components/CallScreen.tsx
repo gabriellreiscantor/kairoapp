@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlarmClock, ChevronRight, Phone, PhoneOff } from 'lucide-react';
-import kairoLogo from '@/assets/kairo-fox-color.png';
+import horahLogo from '@/assets/horah-logo.png';
 
 interface CallScreenProps {
   isVisible: boolean;
@@ -69,7 +69,7 @@ const CallScreen: React.FC<CallScreenProps> = ({
       <div className="flex flex-col items-center pt-16 px-6">
         {/* App identifier */}
         <div className="flex items-center gap-2 mb-4">
-          <img src={kairoLogo} alt="Horah" className="w-6 h-6 rounded-full" />
+          <img src={horahLogo} alt="Horah" className="w-6 h-6 rounded-full" />
           <span className="text-white/60 text-sm">Áudio de Horah</span>
         </div>
 

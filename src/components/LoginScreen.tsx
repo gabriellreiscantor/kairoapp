@@ -1,4 +1,4 @@
-import kairoLogo from "@/assets/kairo-logo.png";
+import horahLogo from "@/assets/horah-logo.png";
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -24,7 +24,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           {/* Glow ring */}
           <div className="absolute inset-0 w-24 h-24 rounded-full bg-primary/20 blur-xl" />
           <div className="w-24 h-24 rounded-full overflow-hidden relative shadow-2xl">
-            <img src={kairoLogo} alt="Horah" className="w-full h-full object-cover" />
+            <img src={horahLogo} alt="Horah" className="w-full h-full object-cover" />
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { WifiOff, Loader2 } from 'lucide-react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import kairoLogo from '@/assets/kairo-logo.png';
+import horahLogo from '@/assets/horah-logo.png';
 
 const OfflineOverlay = () => {
   const { isOnline } = useNetworkStatus();
@@ -16,7 +16,7 @@ const OfflineOverlay = () => {
         {/* Horah Logo */}
         <div className="mb-8 animate-pulse-soft">
           <img 
-            src={kairoLogo} 
+            src={horahLogo} 
             alt="Horah" 
             className="h-20 w-20 object-contain"
           />
