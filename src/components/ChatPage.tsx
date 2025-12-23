@@ -20,6 +20,9 @@ import EventConfirmationModal from "@/components/chat/EventConfirmationModal";
 import EventConfirmationCard from "@/components/chat/EventConfirmationCard";
 import OnboardingSuggestionCard from "@/components/chat/OnboardingSuggestionCard";
 import EventListCard from "@/components/chat/EventListCard";
+import WeeklyReportCard from "@/components/chat/WeeklyReportCard";
+import WeeklyReportNotReadyCard from "@/components/chat/WeeklyReportNotReadyCard";
+import WeeklyReportModal from "@/components/chat/WeeklyReportModal";
 import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
 
@@ -69,6 +72,13 @@ interface Message {
     hora?: string;
     local?: string;
   };
+  weeklyReportData?: { // For showing weekly report card
+    report: any;
+    isPreviousWeek: boolean;
+  };
+  weeklyReportNotReady?: { // For showing "report not ready" card
+    daysRemaining: number;
+  };
 }
 
 interface ExecutedAction {
@@ -95,6 +105,13 @@ interface ExecutedAction {
     prioridade?: string;
     categoria?: string;
   }>;
+  weeklyReportData?: { // Weekly report data
+    report: any;
+    isPreviousWeek: boolean;
+  };
+  weeklyReportNotReady?: { // Weekly report not ready data
+    daysRemaining: number;
+  };
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -115,7 +132,7 @@ A partir de agora, o Horah cuida disso pra você.`;
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated, initialEditMessage, onClearInitialEditMessage }: ChatPageProps) => {
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
-  const { t, getDateLocale } = useLanguage();
+  const { t, getDateLocale, language } = useLanguage();
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const { captureFromCamera, selectFromGallery } = useImageCapture();
   const { 
@@ -162,6 +179,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     category: string | null;
     status: string | null;
   } | null>(null);
+  const [selectedWeeklyReport, setSelectedWeeklyReport] = useState<any | null>(null);
 
   const dateLocale = getDateLocale();
 
@@ -283,6 +301,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       deletedEventData: m.metadata?.deletedEventData,
       eventsListData: m.metadata?.eventsListData,
       pastDateData: m.metadata?.pastDateData,
+      weeklyReportData: m.metadata?.weeklyReportData,
+      weeklyReportNotReady: m.metadata?.weeklyReportNotReady,
     };
   };
 
@@ -479,6 +499,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let finalDeletedEventData: any = undefined; // Track deleted event data for persistence
       let finalEventsListData: any[] | undefined = undefined; // Track events list for persistence
       let finalPastDateData: any = undefined; // Track past date warning for persistence
+      let finalWeeklyReportData: any = undefined; // Track weekly report data for persistence
+      let finalWeeklyReportNotReady: any = undefined; // Track weekly report not ready data
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -758,6 +780,26 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     finalPastDateData = pastDateData; // Store for persistence
                   }
                   
+                  // Check if WEEKLY REPORT requested
+                  const weeklyReportAction = executedActions.find(a => a.action === 'relatorio_semanal');
+                  let weeklyReportData = undefined;
+                  
+                  if (weeklyReportAction?.weeklyReportData) {
+                    weeklyReportData = weeklyReportAction.weeklyReportData;
+                    console.log('[ChatPage] Weekly report found:', weeklyReportData);
+                    finalWeeklyReportData = weeklyReportData;
+                  }
+                  
+                  // Check if WEEKLY REPORT NOT READY
+                  const weeklyReportNotReadyAction = executedActions.find(a => a.action === 'relatorio_nao_pronto');
+                  let weeklyReportNotReady = undefined;
+                  
+                  if (weeklyReportNotReadyAction?.weeklyReportNotReady) {
+                    weeklyReportNotReady = weeklyReportNotReadyAction.weeklyReportNotReady;
+                    console.log('[ChatPage] Weekly report not ready:', weeklyReportNotReady);
+                    finalWeeklyReportNotReady = weeklyReportNotReady;
+                  }
+                  
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
                     listedEvents: listedEvents?.length || 0 
@@ -774,6 +816,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       eventsListData: listedEvents,
                       confirmationData: confirmationResumo,
                       pastDateData,
+                      weeklyReportData,
+                      weeklyReportNotReady,
                     } : m
                   ));
 
@@ -1370,6 +1414,29 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       </div>
                     )}
                     
+                    {/* Weekly Report Card */}
+                    {message.weeklyReportData && (
+                      <div className="pl-9 animate-fade-in">
+                        <WeeklyReportCard 
+                          report={message.weeklyReportData.report} 
+                          onClick={() => setSelectedWeeklyReport(message.weeklyReportData?.report)}
+                        />
+                        {message.weeklyReportData.isPreviousWeek && (
+                          <div className="mt-2 ml-2 text-xs text-muted-foreground flex items-center gap-1">
+                            <span>📋</span>
+                            <span>{language === 'en-US' ? 'Previous week report' : language === 'es-ES' ? 'Informe de la semana pasada' : language === 'ja-JP' ? '先週のレポート' : language === 'ko-KR' ? '지난주 리포트' : language === 'zh-CN' ? '上周报告' : 'Relatório da semana passada'}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Weekly Report Not Ready Card */}
+                    {message.weeklyReportNotReady && (
+                      <div className="pl-9 animate-fade-in">
+                        <WeeklyReportNotReadyCard daysRemaining={message.weeklyReportNotReady.daysRemaining} />
+                      </div>
+                    )}
+                    
                   </div>
                 ) : (
                   <div className="flex flex-col items-end mb-4 pl-12">
@@ -1603,6 +1670,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         onConfirmSend={handleConfirmAudioSend}
         onRetry={handleRetryAudio}
       />
+
+      {/* Weekly Report Modal */}
+      {selectedWeeklyReport && (
+        <WeeklyReportModal
+          isOpen={!!selectedWeeklyReport}
+          onClose={() => setSelectedWeeklyReport(null)}
+          report={selectedWeeklyReport}
+        />
+      )}
     </div>
   );
 };
