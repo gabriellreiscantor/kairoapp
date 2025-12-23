@@ -319,6 +319,13 @@ const MainApp = () => {
       const angle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
       const isHorizontal = angle < SWIPE_ANGLE_THRESHOLD || angle > (180 - SWIPE_ANGLE_THRESHOLD);
       setIsHorizontalSwipe(isHorizontal);
+      
+      // Se for scroll vertical, cancela o swipe completamente para não interferir
+      if (!isHorizontal) {
+        setIsSwiping(false);
+        setSwipeX(0);
+        return;
+      }
     }
     
     // Only track horizontal movement if decided as horizontal swipe
