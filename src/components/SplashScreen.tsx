@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { SplashScreen as NativeSplash } from '@capacitor/splash-screen';
-import horahLogoDark from "@/assets/horah-splash-dark.png";
-import horahLogoLight from "@/assets/horah-splash-light.png";
+import splashDark from "@/assets/horah-splash-dark.jpg";
+import splashLight from "@/assets/horah-splash-light.jpg";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -15,16 +15,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [isDarkMode] = useState(() => {
     if (typeof window === 'undefined') return true;
     
-    // Primeiro verificar localStorage (preferência do usuário no app)
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') return false;
     if (savedTheme === 'dark') return true;
     
-    // Fallback para preferência do sistema
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const splashImage = isDarkMode ? horahLogoLight : horahLogoDark;
+  const splashImage = isDarkMode ? splashDark : splashLight;
 
   // Esconder splash nativo do Capacitor quando React assumir
   useEffect(() => {
@@ -35,7 +33,6 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   // Esconder splash inline do HTML e pré-carregar imagem
   useEffect(() => {
-    // Esconder o splash inline imediatamente
     const initialSplash = document.getElementById('initial-splash');
     if (initialSplash) {
       initialSplash.style.display = 'none';
@@ -64,68 +61,23 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     return () => clearTimeout(timer);
   }, [onComplete, imageLoaded]);
 
-  // Gradientes dinâmicos para cada tema
-  const gradientStyle = isDarkMode 
-    ? 'linear-gradient(160deg, hsl(240 10% 4%) 0%, hsl(220 40% 10%) 40%, hsl(220 35% 18%) 70%, hsl(240 10% 4%) 100%)'
-    : 'linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 40%, hsl(214 60% 95%) 70%, hsl(0 0% 100%) 100%)';
-
-  const textColor = isDarkMode ? 'text-white' : 'text-gray-900';
-
-  const glowColor = isDarkMode 
-    ? 'from-orange-500/25 to-amber-400/15' 
-    : 'from-orange-400/20 to-amber-300/10';
-
+  // Cor de fundo sólida que combina com as imagens
+  const bgColor = isDarkMode ? '#0a1628' : '#f0f4f8';
   const dotColor = isDarkMode ? 'bg-white/50' : 'bg-gray-400/60';
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col items-center justify-center z-50 transition-opacity duration-400 ${
+      className={`fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-400 ${
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
-      style={{ background: gradientStyle }}
+      style={{ backgroundColor: bgColor }}
     >
       {imageLoaded ? (
-        <div className="flex flex-col items-center justify-center px-6">
-          {/* Logo com glow */}
-          <div className="relative animate-fade-in">
-            {/* Glow effect */}
-            <div 
-              className={`absolute inset-0 bg-gradient-to-br ${glowColor} blur-3xl rounded-full scale-150 opacity-80`} 
-            />
-            <img 
-              src={splashImage} 
-              alt="Horah" 
-              className="relative w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-[2.5rem] shadow-2xl"
-            />
-          </div>
-          
-          {/* Título elegante */}
-          <h1 
-            className={`mt-4 text-3xl sm:text-4xl font-semibold ${textColor} tracking-[0.12em] uppercase animate-fade-in text-center`}
-            style={{ animationDelay: '150ms', animationFillMode: 'both' }}
-          >
-            Horah
-          </h1>
-          
-          {/* Pontinhos animados */}
-          <div 
-            className="flex items-center gap-2 mt-6 animate-fade-in"
-            style={{ animationDelay: '300ms', animationFillMode: 'both' }}
-          >
-            <div 
-              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
-              style={{ animationDelay: '0ms' }}
-            />
-            <div 
-              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
-              style={{ animationDelay: '150ms' }}
-            />
-            <div 
-              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
-              style={{ animationDelay: '300ms' }}
-            />
-          </div>
-        </div>
+        <img 
+          src={splashImage} 
+          alt="Horah" 
+          className="w-full h-full object-cover animate-fade-in"
+        />
       ) : (
         <div className="flex gap-2">
           <div className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`} />
