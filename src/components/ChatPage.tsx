@@ -346,6 +346,72 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     loadHistory();
   }, [user]);
 
+  // Check and update old "weeklyReportNotReady" messages if report is now available
+  useEffect(() => {
+    const updateStaleReportCards = async () => {
+      if (!user || isLoadingHistory || messages.length === 0) return;
+
+      // Find messages with weeklyReportNotReady that might be stale
+      const staleReportMessages = messages.filter(m => 
+        m.weeklyReportNotReady && m.type === 'assistant'
+      );
+
+      if (staleReportMessages.length === 0) return;
+
+      try {
+        // Check if user now has a weekly report
+        const { data: reports } = await supabase
+          .from('weekly_reports')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (reports && reports.length > 0) {
+          // Report is now available! Update the stale messages
+          console.log('[ChatPage] Found stale weeklyReportNotReady messages, updating with available report');
+          
+          const latestReport = reports[0];
+          const weeklyReportData = {
+            report: latestReport,
+            isPreviousWeek: true
+          };
+
+          // Update local state
+          setMessages(prev => prev.map(m => {
+            if (m.weeklyReportNotReady) {
+              return {
+                ...m,
+                weeklyReportNotReady: undefined,
+                weeklyReportData,
+                content: '📊 Seu resumo semanal chegou!'
+              };
+            }
+            return m;
+          }));
+
+          // Update database records
+          for (const staleMsg of staleReportMessages) {
+            await supabase
+              .from('chat_messages')
+              .update({
+                content: '📊 Seu resumo semanal chegou!',
+                metadata: {
+                  weeklyReportData,
+                  weeklyReportNotReady: undefined
+                }
+              })
+              .eq('id', staleMsg.id);
+          }
+        }
+      } catch (error) {
+        console.error('[ChatPage] Error updating stale report cards:', error);
+      }
+    };
+
+    updateStaleReportCards();
+  }, [user, isLoadingHistory, messages.length]);
+
   // Load more older messages (pagination)
   const loadMoreMessages = async () => {
     if (!user || isLoadingMore || !hasMoreMessages || messages.length === 0) return;

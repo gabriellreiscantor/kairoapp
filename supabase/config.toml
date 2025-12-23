@@ -31,3 +31,7 @@ verify_jwt = false
 [functions.generate-weekly-report]
 enabled = true
 verify_jwt = false
+
+[functions.send-weekly-reports]
+enabled = true
+verify_jwt = false
