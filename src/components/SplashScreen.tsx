@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import horahLogo from "@/assets/horah-logo.png";
+import horahLogoDark from "@/assets/horah-splash-dark.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -8,6 +10,7 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [fadeOut, setFadeOut] = useState(false);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,7 +29,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     >
       <div className="animate-scale-in flex flex-col items-center gap-6">
         <img 
-          src={horahLogo} 
+          src={resolvedTheme === 'dark' ? horahLogoDark : horahLogo} 
           alt="Horah" 
           className="w-32 h-32 rounded-3xl shadow-2xl"
         />
