@@ -1611,7 +1611,41 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               .single();
             
             if (updatedEvent) {
-              // Atualizar a mensagem no chat que contém esse evento
+              // Encontrar a mensagem que contém esse evento para atualizar no banco
+              const messageToUpdate = messages.find(m => m.eventData?.id === updatedEvent.id);
+              
+              if (messageToUpdate) {
+                // Atualizar metadados no banco de dados para persistência
+                const updatedEventData = {
+                  ...messageToUpdate.eventData,
+                  title: updatedEvent.title,
+                  event_date: updatedEvent.event_date,
+                  event_time: updatedEvent.event_time,
+                  location: updatedEvent.location,
+                  description: updatedEvent.description,
+                  emoji: updatedEvent.emoji,
+                  color: updatedEvent.color,
+                  repeat: updatedEvent.repeat,
+                  is_all_day: updatedEvent.is_all_day,
+                  duration_minutes: updatedEvent.duration_minutes,
+                  notification_enabled: updatedEvent.notification_enabled,
+                  call_alert_enabled: updatedEvent.call_alert_enabled,
+                  priority: updatedEvent.priority,
+                  category: updatedEvent.category,
+                  status: updatedEvent.status,
+                };
+                
+                await supabase
+                  .from('chat_messages')
+                  .update({
+                    metadata: {
+                      eventData: updatedEventData
+                    }
+                  })
+                  .eq('id', messageToUpdate.id);
+              }
+              
+              // Atualizar a mensagem no estado local
               setMessages(prev => prev.map(m => {
                 if (m.eventData?.id === updatedEvent.id) {
                   return {
@@ -1627,8 +1661,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       color: updatedEvent.color,
                       repeat: updatedEvent.repeat,
                       is_all_day: updatedEvent.is_all_day,
+                      duration_minutes: updatedEvent.duration_minutes,
                       notification_enabled: updatedEvent.notification_enabled,
                       call_alert_enabled: updatedEvent.call_alert_enabled,
+                      priority: updatedEvent.priority,
+                      category: updatedEvent.category,
+                      status: updatedEvent.status,
                     }
                   };
                 }
