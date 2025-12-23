@@ -38,7 +38,7 @@ const MyPlanPage = () => {
       features: [
         { icon: Calendar, text: 'eventos por semana', highlight: '14' },
         { icon: Calendar, text: 'calendários externos', highlight: '2' },
-        { icon: MessageSquare, text: 'Kairo Chat básico' },
+        { icon: MessageSquare, text: 'Horah Chat básico' },
         { icon: Shield, text: 'Suporte por email' },
       ]
     },
@@ -52,7 +52,7 @@ const MyPlanPage = () => {
       features: [
         { icon: Calendar, text: 'eventos por semana', highlight: '50' },
         { icon: Calendar, text: 'calendários externos', highlight: '15' },
-        { icon: MessageSquare, text: 'Kairo Chat 5× capacidade' },
+        { icon: MessageSquare, text: 'Horah Chat 5× capacidade' },
         { icon: Shield, text: 'Detecção de conflitos' },
         { icon: Clock, text: 'Visão geral diária' },
       ]
@@ -67,7 +67,7 @@ const MyPlanPage = () => {
       features: [
         { icon: Calendar, text: 'eventos por semana', highlight: '280' },
         { icon: Calendar, text: 'calendários externos', highlight: '25' },
-        { icon: MessageSquare, text: 'Kairo Chat 20× capacidade' },
+        { icon: MessageSquare, text: 'Horah Chat 20× capacidade' },
         { icon: Shield, text: 'Detecção de conflitos' },
         { icon: Clock, text: 'Visão geral diária' },
         { icon: Sparkles, text: 'Suporte prioritário' },
