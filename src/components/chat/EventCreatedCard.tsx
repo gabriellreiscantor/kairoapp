@@ -171,9 +171,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     return null;
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string, timeStr?: string | null) => {
     try {
       const date = parseISO(dateStr);
+      const now = new Date();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -186,7 +187,18 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       const dateOnly = new Date(date);
       dateOnly.setHours(0, 0, 0, 0);
       
+      // Check if it's today
       if (dateOnly.getTime() === today.getTime()) {
+        // If we have a time, check if the event has already passed
+        if (timeStr) {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          const eventDateTime = new Date(date);
+          eventDateTime.setHours(hours, minutes, 0, 0);
+          
+          if (eventDateTime < now) {
+            return "Hoje (realizado)";
+          }
+        }
         return "Hoje";
       } else if (dateOnly.getTime() === tomorrow.getTime()) {
         return "Amanhã";
@@ -404,7 +416,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         
         {/* Date and time / All day badge */}
         <div className={`flex items-center justify-between text-sm pl-6 ${isExpired ? 'text-muted-foreground/60' : ''}`}>
-          <span className={`capitalize ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{formatDate(event.event_date)}</span>
+          <span className={`capitalize ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{formatDate(event.event_date, event.event_time)}</span>
         {isAllDay ? (
             <span className="text-muted-foreground text-sm whitespace-nowrap">☀️ Dia inteiro</span>
           ) : hasDuration ? (
