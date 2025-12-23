@@ -6,6 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
 
 const HOURS = [
+  { value: 5, label: '05:00' },
+  { value: 6, label: '06:00' },
+  { value: 7, label: '07:00' },
+  { value: 8, label: '08:00' },
+  { value: 9, label: '09:00' },
+  { value: 10, label: '10:00' },
+  { value: 11, label: '11:00' },
   { value: 12, label: '12:00' },
   { value: 13, label: '13:00' },
   { value: 14, label: '14:00' },
@@ -18,6 +25,15 @@ const HOURS = [
   { value: 21, label: '21:00' },
 ];
 
+const WEATHER_HOURS = [
+  { value: 5, label: '05:00' },
+  { value: 6, label: '06:00' },
+  { value: 7, label: '07:00' },
+  { value: 8, label: '08:00' },
+  { value: 9, label: '09:00' },
+  { value: 10, label: '10:00' },
+];
+
 const SmartTasksPage = () => {
   const { user, profile, refreshProfile } = useAuth();
   
@@ -26,7 +42,7 @@ const SmartTasksPage = () => {
   const [contextAware, setContextAware] = useState(true);
   const [learnPatterns, setLearnPatterns] = useState(true);
   const [weatherForecast, setWeatherForecast] = useState(false);
-  const [weatherTime, setWeatherTime] = useState("07:00");
+  const [weatherHour, setWeatherHour] = useState(7);
   const [weeklyReport, setWeeklyReport] = useState(true);
   const [weeklyReportHour, setWeeklyReportHour] = useState(12);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +55,7 @@ const SmartTasksPage = () => {
       setContextAware(profile.context_aware_enabled ?? true);
       setLearnPatterns(profile.learn_patterns_enabled ?? true);
       setWeatherForecast(profile.weather_forecast_enabled ?? false);
-      setWeatherTime(profile.weather_forecast_time ?? "07:00");
+      setWeatherHour((profile as any).weather_forecast_hour ?? 7);
       setWeeklyReport((profile as any).weekly_report_enabled ?? true);
       setWeeklyReportHour((profile as any).weekly_report_hour ?? 12);
     }
@@ -90,9 +106,9 @@ const SmartTasksPage = () => {
     updatePreference('weather_forecast_enabled', checked);
   };
 
-  const handleWeatherTimeChange = (time: string) => {
-    setWeatherTime(time);
-    updatePreference('weather_forecast_time', time);
+  const handleWeatherHourChange = (hour: number) => {
+    setWeatherHour(hour);
+    updatePreference('weather_forecast_hour', hour);
   };
 
   const handleWeeklyReport = (checked: boolean) => {
@@ -208,17 +224,22 @@ const SmartTasksPage = () => {
                 />
               </div>
               
-              {/* Time Picker - Only visible when enabled */}
+              {/* Hour Picker - Only visible when enabled */}
               {weatherForecast && (
                 <div className="mt-3 ml-8 flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">Horário:</span>
-                  <input
-                    type="time"
-                    value={weatherTime}
-                    onChange={(e) => handleWeatherTimeChange(e.target.value)}
+                  <select
+                    value={weatherHour}
+                    onChange={(e) => handleWeatherHourChange(Number(e.target.value))}
                     className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     disabled={isSaving}
-                  />
+                  >
+                    {WEATHER_HOURS.map(hour => (
+                      <option key={hour.value} value={hour.value}>
+                        {hour.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

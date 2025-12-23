@@ -23,6 +23,8 @@ import EventListCard from "@/components/chat/EventListCard";
 import WeeklyReportCard from "@/components/chat/WeeklyReportCard";
 import WeeklyReportNotReadyCard from "@/components/chat/WeeklyReportNotReadyCard";
 import WeeklyReportModal from "@/components/chat/WeeklyReportModal";
+import WeatherForecastCard from "@/components/chat/WeatherForecastCard";
+import WeatherForecastModal from "@/components/chat/WeatherForecastModal";
 import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
 
@@ -79,6 +81,7 @@ interface Message {
   weeklyReportNotReady?: { // For showing "report not ready" card
     daysRemaining: number;
   };
+  weatherData?: any; // For showing weather forecast card
 }
 
 interface ExecutedAction {
@@ -180,7 +183,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     status: string | null;
   } | null>(null);
   const [selectedWeeklyReport, setSelectedWeeklyReport] = useState<any | null>(null);
-
+  const [selectedWeatherForecast, setSelectedWeatherForecast] = useState<any | null>(null);
   const dateLocale = getDateLocale();
 
   // Get user display name for personalized messages
@@ -303,6 +306,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       pastDateData: m.metadata?.pastDateData,
       weeklyReportData: m.metadata?.weeklyReportData,
       weeklyReportNotReady: m.metadata?.weeklyReportNotReady,
+      weatherData: m.metadata?.weatherData,
     };
   };
 

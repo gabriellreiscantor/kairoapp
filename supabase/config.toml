@@ -35,3 +35,11 @@ verify_jwt = false
 [functions.send-weekly-reports]
 enabled = true
 verify_jwt = false
+
+[functions.get-weather-forecast]
+enabled = true
+verify_jwt = false
+
+[functions.send-weather-forecasts]
+enabled = true
+verify_jwt = false
