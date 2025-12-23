@@ -26,6 +26,52 @@ interface WeatherForecastCardProps {
   onClick: () => void;
 }
 
+// Weather code to gradient mapping
+const getWeatherGradient = (code: number): string => {
+  // Céu limpo / Ensolarado - tons quentes amarelo/laranja/rosa
+  if (code === 0) {
+    return 'linear-gradient(135deg, #f6d365 0%, #fda085 50%, #f5576c 100%)';
+  }
+  // Nublado - cinza azulado
+  if (code >= 1 && code <= 3) {
+    return 'linear-gradient(135deg, #89a8b8 0%, #667085 50%, #4a5568 100%)';
+  }
+  // Nevoeiro - cinza suave
+  if (code >= 45 && code <= 48) {
+    return 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 50%, #6b7280 100%)';
+  }
+  // Garoa / Chuva leve - azul/roxo
+  if (code >= 51 && code <= 55) {
+    return 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%)';
+  }
+  // Chuva - azul escuro
+  if (code >= 56 && code <= 82) {
+    return 'linear-gradient(135deg, #1e3a5f 0%, #3b5998 50%, #4f46e5 100%)';
+  }
+  // Neve - azul gelo/ciano
+  if (code >= 71 && code <= 77) {
+    return 'linear-gradient(135deg, #e0f2fe 0%, #7dd3fc 50%, #38bdf8 100%)';
+  }
+  // Tempestade - roxo escuro dramático
+  if (code >= 95 && code <= 99) {
+    return 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)';
+  }
+  // Default (ensolarado)
+  return 'linear-gradient(135deg, #f6d365 0%, #fda085 50%, #f5576c 100%)';
+};
+
+// Weather code to emoji mapping
+const getWeatherEmoji = (code: number): string => {
+  if (code === 0) return '☀️';
+  if (code >= 1 && code <= 3) return '☁️';
+  if (code >= 45 && code <= 48) return '🌫️';
+  if (code >= 51 && code <= 67) return '🌧️';
+  if (code >= 71 && code <= 77) return '❄️';
+  if (code >= 80 && code <= 82) return '🌧️';
+  if (code >= 95 && code <= 99) return '⛈️';
+  return '☀️';
+};
+
 // Weather code to icon mapping (WMO codes)
 const getWeatherIcon = (code: number, size: string = "w-8 h-8") => {
   if (code === 0) return <Sun className={`${size} text-yellow-400`} />;
@@ -126,11 +172,11 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
     >
       {/* Card with gradient background */}
       <div className="relative overflow-hidden rounded-2xl p-5 transition-all duration-300 group-hover:scale-[1.02] group-active:scale-[0.98]">
-        {/* Gradient background - purple/blue for weather */}
+        {/* Gradient background - dynamic based on weather */}
         <div 
           className="absolute inset-0 opacity-90"
           style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            background: getWeatherGradient(weather.weatherCode),
           }}
         />
         
@@ -143,7 +189,7 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                ☀️ {language === 'en-US' ? 'Weather' : 'Clima'}
+                {getWeatherEmoji(weather.weatherCode)} {language === 'en-US' ? 'Weather' : 'Clima'}
               </span>
             </div>
             <div className="flex items-center gap-1 text-white/80 text-sm">
