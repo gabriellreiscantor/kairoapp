@@ -1,4 +1,5 @@
 import { Crown, MessageSquare, Infinity, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 
 const FEATURES = [
@@ -23,6 +24,8 @@ const FEATURES = [
 ];
 
 const SpecialFeaturesPage = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -41,7 +44,10 @@ const SpecialFeaturesPage = () => {
               <p className="text-white/70 text-sm">Desbloqueie todo o potencial</p>
             </div>
           </div>
-          <button className="w-full py-3 rounded-xl bg-white text-primary font-semibold">
+          <button 
+            onClick={() => navigate('/settings/plan?from=settings')}
+            className="w-full py-3 rounded-xl bg-white text-primary font-semibold active:scale-95 transition-transform"
+          >
             Atualizar Agora
           </button>
         </div>
