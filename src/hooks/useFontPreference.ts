@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { Capacitor } from '@capacitor/core';
 
 export type FontOption = 'system' | 'inter' | 'roboto' | 'poppins' | 'nunito' | 'lato';
+export type Platform = 'ios' | 'android' | 'web';
 
 export interface FontConfig {
   id: FontOption;
@@ -13,12 +15,42 @@ export interface FontConfig {
   description: string;
 }
 
+// Detectar plataforma e retornar info da fonte nativa
+const getPlatformFontInfo = (): { name: string; description: string; family: string; platform: Platform } => {
+  const platform = Capacitor.getPlatform();
+  
+  if (platform === 'ios') {
+    return {
+      name: 'San Francisco',
+      description: 'Fonte nativa do iOS',
+      family: '-apple-system, BlinkMacSystemFont, "San Francisco", sans-serif',
+      platform: 'ios'
+    };
+  } else if (platform === 'android') {
+    return {
+      name: 'Roboto',
+      description: 'Fonte nativa do Android',
+      family: '"Roboto", system-ui, sans-serif',
+      platform: 'android'
+    };
+  } else {
+    return {
+      name: 'Sistema',
+      description: 'Fonte nativa do navegador',
+      family: 'system-ui, -apple-system, sans-serif',
+      platform: 'web'
+    };
+  }
+};
+
+const platformFont = getPlatformFontInfo();
+
 export const FONT_OPTIONS: FontConfig[] = [
   { 
     id: 'system', 
-    name: 'Sistema', 
-    family: '-apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
-    description: 'Fonte nativa do dispositivo (iOS: San Francisco, Android: Roboto)'
+    name: platformFont.name,
+    family: platformFont.family,
+    description: platformFont.description
   },
   { 
     id: 'inter', 
@@ -64,6 +96,7 @@ export function useFontPreference() {
   const [loading, setLoading] = useState(true);
 
   const isPremium = subscription?.plan === 'plus' || subscription?.plan === 'super';
+  const platform = platformFont.platform;
 
   // Load font preference from database
   useEffect(() => {
@@ -151,6 +184,7 @@ export function useFontPreference() {
     setFont,
     loading,
     isPremium,
+    platform,
     fontOptions: FONT_OPTIONS,
   };
 }
