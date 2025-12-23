@@ -1514,6 +1514,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       </div>
                     )}
                     
+                    {/* Weather Forecast Card */}
+                    {message.weatherData && (
+                      <div className="pl-9 animate-fade-in">
+                        <WeatherForecastCard 
+                          weather={message.weatherData} 
+                          onClick={() => setSelectedWeatherForecast(message.weatherData)}
+                        />
+                      </div>
+                    )}
+                    
                   </div>
                 ) : (
                   <div className="flex flex-col items-end mb-4 pl-12">
@@ -1792,6 +1802,17 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           isOpen={!!selectedWeeklyReport}
           onClose={() => setSelectedWeeklyReport(null)}
           report={selectedWeeklyReport}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
+
+      {/* Weather Forecast Modal */}
+      {selectedWeatherForecast && (
+        <WeatherForecastModal
+          isOpen={!!selectedWeatherForecast}
+          onClose={() => setSelectedWeatherForecast(null)}
+          weather={selectedWeatherForecast}
+          onOpenSettings={onOpenSettings}
         />
       )}
     </div>
