@@ -19,8 +19,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   const splashImage = isDarkMode ? horahLogoDark : horahLogoLight;
 
-  // Pré-carregar a imagem imediatamente
+  // Esconder splash inline do HTML e pré-carregar imagem
   useEffect(() => {
+    // Esconder o splash inline imediatamente
+    const initialSplash = document.getElementById('initial-splash');
+    if (initialSplash) {
+      initialSplash.style.display = 'none';
+    }
+    
     const img = new Image();
     img.onload = () => setImageLoaded(true);
     img.onerror = () => setImageLoaded(true);
