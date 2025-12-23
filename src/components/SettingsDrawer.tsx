@@ -189,7 +189,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
               onClick={() => handleNavigate('/settings/plan')}
               className="w-full rounded-2xl p-4 relative overflow-hidden gradient-gold shadow-xl"
               style={{
-                boxShadow: '0 8px 32px rgba(255, 107, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+                boxShadow: '0 8px 32px rgba(31, 91, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
               }}
             >
               {/* Animated glow effect */}
