@@ -8,12 +8,12 @@ const config: CapacitorConfig = {
   appName: 'Kairo',
   webDir: 'dist',
   
-  // Cor de fundo do WebView - CRÍTICO para iOS (evita tela preta no overscroll)
-  backgroundColor: '#0a0a0c',
+  // Cor de fundo do WebView - combina com o splash do polvo
+  backgroundColor: '#0a1628',
   
   // Configurações específicas do iOS
   ios: {
-    backgroundColor: '#0a0a0c',
+    backgroundColor: '#0a1628',
     scrollEnabled: true,
   },
   
@@ -22,7 +22,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#0a0a0c',
+      backgroundColor: '#0a1628',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
