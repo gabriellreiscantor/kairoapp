@@ -17,7 +17,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const splashImage = isDarkMode ? horahLogoDark : horahLogoLight;
+  const splashImage = isDarkMode ? horahLogoLight : horahLogoDark;
 
   // Esconder splash inline do HTML e pré-carregar imagem
   useEffect(() => {
