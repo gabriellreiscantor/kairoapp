@@ -61,7 +61,7 @@ const HelpPage = () => {
         <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-3xl p-6 text-center">
           <img 
             src={kairoLogo} 
-            alt="Kairo" 
+            alt="Horah" 
             className="w-16 h-16 mx-auto mb-4 rounded-full object-cover"
           />
           <h2 className="text-lg font-semibold text-foreground mb-2">Como podemos ajudar?</h2>

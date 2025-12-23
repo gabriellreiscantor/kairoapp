@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
             const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
               body: {
                 user_id: event.user_id,
-                title: '📞 Me Ligue - Kairo',
+                title: '📞 Me Ligue - Horah',
                 body: `${event.title} às ${timeDisplay}`,
                 data: {
                   type: 'call-alert',

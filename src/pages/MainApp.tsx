@@ -376,7 +376,7 @@ const MainApp = () => {
         >
           <img 
             src={kairoLogo} 
-            alt="Kairo" 
+            alt="Horah" 
             className="w-full h-full object-cover"
             draggable={false}
             style={{ pointerEvents: 'none' }}
