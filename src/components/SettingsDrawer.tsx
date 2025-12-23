@@ -248,7 +248,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
             {/* Kairo Section */}
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <div className="w-1 h-4 rounded-full bg-gradient-to-b from-emerald-500 to-green-600" />
+                <div className="w-1 h-4 rounded-full bg-gradient-to-b from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3]" />
                 {t('settings.kairo')}
               </h4>
               <div className="space-y-1">
