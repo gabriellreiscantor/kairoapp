@@ -5,6 +5,68 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Convert event time from user's timezone to UTC for comparison
+ * This is critical for correct notification timing across all timezones
+ */
+function convertEventToUTC(
+  eventDate: string, 
+  eventTime: string, 
+  userTimezone: string
+): Date {
+  // Parse date and time components
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const [hours, minutes] = (eventTime || '00:00').split(':').map(Number);
+  
+  // Create a date string in the user's timezone
+  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  
+  try {
+    // Use Intl.DateTimeFormat to get the timezone offset for the user's timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+
+    // Get the offset by comparing local time interpretation
+    // Create a reference date in UTC
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    
+    // Format this UTC date in the user's timezone to find the offset
+    const parts = formatter.formatToParts(utcDate);
+    const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+    
+    const tzYear = getPart('year');
+    const tzMonth = getPart('month');
+    const tzDay = getPart('day');
+    const tzHour = getPart('hour');
+    const tzMinute = getPart('minute');
+    
+    // Calculate the difference (this is the timezone offset)
+    const tzDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0, 0));
+    const offsetMs = tzDate.getTime() - utcDate.getTime();
+    
+    // The event time in the user's timezone, converted to UTC
+    // We need to subtract the offset to get UTC time
+    const eventInUserTz = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    const eventInUTC = new Date(eventInUserTz.getTime() - offsetMs);
+    
+    return eventInUTC;
+  } catch (error) {
+    console.error(`Error converting timezone ${userTimezone}:`, error);
+    // Fallback: assume the timezone is America/Sao_Paulo (UTC-3)
+    const fallbackOffset = -3 * 60 * 60 * 1000;
+    const eventLocal = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    return new Date(eventLocal.getTime() - fallbackOffset);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,17 +78,19 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Calculate time window: events happening in ~1 hour (55-65 minutes from now)
+    // Calculate time window: events happening in ~1 hour (55-65 minutes from now) in UTC
     const now = new Date();
-    const targetTimeMin = new Date(now.getTime() + 55 * 60 * 1000); // 55 minutes from now
-    const targetTimeMax = new Date(now.getTime() + 65 * 60 * 1000); // 65 minutes from now
+    const targetTimeMinUTC = new Date(now.getTime() + 55 * 60 * 1000); // 55 minutes from now
+    const targetTimeMaxUTC = new Date(now.getTime() + 65 * 60 * 1000); // 65 minutes from now
 
-    console.log(`Checking for events between ${targetTimeMin.toISOString()} and ${targetTimeMax.toISOString()}`);
+    console.log(`Server time (UTC): ${now.toISOString()}`);
+    console.log(`Checking for events between ${targetTimeMinUTC.toISOString()} and ${targetTimeMaxUTC.toISOString()} (UTC)`);
 
     // Query events with call_alert_enabled that haven't been notified yet
+    // Join with profiles to get user's timezone
     const { data: events, error: eventsError } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id')
+      .select('id, title, event_date, event_time, location, user_id, emoji')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null);
@@ -43,25 +107,33 @@ Deno.serve(async (req) => {
 
     for (const event of events || []) {
       try {
-        // Parse date and time components explicitly to avoid timezone issues
-        // IMPORTANT: new Date(string) can interpret dates as UTC in some browsers
-        const [year, month, day] = event.event_date.split('-').map(Number);
-        const [hours, minutes] = (event.event_time || '00:00').split(':').map(Number);
-        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-        
-        // Check if event is within our target window (55-65 minutes from now)
-        if (eventDateTime >= targetTimeMin && eventDateTime <= targetTimeMax) {
-          // Fetch user profile with notification preferences
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled')
-            .eq('id', event.user_id)
-            .maybeSingle();
+        // Fetch user profile with notification preferences AND timezone
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled, timezone')
+          .eq('id', event.user_id)
+          .maybeSingle();
 
-          if (profileError) {
-            console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
-            continue;
-          }
+        if (profileError) {
+          console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
+          continue;
+        }
+
+        // Get user's timezone (default to America/Sao_Paulo if not set)
+        const userTimezone = profile?.timezone || 'America/Sao_Paulo';
+        
+        // Convert event time from user's timezone to UTC for comparison
+        const eventDateTimeUTC = convertEventToUTC(
+          event.event_date,
+          event.event_time,
+          userTimezone
+        );
+        
+        console.log(`Event "${event.title}": ${event.event_date} ${event.event_time} in ${userTimezone} = ${eventDateTimeUTC.toISOString()} UTC`);
+        
+        // Check if event is within our target window (55-65 minutes from now) in UTC
+        if (eventDateTimeUTC >= targetTimeMinUTC && eventDateTimeUTC <= targetTimeMaxUTC) {
+          console.log(`Event "${event.title}" is within notification window!`);
 
           // Check if user has call alerts enabled
           const callEnabled = profile?.call_enabled !== false; // Default true if not set

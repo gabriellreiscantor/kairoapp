@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserTimezone } from "@/lib/date-utils";
 
 interface Profile {
   id: string;
@@ -52,6 +53,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (!error && data) {
       setProfile(data as Profile);
+      
+      // Automatically update timezone on every login/session restore
+      const currentTimezone = getUserTimezone();
+      if (data.timezone !== currentTimezone) {
+        supabase
+          .from("profiles")
+          .update({ timezone: currentTimezone })
+          .eq("id", userId)
+          .then(({ error: tzError }) => {
+            if (tzError) {
+              console.error('Error updating timezone:', tzError);
+            } else {
+              console.log(`Timezone updated: ${currentTimezone}`);
+            }
+          });
+      }
     }
   };
 
