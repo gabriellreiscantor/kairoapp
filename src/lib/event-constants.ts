@@ -1,6 +1,6 @@
 // Event colors
 export const EVENT_COLORS = [
-  { value: 'primary', label: 'Horah', className: 'bg-gradient-to-br from-primary to-pink-500' },
+  { value: 'primary', label: 'Horah', className: 'bg-gradient-to-br from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3]' },
   { value: 'red', label: 'Vermelho', className: 'bg-red-500' },
   { value: 'blue', label: 'Azul', className: 'bg-blue-500' },
   { value: 'green', label: 'Verde', className: 'bg-green-500' },
