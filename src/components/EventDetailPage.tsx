@@ -289,7 +289,6 @@ const EventDetailPage = ({
   const [isDragging, setIsDragging] = useState(false);
   const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Sort events by time (earliest first, all-day events at the end)
   const sortedEvents = [...events].sort((a, b) => {
@@ -327,28 +326,16 @@ const EventDetailPage = ({
     }, 300);
   };
 
-  // Touch handlers for swipe gesture
+  // Touch handlers for swipe gesture - apenas no header
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
-    // Só permite arrastar para fechar se o scroll estiver no topo
-    const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
-    setIsDragging(scrollTop <= 0);
+    setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
-    
-    const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
-    // Se scrollou para baixo, cancela o arraste do modal
-    if (scrollTop > 0) {
-      setIsDragging(false);
-      setDragY(0);
-      return;
-    }
-    
     const currentY = e.touches[0].clientY;
     const deltaY = currentY - touchStartY.current;
-    // Only allow dragging down
     if (deltaY > 0) {
       setDragY(deltaY);
     }
@@ -457,39 +444,43 @@ const EventDetailPage = ({
         isClosing ? 'translate-y-full' : 'animate-slide-up'
       }`}
       style={{ transform: isDragging ? `translateY(${dragY}px)` : undefined }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       <div 
         className="relative flex flex-col h-full"
         style={{ opacity: isDragging ? Math.max(0.5, 1 - dragY / 300) : 1 }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-3 safe-area-top">
-          <div className="w-10" />
-          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
-          <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors">
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
+        {/* Header - Área de arraste para fechar */}
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <div className="flex items-center justify-between px-5 pt-3 safe-area-top">
+            <div className="w-10" />
+            <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+            <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors">
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
 
-        {/* Big Date Header */}
-        <div className="px-6 pt-6 pb-4">
-          <p className="text-sm text-muted-foreground capitalize mb-1">{weekday}</p>
-          <h1 className="text-5xl font-bold text-foreground mb-1">{dayNumber}</h1>
-          <p className="text-base text-muted-foreground capitalize">{monthYear}</p>
-        </div>
+          {/* Big Date Header */}
+          <div className="px-6 pt-6 pb-4">
+            <p className="text-sm text-muted-foreground capitalize mb-1">{weekday}</p>
+            <h1 className="text-5xl font-bold text-foreground mb-1">{dayNumber}</h1>
+            <p className="text-base text-muted-foreground capitalize">{monthYear}</p>
+          </div>
 
-        {/* Events Count */}
-        <div className="px-6 pb-4">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {sortedEvents.length} {sortedEvents.length === 1 ? 'evento' : 'eventos'}
-          </span>
+          {/* Events Count */}
+          <div className="px-6 pb-4">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {sortedEvents.length} {sortedEvents.length === 1 ? 'evento' : 'eventos'}
+            </span>
+          </div>
         </div>
 
         {/* Timeline Events */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
           {sortedEvents.map((event) => (
             <SingleEventCard
               key={event.id}
