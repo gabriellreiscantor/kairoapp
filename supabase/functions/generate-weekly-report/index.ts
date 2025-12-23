@@ -422,7 +422,7 @@ O usuário teve ${totalEvents} eventos e ${totalHours} horas ocupadas.
 Categorias principais: ${categoryList}
 
 Use gírias brasileiras modernas e tom descontraído. Exemplos de estilo:
-- "Entre rolês, cuidados e alguns lembretes"
+- "No meio das revoadas, do momento off e de uns lembretes de milhões"
 - "Semana cheia, na correria mas de boa"
 - "Do shape à social, mandou bem!"
 - "Equilibrando o trampo e os momentos de lazer"
