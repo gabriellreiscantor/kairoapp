@@ -49,6 +49,15 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [isDeleted, setIsDeleted] = useState(false);
   const [isCheckingDeleted, setIsCheckingDeleted] = useState(false);
   
+  // Live call status data from database
+  const [liveCallData, setLiveCallData] = useState({
+    call_alert_sent_at: event.call_alert_sent_at,
+    call_alert_attempts: event.call_alert_attempts,
+    call_alert_answered: event.call_alert_answered,
+    call_alert_answered_at: event.call_alert_answered_at,
+    call_alert_outcome: event.call_alert_outcome,
+  });
+  
   // Check if event is expired (already happened) - only for non-recurring events
   const isExpired = useMemo(() => {
     // Recurring events never expire in this sense
@@ -62,30 +71,81 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     return eventDateTime < new Date();
   }, [event.event_date, event.event_time, event.repeat]);
   
-  // Check if the event still exists in the database
+  // Fetch live call status data and subscribe to realtime updates
   useEffect(() => {
-    const checkIfEventExists = async () => {
-      if (!event.id) return;
+    if (!event.id) return;
+    
+    // Fetch latest call status data
+    const fetchLiveData = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, call_alert_sent_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome')
+        .eq('id', event.id)
+        .maybeSingle();
       
-      setIsCheckingDeleted(true);
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('id')
-          .eq('id', event.id)
-          .maybeSingle();
-        
-        if (error || !data) {
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Event doesn't exist
           setIsDeleted(true);
         }
-      } catch (err) {
-        console.error('Error checking event existence:', err);
-      } finally {
-        setIsCheckingDeleted(false);
+        return;
       }
+      
+      if (!data) {
+        setIsDeleted(true);
+        return;
+      }
+      
+      setLiveCallData({
+        call_alert_sent_at: data.call_alert_sent_at,
+        call_alert_attempts: data.call_alert_attempts,
+        call_alert_answered: data.call_alert_answered,
+        call_alert_answered_at: data.call_alert_answered_at,
+        call_alert_outcome: data.call_alert_outcome,
+      });
     };
     
-    checkIfEventExists();
+    fetchLiveData();
+    
+    // Subscribe to realtime updates for this event
+    const channel = supabase
+      .channel(`event-call-status-${event.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${event.id}`
+        },
+        (payload) => {
+          const newData = payload.new as any;
+          setLiveCallData({
+            call_alert_sent_at: newData.call_alert_sent_at,
+            call_alert_attempts: newData.call_alert_attempts,
+            call_alert_answered: newData.call_alert_answered,
+            call_alert_answered_at: newData.call_alert_answered_at,
+            call_alert_outcome: newData.call_alert_outcome,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${event.id}`
+        },
+        () => {
+          setIsDeleted(true);
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [event.id]);
   
   // Timer to hide edit button after 15 seconds (only if recently created)
@@ -351,30 +411,30 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             />
           </div>
           
-          {/* Call status indicator - show when call was sent */}
-          {event.call_alert_sent_at && (
+          {/* Call status indicator - show when call was sent (using live data) */}
+          {liveCallData.call_alert_sent_at && (
             <div className="mt-2 flex items-center gap-2 text-xs">
-              {event.call_alert_answered ? (
+              {liveCallData.call_alert_answered ? (
                 <>
                   <span className="inline-flex items-center gap-1 text-emerald-500">
                     <Phone className="w-3 h-3" />
                     ✅ Atendida
                   </span>
-                  {event.call_alert_answered_at && (
+                  {liveCallData.call_alert_answered_at && (
                     <span className="text-muted-foreground">
-                      às {format(parseISO(event.call_alert_answered_at), 'HH:mm')}
+                      às {format(parseISO(liveCallData.call_alert_answered_at), 'HH:mm')}
                     </span>
                   )}
                 </>
-              ) : event.call_alert_outcome === 'missed' ? (
+              ) : liveCallData.call_alert_outcome === 'missed' ? (
                 <span className="inline-flex items-center gap-1 text-amber-500">
                   <Phone className="w-3 h-3" />
-                  📞 Ligamos {event.call_alert_attempts && event.call_alert_attempts > 1 ? `${event.call_alert_attempts}x` : ''} - não atendida
+                  📞 Ligamos {liveCallData.call_alert_attempts && liveCallData.call_alert_attempts > 1 ? `${liveCallData.call_alert_attempts}x` : ''} - não atendida
                 </span>
-              ) : event.call_alert_outcome === 'sent' ? (
+              ) : liveCallData.call_alert_outcome === 'sent' ? (
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
                   <Phone className="w-3 h-3" />
-                  📞 Ligação enviada às {format(parseISO(event.call_alert_sent_at), 'HH:mm')}
+                  📞 Ligação enviada às {format(parseISO(liveCallData.call_alert_sent_at), 'HH:mm')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-muted-foreground/60">
