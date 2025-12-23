@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import horahLogoDark from "@/assets/horah-splash-dark.png";
 import horahLogoLight from "@/assets/horah-splash-light.png";
 
@@ -63,7 +62,12 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     : 'linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 40%, hsl(214 60% 95%) 70%, hsl(0 0% 100%) 100%)';
 
   const textColor = isDarkMode ? 'text-white' : 'text-gray-900';
-  const loaderColor = isDarkMode ? 'text-white/50' : 'text-gray-400';
+
+  const glowColor = isDarkMode 
+    ? 'from-orange-500/25 to-amber-400/15' 
+    : 'from-orange-400/20 to-amber-300/10';
+
+  const dotColor = isDarkMode ? 'bg-white/50' : 'bg-gray-400/60';
 
   return (
     <div
@@ -73,19 +77,53 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       style={{ background: gradientStyle }}
     >
       {imageLoaded ? (
-        <div className="animate-scale-in flex flex-col items-center gap-6">
-          <img 
-            src={splashImage} 
-            alt="Horah" 
-            className="w-32 h-32 rounded-3xl shadow-2xl"
-          />
-          <h1 className={`text-3xl font-bold ${textColor} tracking-wide`}>
+        <div className="flex flex-col items-center">
+          {/* Logo com glow */}
+          <div className="relative animate-fade-in">
+            {/* Glow effect */}
+            <div 
+              className={`absolute inset-0 bg-gradient-to-br ${glowColor} blur-3xl rounded-full scale-150 opacity-80`} 
+            />
+            <img 
+              src={splashImage} 
+              alt="Horah" 
+              className="relative w-40 h-40 rounded-[2rem] shadow-2xl"
+            />
+          </div>
+          
+          {/* Título elegante */}
+          <h1 
+            className={`mt-8 text-4xl font-semibold ${textColor} tracking-[0.15em] uppercase animate-fade-in`}
+            style={{ animationDelay: '150ms', animationFillMode: 'both' }}
+          >
             Horah
           </h1>
-          <Loader2 className={`w-6 h-6 ${loaderColor} animate-spin`} />
+          
+          {/* Pontinhos animados */}
+          <div 
+            className="flex gap-2 mt-10 animate-fade-in"
+            style={{ animationDelay: '300ms', animationFillMode: 'both' }}
+          >
+            <div 
+              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              style={{ animationDelay: '0ms' }}
+            />
+            <div 
+              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              style={{ animationDelay: '150ms' }}
+            />
+            <div 
+              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              style={{ animationDelay: '300ms' }}
+            />
+          </div>
         </div>
       ) : (
-        <Loader2 className={`w-6 h-6 ${loaderColor} animate-spin`} />
+        <div className="flex gap-2">
+          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} />
+          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '150ms' }} />
+          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '300ms' }} />
+        </div>
       )}
     </div>
   );
