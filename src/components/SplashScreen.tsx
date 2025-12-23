@@ -93,7 +93,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           
           {/* Título elegante */}
           <h1 
-            className={`mt-8 text-4xl font-semibold ${textColor} tracking-[0.15em] uppercase animate-fade-in`}
+            className={`mt-5 text-4xl font-semibold ${textColor} tracking-[0.15em] uppercase animate-fade-in`}
             style={{ animationDelay: '150ms', animationFillMode: 'both' }}
           >
             Horah
