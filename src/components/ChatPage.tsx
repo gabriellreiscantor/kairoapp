@@ -1264,7 +1264,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Messages - Timeline style */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 pb-32 pt-24 hide-scrollbar"
+        className="flex-1 overflow-y-auto px-4 pb-44 pt-24 hide-scrollbar"
       >
         {/* Loading more indicator (top) */}
         {isLoadingMore && (
