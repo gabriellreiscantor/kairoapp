@@ -8,6 +8,15 @@ const config: CapacitorConfig = {
   appName: 'Kairo',
   webDir: 'dist',
   
+  // Cor de fundo do WebView - CRÍTICO para iOS (evita tela preta no overscroll)
+  backgroundColor: '#0a0a0c',
+  
+  // Configurações específicas do iOS
+  ios: {
+    backgroundColor: '#0a0a0c',
+    scrollEnabled: true,
+  },
+  
   // Server URL só em desenvolvimento (hot-reload)
   // Em produção, carrega arquivos locais da pasta dist
   ...(isDev && {

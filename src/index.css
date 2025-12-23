@@ -202,10 +202,16 @@ input, textarea, [contenteditable="true"] {
     background-color: hsl(var(--background));
   }
   
-  /* Enable smooth scrolling on scrollable containers with iOS rubber-band prevention */
+  /* Desabilitar rubber banding completamente no iOS */
   .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
+  }
+  
+  /* Garantir que html/body também tenham overscroll desabilitado */
+  html, body, #root {
+    overscroll-behavior: none;
+    background-color: #0a0a0c;
   }
   
   html::-webkit-scrollbar,

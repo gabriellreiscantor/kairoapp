@@ -599,7 +599,7 @@ const MainApp = () => {
             className="h-full overflow-y-auto hide-scrollbar bg-background"
             style={{
               WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
+              overscrollBehavior: 'none',
             }}
           >
             <DayListView
