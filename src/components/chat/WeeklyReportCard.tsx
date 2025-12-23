@@ -1,6 +1,6 @@
 import React from "react";
 import { format, parseISO } from "date-fns";
-import { ptBR, enUS, es, fr } from "date-fns/locale";
+import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -36,6 +36,9 @@ const WeeklyReportCard: React.FC<WeeklyReportCardProps> = ({ report, onClick }) 
       case 'en-US': return enUS;
       case 'es-ES': return es;
       case 'fr-FR': return fr;
+      case 'ja-JP': return ja;
+      case 'ko-KR': return ko;
+      case 'zh-CN': return zhCN;
       default: return ptBR;
     }
   };
@@ -133,10 +136,10 @@ const WeeklyReportCard: React.FC<WeeklyReportCardProps> = ({ report, onClick }) 
           
           {/* Stats and CTA */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
               <div>
                 <p className="text-white/60 text-xs uppercase tracking-wide">
-                  {language === 'en-US' ? 'Hours' : language === 'es-ES' ? 'Horas' : 'Horas'}
+                  {language === 'en-US' ? 'Hours' : language === 'es-ES' ? 'Horas' : language === 'ja-JP' ? '時間' : language === 'ko-KR' ? '시간' : language === 'zh-CN' ? '小时' : 'Horas'}
                 </p>
                 <p className="text-white text-lg font-bold">
                   {report.total_hours}
@@ -145,7 +148,7 @@ const WeeklyReportCard: React.FC<WeeklyReportCardProps> = ({ report, onClick }) 
               <div className="w-px h-8 bg-white/20" />
               <div>
                 <p className="text-white/60 text-xs uppercase tracking-wide">
-                  {language === 'en-US' ? 'Events' : language === 'es-ES' ? 'Eventos' : 'Eventos'}
+                  {language === 'en-US' ? 'Events' : language === 'es-ES' ? 'Eventos' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'Eventos'}
                 </p>
                 <p className="text-white text-lg font-bold">
                   {report.total_events}
@@ -155,7 +158,7 @@ const WeeklyReportCard: React.FC<WeeklyReportCardProps> = ({ report, onClick }) 
             
             {/* Read more button */}
             <button className="flex items-center gap-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-full transition-colors">
-              {language === 'en-US' ? 'Read more' : language === 'es-ES' ? 'Ver más' : 'Ler mais'}
+              {language === 'en-US' ? 'Read more' : language === 'es-ES' ? 'Ver más' : language === 'fr-FR' ? 'Lire plus' : language === 'ja-JP' ? '続きを読む' : language === 'ko-KR' ? '더보기' : language === 'zh-CN' ? '查看更多' : 'Ler mais'}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
