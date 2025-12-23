@@ -74,12 +74,12 @@ input, textarea, [contenteditable="true"] {
     --kairo-accent-red: 0 70% 50%;
     --kairo-fox-orange: 217 62% 48%;
     
-    /* Blue gradient - #2F66C7 → #1E3F8F → #05060C */
-    --gradient-primary-start: 217 62% 48%;
-    --gradient-primary-mid: 221 65% 34%;
-    --gradient-primary-end: 231 41% 3%;
+    /* Blue to green gradient - #1F5BFF → #39B7E5 → #63E0A3 */
+    --gradient-primary-start: 220 100% 56%;
+    --gradient-primary-mid: 195 75% 56%;
+    --gradient-primary-end: 153 65% 63%;
     
-    --gradient-glow: 217 62% 48%;
+    --gradient-glow: 220 100% 56%;
     
     /* Destructive */
     --destructive: 0 70% 50%;
