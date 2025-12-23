@@ -1,6 +1,6 @@
 import React from "react";
 import { format, parseISO } from "date-fns";
-import { ptBR, enUS, es, fr } from "date-fns/locale";
+import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { X, Share2, Settings } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -44,6 +44,9 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
       case 'en-US': return enUS;
       case 'es-ES': return es;
       case 'fr-FR': return fr;
+      case 'ja-JP': return ja;
+      case 'ko-KR': return ko;
+      case 'zh-CN': return zhCN;
       default: return ptBR;
     }
   };
@@ -83,6 +86,9 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
       case 'en-US': return 'Weekly summary can be adjusted in Settings → Smart Tasks.';
       case 'es-ES': return 'El resumen semanal se puede ajustar en Configuración → Tareas Inteligentes.';
       case 'fr-FR': return 'Le résumé hebdomadaire peut être ajusté dans Paramètres → Tâches Intelligentes.';
+      case 'ja-JP': return '週間サマリーは設定 → スマートタスクで調整できます。';
+      case 'ko-KR': return '주간 요약은 설정 → 스마트 작업에서 조정할 수 있습니다.';
+      case 'zh-CN': return '周报可以在设置 → 智能任务中调整。';
       default: return 'Resumo semanal pode ser ajustado em Configurações → Tarefas Inteligentes.';
     }
   };
@@ -135,7 +141,7 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
           <div className="flex items-center justify-center gap-8 py-4">
             <div className="text-center">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
-                {language === 'en-US' ? 'Hours' : 'Horas'}
+                {language === 'en-US' ? 'Hours' : language === 'ja-JP' ? '時間' : language === 'ko-KR' ? '시간' : language === 'zh-CN' ? '小时' : 'Horas'}
               </p>
               <p className="text-foreground text-3xl font-bold">
                 {report.total_hours}
@@ -144,7 +150,7 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
             <div className="w-px h-12 bg-border" />
             <div className="text-center">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
-                {language === 'en-US' ? 'Events' : 'Eventos'}
+                {language === 'en-US' ? 'Events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'Eventos'}
               </p>
               <p className="text-foreground text-3xl font-bold">
                 {report.total_events}
@@ -157,7 +163,11 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
             <div>
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
                 {language === 'en-US' ? 'Category Distribution' : 
-                 language === 'es-ES' ? 'Distribución por Categoría' : 
+                 language === 'es-ES' ? 'Distribución por Categoría' :
+                 language === 'fr-FR' ? 'Répartition par Catégorie' :
+                 language === 'ja-JP' ? 'カテゴリー分布' :
+                 language === 'ko-KR' ? '카테고리 분포' :
+                 language === 'zh-CN' ? '分类分布' :
                  'Distribuição por Categoria'}
               </h3>
               
@@ -175,8 +185,8 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                         </span>
                         <span className="text-muted-foreground">
                           ({cat.count} {cat.count === 1 
-                            ? (language === 'en-US' ? 'event' : 'evento') 
-                            : (language === 'en-US' ? 'events' : 'eventos')})
+                            ? (language === 'en-US' ? 'event' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'evento') 
+                            : (language === 'en-US' ? 'events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'eventos')})
                         </span>
                       </div>
                       <span className="text-muted-foreground font-medium">
@@ -209,7 +219,11 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
               <Share2 className="w-4 h-4" />
               <span className="font-medium">
                 {language === 'en-US' ? 'Share' : 
-                 language === 'es-ES' ? 'Compartir' : 
+                 language === 'es-ES' ? 'Compartir' :
+                 language === 'fr-FR' ? 'Partager' :
+                 language === 'ja-JP' ? '共有' :
+                 language === 'ko-KR' ? '공유' :
+                 language === 'zh-CN' ? '分享' :
                  'Compartilhar'}
               </span>
             </button>

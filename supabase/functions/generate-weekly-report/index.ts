@@ -16,54 +16,93 @@ const CATEGORY_LABELS: Record<string, Record<string, string>> = {
     'pessoal': 'Autocuidado',
     'trabalho': 'Trabalho',
     'lazer': 'Lazer',
-    'evento': 'Eventos Especiais',
-    'casamento': 'Eventos Especiais',
-    'geral': 'Rotina',
-    'saude': 'Saúde',
+    'evento': 'Eventos',
+    'casamento': 'Celebrações',
+    'saúde': 'Saúde',
     'fitness': 'Fitness',
-    'social': 'Conexões',
-    'familia': 'Família',
-    'estudo': 'Estudos',
+    'estudos': 'Estudos',
+    'família': 'Família',
+    'social': 'Social',
+    'default': 'Outros'
   },
   'en-US': {
     'pessoal': 'Self-care',
     'trabalho': 'Work',
     'lazer': 'Leisure',
-    'evento': 'Special Events',
-    'casamento': 'Special Events',
-    'geral': 'Routine',
-    'saude': 'Health',
+    'evento': 'Events',
+    'casamento': 'Celebrations',
+    'saúde': 'Health',
     'fitness': 'Fitness',
-    'social': 'Connections',
-    'familia': 'Family',
-    'estudo': 'Studies',
+    'estudos': 'Studies',
+    'família': 'Family',
+    'social': 'Social',
+    'default': 'Other'
   },
   'es-ES': {
     'pessoal': 'Autocuidado',
     'trabalho': 'Trabajo',
     'lazer': 'Ocio',
-    'evento': 'Eventos Especiales',
-    'casamento': 'Eventos Especiales',
-    'geral': 'Rutina',
-    'saude': 'Salud',
+    'evento': 'Eventos',
+    'casamento': 'Celebraciones',
+    'saúde': 'Salud',
     'fitness': 'Fitness',
-    'social': 'Conexiones',
-    'familia': 'Familia',
-    'estudo': 'Estudios',
+    'estudos': 'Estudios',
+    'família': 'Familia',
+    'social': 'Social',
+    'default': 'Otros'
   },
   'fr-FR': {
     'pessoal': 'Bien-être',
     'trabalho': 'Travail',
     'lazer': 'Loisirs',
     'evento': 'Événements',
-    'casamento': 'Événements',
-    'geral': 'Routine',
-    'saude': 'Santé',
+    'casamento': 'Célébrations',
+    'saúde': 'Santé',
     'fitness': 'Fitness',
-    'social': 'Connexions',
-    'familia': 'Famille',
-    'estudo': 'Études',
+    'estudos': 'Études',
+    'família': 'Famille',
+    'social': 'Social',
+    'default': 'Autres'
   },
+  'ja-JP': {
+    'pessoal': 'セルフケア',
+    'trabalho': '仕事',
+    'lazer': '趣味',
+    'evento': 'イベント',
+    'casamento': 'お祝い',
+    'saúde': '健康',
+    'fitness': 'フィットネス',
+    'estudos': '勉強',
+    'família': '家族',
+    'social': '交流',
+    'default': 'その他'
+  },
+  'ko-KR': {
+    'pessoal': '셀프케어',
+    'trabalho': '업무',
+    'lazer': '여가',
+    'evento': '이벤트',
+    'casamento': '축하',
+    'saúde': '건강',
+    'fitness': '운동',
+    'estudos': '공부',
+    'família': '가족',
+    'social': '모임',
+    'default': '기타'
+  },
+  'zh-CN': {
+    'pessoal': '自我关爱',
+    'trabalho': '工作',
+    'lazer': '休闲',
+    'evento': '活动',
+    'casamento': '庆典',
+    'saúde': '健康',
+    'fitness': '健身',
+    'estudos': '学习',
+    'família': '家庭',
+    'social': '社交',
+    'default': '其他'
+  }
 };
 
 // Category colors for charts
@@ -328,6 +367,9 @@ function getEmptyWeekHeadline(language: string): string {
     'en-US': 'A quiet week, huh?',
     'es-ES': '¿Semana tranquila?',
     'fr-FR': 'Semaine tranquille, hein?',
+    'ja-JP': 'のんびりした一週間だったね',
+    'ko-KR': '조용한 한 주였네요~',
+    'zh-CN': '悠闲的一周呀~',
   };
   return headlines[language] || headlines['pt-BR'];
 }
@@ -338,6 +380,9 @@ function getEmptyWeekDescription(language: string): string {
     'en-US': 'You had no events registered last week. How about planning something special for this week?',
     'es-ES': 'No tuviste eventos registrados la semana pasada. ¿Qué tal planificar algo especial para esta semana?',
     'fr-FR': 'Vous n\'avez eu aucun événement enregistré la semaine dernière. Que diriez-vous de planifier quelque chose de spécial pour cette semaine?',
+    'ja-JP': '先週はイベントがなかったみたい。今週は何か特別なことを計画してみる？',
+    'ko-KR': '지난주에는 등록된 일정이 없었어요. 이번 주에는 특별한 걸 계획해볼까요?',
+    'zh-CN': '上周没有登记活动哦。这周计划点特别的事情吧？',
   };
   return descriptions[language] || descriptions['pt-BR'];
 }
@@ -416,6 +461,42 @@ Utilisez un argot français moderne et un ton décontracté. Exemples de style:
 - "Du taf aux loisirs, bien joué"
 
 Répondez UNIQUEMENT avec la phrase, sans guillemets ni explications.`,
+
+    'ja-JP': `あなたはクリエイティブな日本語アシスタントです。ユーザーの一週間を要約する短くてカジュアルなフレーズ（最大8語）を作成してください。
+ユーザーは${totalEvents}件のイベントと${totalHours}時間の予定がありました。
+主なカテゴリー: ${categoryList}
+
+現代の日本語スラングやカジュアルな表現を使ってください。スタイル例:
+- "仕事も遊びもバッチリこなした週"
+- "推し活から自分磨きまで、充実した一週間"
+- "忙しかったけど、まじ最高の週だった"
+- "ワークもプライベートもいい感じ"
+
+フレーズのみを回答してください。引用符や説明は不要です。`,
+
+    'ko-KR': `당신은 창의적인 한국어 어시스턴트입니다. 사용자의 한 주를 요약하는 짧고 캐주얼한 문구(최대 8단어)를 만들어주세요.
+사용자는 ${totalEvents}개의 일정과 ${totalHours}시간의 활동이 있었습니다.
+주요 카테고리: ${categoryList}
+
+현대 한국어 슬랭과 편안한 톤을 사용하세요. 스타일 예시:
+- "일도 놀기도 열심히, 갓생 살았지"
+- "바빴지만 뿌듯한 한 주"
+- "워라밸 완벽하게 맞춘 주간"
+- "덕질부터 자기관리까지 알찬 한 주"
+
+문구만 답변해주세요. 따옴표나 설명은 필요 없습니다.`,
+
+    'zh-CN': `你是一个有创意的中文助手。请创建一个简短、随意的短语（最多8个词）来总结用户的一周。
+用户有${totalEvents}个活动和${totalHours}小时的安排。
+主要类别: ${categoryList}
+
+使用现代中文网络用语和轻松的语气。风格示例:
+- "工作生活两不误，这周绝绝子"
+- "忙碌但充实，妥妥的卷王"
+- "从健身到社交，满满的正能量"
+- "事业爱情双丰收，人生赢家"
+
+只回复短语，不需要引号或解释。`,
   };
 
   const prompt = prompts[language] || prompts['pt-BR'];
@@ -452,6 +533,26 @@ Tom: informal, positivo, sem clichês. Máximo 50 palavras.`,
 Events: ${totalEvents}, Hours: ${totalHours}
 Categories: ${categoryList}
 Tone: informal, positive, no clichés. Max 50 words.`,
+    'es-ES': `Escribe una descripción breve (2 frases) sobre la semana del usuario.
+Eventos: ${totalEvents}, Horas: ${totalHours}
+Categorías: ${categoryList}
+Tono: informal, positivo, sin clichés. Máximo 50 palabras.`,
+    'fr-FR': `Écrivez une brève description (2 phrases) de la semaine de l'utilisateur.
+Événements: ${totalEvents}, Heures: ${totalHours}
+Catégories: ${categoryList}
+Ton: informel, positif, pas de clichés. Maximum 50 mots.`,
+    'ja-JP': `ユーザーの一週間について簡潔な説明（2文）を書いてください。
+イベント: ${totalEvents}件、時間: ${totalHours}時間
+カテゴリー: ${categoryList}
+トーン: カジュアル、ポジティブ、クリシェなし。最大50語。`,
+    'ko-KR': `사용자의 한 주에 대한 짧은 설명(2문장)을 작성해주세요.
+일정: ${totalEvents}개, 시간: ${totalHours}시간
+카테고리: ${categoryList}
+톤: 캐주얼하고 긍정적으로, 진부한 표현 없이. 최대 50단어.`,
+    'zh-CN': `写一段关于用户一周的简短描述（2句话）。
+活动: ${totalEvents}个，时间: ${totalHours}小时
+类别: ${categoryList}
+语气: 轻松、积极、不要陈词滥调。最多50个词。`,
   };
 
   const descPrompt = descPrompts[language] || descPrompts['pt-BR'];
