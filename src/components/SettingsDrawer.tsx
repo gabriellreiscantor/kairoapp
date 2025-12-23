@@ -145,7 +145,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
           {/* User Profile - Premium Header */}
           <div className="px-5 py-6 flex flex-col items-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-kairo-orange via-kairo-red to-kairo-purple p-[3px]">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3] p-[3px]">
                 <div className="w-full h-full rounded-full bg-background overflow-hidden">
                   {profile?.avatar_url ? (
                     <img 
