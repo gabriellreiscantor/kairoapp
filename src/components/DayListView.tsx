@@ -62,7 +62,14 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
   };
 
   return (
-    <div className="px-4 pt-2 pb-32 space-y-1 bg-background min-h-[calc(100%+100px)]">
+    <div 
+      className="scroll-container px-4 pt-2 pb-32 space-y-1 bg-background min-h-[calc(100%+100px)]"
+      style={{
+        touchAction: 'pan-y',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
+      }}
+    >
       {days.map((day, index) => {
         const isTodayDate = isToday(day);
         const dayEvents = getDayEvents(day);

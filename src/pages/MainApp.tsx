@@ -41,6 +41,7 @@ const VIEW_ORDER: ViewType[] = ['chat', 'calendar', 'list'];
 const SWIPE_THRESHOLD = 50;
 const SWIPE_ANGLE_THRESHOLD = 30; // Degrees - if angle > 30deg from horizontal, it's a scroll
 const SWIPE_TRANSITION_DURATION = '0.4s'; // Duração da animação de transição
+const MOVEMENT_THRESHOLD = 15; // Pixels para decidir direção (aumentado de 10 para 15)
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -290,6 +291,30 @@ const MainApp = () => {
     setShowMonthPicker(false);
   };
 
+  // Ref para timeout de segurança
+  const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Limpar timeout quando componente desmonta
+  useEffect(() => {
+    return () => {
+      if (swipeTimeoutRef.current) {
+        clearTimeout(swipeTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Reset forçado de swipe state para evitar estados presos
+  const resetSwipeState = useCallback(() => {
+    setSwipeX(0);
+    setIsSwiping(false);
+    setIsSwipeDecided(false);
+    setIsHorizontalSwipe(false);
+    if (swipeTimeoutRef.current) {
+      clearTimeout(swipeTimeoutRef.current);
+      swipeTimeoutRef.current = null;
+    }
+  }, []);
+
   // Swipe navigation handlers - improved to separate horizontal swipe from vertical scroll
   const handleTouchStart = (e: React.TouchEvent) => {
     // Ignorar se o toque foi em um botão ou elemento interativo
@@ -298,12 +323,25 @@ const MainApp = () => {
       return; // Deixar o botão lidar com o evento
     }
     
+    // Verificar se o toque está dentro de uma área scrollável (lista de eventos)
+    const scrollableParent = target.closest('.scroll-container, .overflow-y-auto, .overflow-auto');
+    if (scrollableParent && activeView === 'list') {
+      // Não iniciar swipe se estiver numa área scrollável da lista
+      // Deixar o scroll nativo funcionar
+      return;
+    }
+    
+    // Limpar qualquer estado anterior preso
+    resetSwipeState();
+    
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(true);
-    setIsSwipeDecided(false);
-    setIsHorizontalSwipe(false);
-    setSwipeX(0);
+    
+    // Timeout de segurança - reseta após 500ms se não houver touchEnd
+    swipeTimeoutRef.current = setTimeout(() => {
+      resetSwipeState();
+    }, 500);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -312,20 +350,21 @@ const MainApp = () => {
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
     
-    // Decide direction on first significant movement (after 10px)
-    if (!isSwipeDecided && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+    // Decide direction on first significant movement
+    if (!isSwipeDecided && (Math.abs(deltaX) > MOVEMENT_THRESHOLD || Math.abs(deltaY) > MOVEMENT_THRESHOLD)) {
       setIsSwipeDecided(true);
+      
       // Calculate angle: if mostly horizontal (angle < 30deg), it's a swipe
       const angle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
       const isHorizontal = angle < SWIPE_ANGLE_THRESHOLD || angle > (180 - SWIPE_ANGLE_THRESHOLD);
-      setIsHorizontalSwipe(isHorizontal);
       
-      // Se for scroll vertical, cancela o swipe completamente para não interferir
+      // Se for scroll vertical, cancela o swipe COMPLETAMENTE
       if (!isHorizontal) {
-        setIsSwiping(false);
-        setSwipeX(0);
+        resetSwipeState();
         return;
       }
+      
+      setIsHorizontalSwipe(true);
     }
     
     // Only track horizontal movement if decided as horizontal swipe
@@ -335,6 +374,12 @@ const MainApp = () => {
   };
 
   const handleTouchEnd = () => {
+    // Limpar timeout de segurança
+    if (swipeTimeoutRef.current) {
+      clearTimeout(swipeTimeoutRef.current);
+      swipeTimeoutRef.current = null;
+    }
+    
     if (!isSwiping) return;
     
     // Only navigate if it was a horizontal swipe
@@ -362,10 +407,8 @@ const MainApp = () => {
       }
     }
     
-    setSwipeX(0);
-    setIsSwiping(false);
-    setIsSwipeDecided(false);
-    setIsHorizontalSwipe(false);
+    // Reset completo do estado
+    resetSwipeState();
   };
 
   // Floating Dock Component
@@ -431,7 +474,7 @@ const MainApp = () => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ 
-            transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
+            transform: (isSwiping && isHorizontalSwipe && Math.abs(swipeX) > 5) ? `translateX(${swipeX * 0.3}px)` : 'none',
             transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
           }}
         >
@@ -501,7 +544,7 @@ const MainApp = () => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ 
-        transform: (isSwiping && isHorizontalSwipe) ? `translateX(${swipeX * 0.3}px)` : undefined,
+        transform: (isSwiping && isHorizontalSwipe && Math.abs(swipeX) > 5) ? `translateX(${swipeX * 0.3}px)` : 'none',
         transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
       }}
     >
