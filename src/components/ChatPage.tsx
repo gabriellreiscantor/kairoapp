@@ -266,6 +266,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         event_date: eventData.resumo_evento.data,
         event_time: eventData.resumo_evento.hora === 'Dia inteiro' ? undefined : eventData.resumo_evento.hora,
         location: eventData.resumo_evento.local,
+        description: eventData.description,
         category: eventData.category || 'geral',
         notification_enabled: eventData.notification_enabled ?? true,
         call_alert_enabled: eventData.call_alert_enabled ?? false,
@@ -654,6 +655,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         event_time: updatedEvent.event_time,
                         duration_minutes: updatedEvent.duration_minutes,
                         location: updatedEvent.location,
+                        description: updatedEvent.description,
                         category: updatedEvent.category || 'geral',
                         notification_enabled: updatedEvent.notification_enabled ?? true,
                         call_alert_enabled: updatedEvent.call_alert_enabled ?? false,
@@ -691,6 +693,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       event_time: eventFromDb?.event_time || (eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora),
                       duration_minutes: eventFromDb?.duration_minutes,
                       location: eventFromDb?.location || eventResumo?.local,
+                      description: eventFromDb?.description,
                       category: eventFromDb?.category || 'geral',
                       notification_enabled: eventFromDb?.notification_enabled ?? true,
                       call_alert_enabled: eventFromDb?.call_alert_enabled ?? false,
@@ -1524,7 +1527,40 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           isOpen={!!editingEvent}
           onClose={() => setEditingEvent(null)}
           event={editingEvent}
-          onSave={() => {
+          onSave={async () => {
+            // Buscar evento atualizado do banco para atualizar o card no chat
+            const { data: updatedEvent } = await supabase
+              .from('events')
+              .select('*')
+              .eq('id', editingEvent.id)
+              .single();
+            
+            if (updatedEvent) {
+              // Atualizar a mensagem no chat que contém esse evento
+              setMessages(prev => prev.map(m => {
+                if (m.eventData?.id === updatedEvent.id) {
+                  return {
+                    ...m,
+                    eventData: {
+                      ...m.eventData,
+                      title: updatedEvent.title,
+                      event_date: updatedEvent.event_date,
+                      event_time: updatedEvent.event_time,
+                      location: updatedEvent.location,
+                      description: updatedEvent.description,
+                      emoji: updatedEvent.emoji,
+                      color: updatedEvent.color,
+                      repeat: updatedEvent.repeat,
+                      is_all_day: updatedEvent.is_all_day,
+                      notification_enabled: updatedEvent.notification_enabled,
+                      call_alert_enabled: updatedEvent.call_alert_enabled,
+                    }
+                  };
+                }
+                return m;
+              }));
+            }
+            
             onEventCreated?.();
           }}
           onDelete={async (deletedEvent) => {
