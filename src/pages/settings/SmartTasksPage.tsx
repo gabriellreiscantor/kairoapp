@@ -1,8 +1,10 @@
-import { Sparkles, Brain, Clock, Repeat, CloudSun, BarChart3 } from "lucide-react";
+import { Sparkles, Brain, Clock, Repeat, CloudSun, BarChart3, MapPin, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 
 const HOURS = [
@@ -36,6 +38,7 @@ const WEATHER_HOURS = [
 
 const SmartTasksPage = () => {
   const { user, profile, refreshProfile } = useAuth();
+  const { getCurrentAddress, isLoading: isLoadingLocation } = useGeolocation();
   
   const [smartSuggestions, setSmartSuggestions] = useState(true);
   const [autoReschedule, setAutoReschedule] = useState(true);
@@ -46,6 +49,8 @@ const SmartTasksPage = () => {
   const [weeklyReport, setWeeklyReport] = useState(true);
   const [weeklyReportHour, setWeeklyReportHour] = useState(12);
   const [isSaving, setIsSaving] = useState(false);
+  const [userCity, setUserCity] = useState<string | null>(null);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
 
   // Load preferences from profile
   useEffect(() => {
@@ -58,6 +63,7 @@ const SmartTasksPage = () => {
       setWeatherHour((profile as any).weather_forecast_hour ?? 7);
       setWeeklyReport((profile as any).weekly_report_enabled ?? true);
       setWeeklyReportHour((profile as any).weekly_report_hour ?? 12);
+      setUserCity((profile as any).user_city ?? null);
     }
   }, [profile]);
 
@@ -101,9 +107,56 @@ const SmartTasksPage = () => {
     updatePreference('learn_patterns_enabled', checked);
   };
 
-  const handleWeatherForecast = (checked: boolean) => {
+  const handleWeatherForecast = async (checked: boolean) => {
     setWeatherForecast(checked);
-    updatePreference('weather_forecast_enabled', checked);
+    
+    if (checked) {
+      // Check if we already have location
+      const hasLocation = (profile as any)?.user_latitude && (profile as any)?.user_longitude;
+      
+      if (!hasLocation) {
+        // Capture location when enabling weather forecast
+        setIsCapturingLocation(true);
+        try {
+          const address = await getCurrentAddress();
+          
+          if (address) {
+            // Extract city from address string (first part before comma)
+            const cityName = address.address.split(',')[0]?.trim() || 'Sua cidade';
+            
+            // Save location to profile
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                weather_forecast_enabled: true,
+                user_latitude: address.lat,
+                user_longitude: address.lon,
+                user_city: cityName
+              })
+              .eq('id', user?.id);
+            
+            if (error) throw error;
+            
+            setUserCity(cityName);
+            toast.success(`Localização capturada: ${cityName}`);
+            await refreshProfile();
+          } else {
+            toast.error('Não foi possível obter sua localização');
+            setWeatherForecast(false);
+          }
+        } catch (error) {
+          console.error('Error capturing location:', error);
+          toast.error('Erro ao capturar localização. Verifique as permissões.');
+          setWeatherForecast(false);
+        } finally {
+          setIsCapturingLocation(false);
+        }
+      } else {
+        updatePreference('weather_forecast_enabled', checked);
+      }
+    } else {
+      updatePreference('weather_forecast_enabled', checked);
+    }
   };
 
   const handleWeatherHourChange = (hour: number) => {
@@ -211,35 +264,51 @@ const SmartTasksPage = () => {
             <div className="px-4 py-3.5 border-b border-border/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CloudSun className="w-5 h-5 text-muted-foreground" />
+                  {isCapturingLocation ? (
+                    <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                  ) : (
+                    <CloudSun className="w-5 h-5 text-muted-foreground" />
+                  )}
                   <div>
                     <p className="text-foreground">Previsão do Tempo Matinal</p>
-                    <p className="text-xs text-muted-foreground">Receba a previsão diariamente no chat</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isCapturingLocation 
+                        ? 'Capturando localização...' 
+                        : 'Receba a previsão diariamente no chat'}
+                    </p>
                   </div>
                 </div>
                 <Switch 
                   checked={weatherForecast} 
                   onCheckedChange={handleWeatherForecast}
-                  disabled={isSaving}
+                  disabled={isSaving || isCapturingLocation}
                 />
               </div>
               
-              {/* Hour Picker - Only visible when enabled */}
+              {/* Hour Picker and Location - Only visible when enabled */}
               {weatherForecast && (
-                <div className="mt-3 ml-8 flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">Horário:</span>
-                  <select
-                    value={weatherHour}
-                    onChange={(e) => handleWeatherHourChange(Number(e.target.value))}
-                    className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    disabled={isSaving}
-                  >
-                    {WEATHER_HOURS.map(hour => (
-                      <option key={hour.value} value={hour.value}>
-                        {hour.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="mt-3 ml-8 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">Horário:</span>
+                    <select
+                      value={weatherHour}
+                      onChange={(e) => handleWeatherHourChange(Number(e.target.value))}
+                      className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      disabled={isSaving}
+                    >
+                      {WEATHER_HOURS.map(hour => (
+                        <option key={hour.value} value={hour.value}>
+                          {hour.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {userCity && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{userCity}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
