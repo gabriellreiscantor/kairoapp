@@ -100,7 +100,7 @@ const SubscriptionPage = () => {
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-kairo-orange to-kairo-red rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
               style={{ width: `${Math.min((usedEvents / maxEvents) * 100, 100)}%` }}
             />
           </div>
