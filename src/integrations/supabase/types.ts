@@ -156,8 +156,10 @@ export type Database = {
         Row: {
           auto_reschedule_enabled: boolean | null
           avatar_url: string | null
+          call_enabled: boolean
           context_aware_enabled: boolean | null
           created_at: string | null
+          critical_alerts_enabled: boolean
           display_name: string | null
           fcm_token: string | null
           fcm_token_updated_at: string | null
@@ -168,17 +170,23 @@ export type Database = {
           onboarding_step: string | null
           phone: string | null
           preferred_times: Json | null
+          push_enabled: boolean
           smart_suggestions_enabled: boolean | null
+          sound_enabled: boolean
           updated_at: string | null
+          vibration_enabled: boolean
           voip_token: string | null
           weather_forecast_enabled: boolean | null
           weather_forecast_time: string | null
+          whatsapp_enabled: boolean
         }
         Insert: {
           auto_reschedule_enabled?: boolean | null
           avatar_url?: string | null
+          call_enabled?: boolean
           context_aware_enabled?: boolean | null
           created_at?: string | null
+          critical_alerts_enabled?: boolean
           display_name?: string | null
           fcm_token?: string | null
           fcm_token_updated_at?: string | null
@@ -189,17 +197,23 @@ export type Database = {
           onboarding_step?: string | null
           phone?: string | null
           preferred_times?: Json | null
+          push_enabled?: boolean
           smart_suggestions_enabled?: boolean | null
+          sound_enabled?: boolean
           updated_at?: string | null
+          vibration_enabled?: boolean
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
+          whatsapp_enabled?: boolean
         }
         Update: {
           auto_reschedule_enabled?: boolean | null
           avatar_url?: string | null
+          call_enabled?: boolean
           context_aware_enabled?: boolean | null
           created_at?: string | null
+          critical_alerts_enabled?: boolean
           display_name?: string | null
           fcm_token?: string | null
           fcm_token_updated_at?: string | null
@@ -210,11 +224,15 @@ export type Database = {
           onboarding_step?: string | null
           phone?: string | null
           preferred_times?: Json | null
+          push_enabled?: boolean
           smart_suggestions_enabled?: boolean | null
+          sound_enabled?: boolean
           updated_at?: string | null
+          vibration_enabled?: boolean
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
+          whatsapp_enabled?: boolean
         }
         Relationships: []
       }

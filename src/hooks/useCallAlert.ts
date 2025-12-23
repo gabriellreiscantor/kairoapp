@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import type { NotificationPreferences } from './useNotificationPreferences';
 
 interface CallAlertEvent {
   id: string;
@@ -8,6 +9,10 @@ interface CallAlertEvent {
   emoji?: string;
   time?: string;
   location?: string;
+}
+
+interface UseCallAlertOptions {
+  preferences?: NotificationPreferences;
 }
 
 interface UseCallAlertReturn {
@@ -32,7 +37,8 @@ const MAX_RING_CYCLES = 6; // ~6 rings in 36 seconds
 const RETRY_DELAY_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_ATTEMPTS = 2; // Maximum 2 attempts total
 
-export const useCallAlert = (): UseCallAlertReturn => {
+export const useCallAlert = (options: UseCallAlertOptions = {}): UseCallAlertReturn => {
+  const { preferences } = options;
   const [isCallVisible, setIsCallVisible] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CallAlertEvent | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,6 +110,12 @@ export const useCallAlert = (): UseCallAlertReturn => {
 
   // Start vibration pattern
   const startVibration = useCallback(async () => {
+    // Respect vibration preference
+    if (preferences && !preferences.vibration_enabled) {
+      console.log('[CallAlert] Vibration disabled by user preference');
+      return;
+    }
+
     if (isNativeDevice()) {
       const vibratePattern = async () => {
         try {
@@ -129,7 +141,7 @@ export const useCallAlert = (): UseCallAlertReturn => {
         navigator.vibrate([500, 200, 500, 200, 500]);
       }
     }
-  }, []);
+  }, [preferences]);
 
   // Play realistic phone ringtone
   const playRingTone = useCallback((audioContext: AudioContext) => {
@@ -164,6 +176,12 @@ export const useCallAlert = (): UseCallAlertReturn => {
 
   // Start ringtone
   const startRingtone = useCallback(() => {
+    // Respect sound preference
+    if (preferences && !preferences.sound_enabled) {
+      console.log('[CallAlert] Sound disabled by user preference');
+      return;
+    }
+
     try {
       ringCountRef.current = 0;
       
@@ -188,7 +206,7 @@ export const useCallAlert = (): UseCallAlertReturn => {
     } catch (error) {
       console.error('Failed to play ringtone:', error);
     }
-  }, [playRingTone]);
+  }, [playRingTone, preferences]);
 
   // Handle missed call - schedules retry if needed
   const handleMissedCall = useCallback(() => {
