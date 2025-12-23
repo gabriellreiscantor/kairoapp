@@ -20,7 +20,7 @@ import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useToast } from "@/hooks/use-toast";
-import kairoLogo from "@/assets/kairo-logo.png";
+import horahLogo from "@/assets/horah-logo.png";
 
 interface Event {
   id: string;
@@ -381,7 +381,7 @@ const MainApp = () => {
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <img 
-            src={kairoLogo} 
+            src={horahLogo} 
             alt="Horah" 
             className="w-full h-full object-cover"
             draggable={false}

@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { X } from 'lucide-react';
-import kairoLogo from '@/assets/kairo-logo.png';
+import horahLogo from '@/assets/horah-logo.png';
 
 const NotFound = () => {
   const location = useLocation();
@@ -32,7 +32,7 @@ const NotFound = () => {
         {/* Horah Logo */}
         <div className="mb-8">
           <img 
-            src={kairoLogo} 
+            src={horahLogo} 
             alt="Horah" 
             className="h-24 w-24 object-contain"
           />

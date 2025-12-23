@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import kairoLogo from "@/assets/kairo-logo.png";
+import horahLogo from "@/assets/horah-logo.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -26,7 +26,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     >
       <div className="animate-scale-in flex flex-col items-center gap-6">
         <img 
-          src={kairoLogo} 
+          src={horahLogo} 
           alt="Horah" 
           className="w-32 h-32 rounded-3xl shadow-2xl"
         />
