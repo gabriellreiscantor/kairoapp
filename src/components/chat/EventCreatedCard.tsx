@@ -175,15 +175,40 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     try {
       const date = parseISO(dateStr);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       
-      if (date.toDateString() === today.toDateString()) {
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      
+      if (dateOnly.getTime() === today.getTime()) {
         return "Hoje";
-      } else if (date.toDateString() === tomorrow.toDateString()) {
+      } else if (dateOnly.getTime() === tomorrow.getTime()) {
         return "Amanhã";
+      } else if (dateOnly.getTime() === yesterday.getTime()) {
+        return "Ontem";
       }
-      return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+      
+      const formattedDate = format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+      
+      // Check if it's a past date
+      if (dateOnly < today) {
+        const diffTime = today.getTime() - dateOnly.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 7) {
+          return `${formattedDate} (há ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'})`;
+        } else {
+          return `${formattedDate} (passado)`;
+        }
+      }
+      
+      return formattedDate;
     } catch {
       return dateStr;
     }
