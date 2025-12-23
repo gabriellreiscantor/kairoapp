@@ -91,10 +91,10 @@ const SmartTasksPage = () => {
         <div className="gradient-primary rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-6 h-6 text-white" />
-            <h2 className="text-white font-semibold">IA do Kairo</h2>
+            <h2 className="text-white font-semibold">IA do Horah</h2>
           </div>
           <p className="text-white/80 text-sm">
-            O Kairo usa inteligência artificial para aprender seus padrões e sugerir o melhor momento para cada tarefa.
+            O Horah usa inteligência artificial para aprender seus padrões e sugerir o melhor momento para cada tarefa.
           </p>
         </div>
 

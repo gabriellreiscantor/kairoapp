@@ -8,7 +8,7 @@ const CalendarSettingsPage = () => {
 
   const calendars = [
     { id: 'example', name: 'Exemplo de cronograma', color: '#EF4444', checked: true },
-    { id: 'kairo', name: 'Kairo', color: '#F97316', checked: true, isDefault: true },
+    { id: 'horah', name: 'Horah', color: '#F97316', checked: true, isDefault: true },
   ];
 
   return (
@@ -27,8 +27,8 @@ const CalendarSettingsPage = () => {
           </div>
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={kairoLogo} alt="Kairo" className="w-7 h-7 rounded-lg" />
-              <span className="text-foreground">Kairo</span>
+              <img src={kairoLogo} alt="Horah" className="w-7 h-7 rounded-lg" />
+              <span className="text-foreground">Horah</span>
             </div>
             <button className="flex items-center gap-1 text-muted-foreground">
               <span className="text-sm">Padrão</span>
@@ -37,16 +37,16 @@ const CalendarSettingsPage = () => {
           </div>
           <div className="px-4 pb-4">
             <p className="text-muted-foreground text-sm">
-              Todos os eventos que você criar no Kairo serão adicionados ao Calendário Padrão.
+              Todos os eventos que você criar no Horah serão adicionados ao Calendário Padrão.
               <button className="text-foreground underline ml-1">Está com problema de sincronização?</button>
             </p>
           </div>
         </div>
 
-        {/* Kairo Calendars Section */}
+        {/* Horah Calendars Section */}
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-xs text-muted-foreground uppercase tracking-wider">Kairo</h2>
+            <h2 className="text-xs text-muted-foreground uppercase tracking-wider">Horah</h2>
             <button className="text-muted-foreground">
               <RefreshCw className="w-4 h-4" />
             </button>

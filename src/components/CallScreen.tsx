@@ -69,8 +69,8 @@ const CallScreen: React.FC<CallScreenProps> = ({
       <div className="flex flex-col items-center pt-16 px-6">
         {/* App identifier */}
         <div className="flex items-center gap-2 mb-4">
-          <img src={kairoLogo} alt="Kairo" className="w-6 h-6 rounded-full" />
-          <span className="text-white/60 text-sm">Áudio de Kairo</span>
+          <img src={kairoLogo} alt="Horah" className="w-6 h-6 rounded-full" />
+          <span className="text-white/60 text-sm">Áudio de Horah</span>
         </div>
 
         {/* Event title with time */}

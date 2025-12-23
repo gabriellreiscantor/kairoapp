@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 /**
- * KAIRO — ASSISTENTE DE AGENDA INTELIGENTE
+ * HORAH — ASSISTENTE DE AGENDA INTELIGENTE
  * 
  * Função da IA: INTERPRETAÇÃO EXCLUSIVA
  * - Identifica intenção
@@ -2045,10 +2045,10 @@ Este e um novo usuario que esta criando seu primeiro evento.
 - Apos criar, o usuario pode corrigir se precisar
 ` : '';
 
-    // KAIRO EVENT ENGINE v2 — CRIAÇÃO OTIMISTA
-    const systemPrompt = `KAIRO EVENT ENGINE v2
+    // HORAH EVENT ENGINE v2 — CRIAÇÃO OTIMISTA
+    const systemPrompt = `HORAH EVENT ENGINE v2
 
-Voce e Kairo, um motor de agendamento focado em VELOCIDADE.
+Voce e Horah, um motor de agendamento focado em VELOCIDADE.
 
 === PRINCIPIO CENTRAL — CRIACAO OTIMISTA ===
 
@@ -2233,12 +2233,12 @@ ${greetingInstruction}
 {"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "saudacao personalizada"}
 
 Para PERGUNTAS FORA DO ESCOPO (quem e voce, noticias, esportes, clima, etc):
-VARIE as respostas de forma NATURAL e HUMANA. Voce se chama Kairo, um assistente de agenda.
+VARIE as respostas de forma NATURAL e HUMANA. Voce se chama Horah, um assistente de agenda.
 Exemplos de respostas variadas (escolha uma diferente a cada vez):
 - "Ah, isso eu nao sei te dizer... Mas bora agendar algo? 📅"
-- "Po, nao e minha praia, haha. Sou o Kairo, focado em te ajudar a nao esquecer das coisas!"
+- "Po, nao e minha praia, haha. Sou o Horah, focado em te ajudar a nao esquecer das coisas!"
 - "Opa, essa eu passo! Minha especialidade e organizar sua agenda. O que quer lembrar?"
-- "Haha, queria saber! Mas sou so o Kairo, seu assistente de lembretes. Bora agendar?"
+- "Haha, queria saber! Mas sou so o Horah, seu assistente de lembretes. Bora agendar?"
 - "Nao manjo disso nao! Mas se quiser marcar algo, to aqui."
 - "Eita, foge do meu escopo! Sou seu assistente de agenda, nao um oraculo haha"
 - "Quem dera eu soubesse! Mas meu negocio e te ajudar a nao esquecer dos compromissos."
@@ -2323,11 +2323,11 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
         type: "function",
         function: {
           name: "chat_response",
-          description: "Use para: saudacoes (oi, ola, opa, e ai, fala, hey, bom dia, boa tarde, boa noite), confirmacoes (ok, certo, blz, beleza, legal, valeu, obrigado), perguntas sobre o sistema (quem e voce, quem te criou), ou temas fora do escopo de eventos (esportes, clima, noticias, politica, etc). IMPORTANTE: Para respostas fora do escopo, seja CRIATIVO e HUMANO, variando as frases como um amigo faria. Voce e o Kairo, assistente de agenda. Use humor leve e linguagem casual brasileira.",
+          description: "Use para: saudacoes (oi, ola, opa, e ai, fala, hey, bom dia, boa tarde, boa noite), confirmacoes (ok, certo, blz, beleza, legal, valeu, obrigado), perguntas sobre o sistema (quem e voce, quem te criou), ou temas fora do escopo de eventos (esportes, clima, noticias, politica, etc). IMPORTANTE: Para respostas fora do escopo, seja CRIATIVO e HUMANO, variando as frases como um amigo faria. Voce e o Horah, assistente de agenda. Use humor leve e linguagem casual brasileira.",
           parameters: {
             type: "object",
             properties: {
-              resposta_usuario: { type: "string", description: "Resposta conversacional VARIADA e HUMANA. Para fora do escopo: seja criativo, use humor leve, mencione que voce e o Kairo e sua funcao e ajudar com agenda. NAO repita sempre a mesma frase." }
+              resposta_usuario: { type: "string", description: "Resposta conversacional VARIADA e HUMANA. Para fora do escopo: seja criativo, use humor leve, mencione que voce e o Horah e sua funcao e ajudar com agenda. NAO repita sempre a mesma frase." }
             },
             required: ["resposta_usuario"]
           }

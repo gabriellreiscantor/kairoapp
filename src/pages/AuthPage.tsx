@@ -91,7 +91,7 @@ const AuthPage = () => {
         <div className="relative mb-6">
           <div className="absolute inset-0 w-24 h-24 rounded-full bg-primary/20 blur-xl" />
           <div className="w-24 h-24 rounded-full overflow-hidden relative shadow-2xl">
-            <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
+            <img src={kairoLogo} alt="Horah" className="w-full h-full object-cover" />
           </div>
         </div>
 

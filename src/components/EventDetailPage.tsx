@@ -188,7 +188,7 @@ const SingleEventCard = ({
                   <div className="flex items-center gap-3">
                     <span className={`w-4 h-4 rounded-full ${getTimelineDotColor(selectedColor)}`} />
                     <span className="text-sm text-foreground">
-                      {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Kairo'}
+                      {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Horah'}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />

@@ -96,20 +96,20 @@ function formatTimeForSpeech(time: string, language: string): string {
 
 // TTS message templates for all supported languages
 const TTS_TEMPLATES: Record<string, string> = {
-  'pt-BR': 'Olá, aqui é o Kairo. Você tem um compromisso: {titulo}, às {hora}',
-  'en-US': 'Hi, this is Kairo. You have an appointment at {titulo}, at {hora}',
-  'es-ES': 'Hola, soy Kairo. Tienes una cita en {titulo}, a las {hora}',
-  'fr-FR': 'Bonjour, ici Kairo. Vous avez un rendez-vous à {titulo}, à {hora}',
-  'de-DE': 'Hallo, hier ist Kairo. Sie haben einen Termin bei {titulo}, um {hora}',
-  'it-IT': 'Ciao, sono Kairo. Hai un appuntamento a {titulo}, alle {hora}',
-  'ja-JP': 'こんにちは、カイロです。{titulo}で{hora}に予定があります',
-  'ko-KR': '안녕하세요, 카이로입니다. {titulo}에서 {hora}에 약속이 있습니다',
-  'zh-CN': '你好，这里是Kairo。你在{titulo}有一个{hora}的约会',
+  'pt-BR': 'Olá, aqui é o Horah. Você tem um compromisso: {titulo}, às {hora}',
+  'en-US': 'Hi, this is Horah. You have an appointment at {titulo}, at {hora}',
+  'es-ES': 'Hola, soy Horah. Tienes una cita en {titulo}, a las {hora}',
+  'fr-FR': 'Bonjour, ici Horah. Vous avez un rendez-vous à {titulo}, à {hora}',
+  'de-DE': 'Hallo, hier ist Horah. Sie haben einen Termin bei {titulo}, um {hora}',
+  'it-IT': 'Ciao, sono Horah. Hai un appuntamento a {titulo}, alle {hora}',
+  'ja-JP': 'こんにちは、ホラーです。{titulo}で{hora}に予定があります',
+  'ko-KR': '안녕하세요, 호라입니다. {titulo}에서 {hora}에 약속이 있습니다',
+  'zh-CN': '你好，这里是Horah。你在{titulo}有一个{hora}的约会',
 };
 
 // Voice mapping for different languages (OpenAI TTS voices)
 // alloy, echo, fable, onyx, nova, shimmer
-// Using 'echo' (male, neutral) for all languages - consistent with "Kairo" male identity
+// Using 'echo' (male, neutral) for all languages - consistent with "Horah" male identity
 const VOICE_BY_LANGUAGE: Record<string, string> = {
   'pt-BR': 'echo',
   'en-US': 'echo',

@@ -13,11 +13,11 @@ const OfflineOverlay = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-kairo-orange/5 via-transparent to-kairo-orange/5" />
       
       <div className="relative z-10 flex flex-col items-center px-8 text-center">
-        {/* Kairo Logo */}
+        {/* Horah Logo */}
         <div className="mb-8 animate-pulse-soft">
           <img 
             src={kairoLogo} 
-            alt="Kairo" 
+            alt="Horah" 
             className="h-20 w-20 object-contain"
           />
         </div>

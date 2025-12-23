@@ -86,7 +86,7 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
       notifications: [
         {
           id: notificationId,
-          title: '📞 Kairo - Me Ligue',
+          title: '📞 Horah - Me Ligue',
           body: `${event.title}${event.event_time ? ` às ${event.event_time}` : ''}`,
           schedule: { at: notificationDate },
           extra: {

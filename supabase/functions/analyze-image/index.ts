@@ -61,7 +61,7 @@ serve(async (req) => {
     });
     const todayISO = today.toISOString().split('T')[0];
 
-    const systemPrompt = `Você é um analisador de imagens para o Kairo, um app de calendário e lembretes.
+    const systemPrompt = `Você é um analisador de imagens para o Horah, um app de calendário e lembretes.
 
 Data de hoje: ${todayStr} (${todayISO})
 

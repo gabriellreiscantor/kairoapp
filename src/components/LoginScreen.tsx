@@ -24,12 +24,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           {/* Glow ring */}
           <div className="absolute inset-0 w-24 h-24 rounded-full bg-primary/20 blur-xl" />
           <div className="w-24 h-24 rounded-full overflow-hidden relative shadow-2xl">
-            <img src={kairoLogo} alt="Kairo" className="w-full h-full object-cover" />
+            <img src={kairoLogo} alt="Horah" className="w-full h-full object-cover" />
           </div>
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-foreground mb-1 tracking-tight">Kairo</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-1 tracking-tight">Horah</h1>
         <p className="text-muted-foreground text-sm mb-10">
           Crie eventos em segundos
         </p>
