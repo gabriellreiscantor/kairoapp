@@ -87,7 +87,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             <img 
               src={splashImage} 
               alt="Horah" 
-              className="relative w-40 h-40 rounded-[2rem] shadow-2xl"
+              className="relative w-80 h-80 rounded-[3rem] shadow-2xl"
             />
           </div>
           
