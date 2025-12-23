@@ -8,15 +8,15 @@ import { Loader2 } from "lucide-react";
 type AppState = 'splash' | 'loading' | 'app';
 
 const Index = () => {
-  // Verificar se splash já foi mostrado nessa sessão
-  const hasSeenSplash = sessionStorage.getItem('kairo_splash_seen') === 'true';
+  // Verificar se splash já foi mostrado (localStorage persiste entre sessões)
+  const hasSeenSplash = localStorage.getItem('horah_splash_seen') === 'true';
   
   const [appState, setAppState] = useState<AppState>(hasSeenSplash ? 'loading' : 'splash');
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('kairo_splash_seen', 'true');
+    localStorage.setItem('horah_splash_seen', 'true');
     setAppState('loading');
   };
 
