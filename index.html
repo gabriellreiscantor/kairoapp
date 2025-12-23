@@ -30,18 +30,55 @@
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
   </head>
 
-  <body style="background-color: #0a0a0c;">
+  <body>
     <script>
-      // Prevent flash of wrong theme - apply theme class before React loads
+      // Detectar tema e aplicar background + classe imediatamente
       (function() {
-        try {
-          const theme = localStorage.getItem('theme') || 'dark';
-          document.documentElement.classList.add(theme);
-        } catch (e) {
-          document.documentElement.classList.add('dark');
-        }
+        var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = localStorage.getItem('theme');
+        if (theme === 'light') isDark = false;
+        else if (theme === 'dark') isDark = true;
+        
+        document.documentElement.classList.add(isDark ? 'dark' : 'light');
+        
+        var bg = isDark 
+          ? 'linear-gradient(160deg, hsl(240 10% 4%) 0%, hsl(220 40% 10%) 40%, hsl(220 35% 18%) 70%, hsl(240 10% 4%) 100%)'
+          : 'linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 40%, hsl(214 60% 95%) 70%, hsl(0 0% 100%) 100%)';
+        document.body.style.background = bg;
+        
+        var spinnerColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)';
+        var spinnerTopColor = isDark ? 'white' : '#333';
+        document.documentElement.style.setProperty('--initial-spinner-color', spinnerColor);
+        document.documentElement.style.setProperty('--initial-spinner-top', spinnerTopColor);
       })();
     </script>
+    
+    <style>
+      @keyframes initial-spin {
+        to { transform: rotate(360deg); }
+      }
+      #initial-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      #initial-splash .spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--initial-spinner-color, rgba(255,255,255,0.3));
+        border-top-color: var(--initial-spinner-top, white);
+        border-radius: 50%;
+        animation: initial-spin 1s linear infinite;
+      }
+    </style>
+    
+    <div id="initial-splash">
+      <div class="spinner"></div>
+    </div>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
