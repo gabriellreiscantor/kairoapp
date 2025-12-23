@@ -17,6 +17,18 @@ const config: CapacitorConfig = {
     scrollEnabled: true,
   },
   
+  // Configuração do Splash Screen nativo
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 0,
+      launchAutoHide: false,
+      backgroundColor: '#0a0a0c',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    }
+  },
+  
   // Server URL só em desenvolvimento (hot-reload)
   // Em produção, carrega arquivos locais da pasta dist
   ...(isDev && {
