@@ -26,82 +26,82 @@ input, textarea, [contenteditable="true"] {
 
 @layer base {
   :root {
-    /* Core backgrounds - Midnight warmth */
-    --background: 20 8% 8%;
-    --foreground: 40 20% 95%;
+    /* Core backgrounds - Midnight depth */
+    --background: 231 41% 3%;
+    --foreground: 210 20% 95%;
     
-    /* Surfaces - layered dark with warmth */
-    --kairo-surface-1: 20 6% 11%;
-    --kairo-surface-2: 20 5% 14%;
-    --kairo-surface-3: 20 4% 18%;
+    /* Surfaces - layered dark with blue tint */
+    --kairo-surface-1: 231 35% 6%;
+    --kairo-surface-2: 231 30% 9%;
+    --kairo-surface-3: 231 25% 12%;
     
     /* Message colors */
-    --kairo-ai-bubble: 20 5% 12%;
-    --kairo-user-bubble: 35 80% 45%;
+    --kairo-ai-bubble: 231 30% 8%;
+    --kairo-user-bubble: 217 62% 48%;
     
-    /* Primary - Vibrant Coral-Orange from logo */
-    --primary: 12 95% 55%;
+    /* Primary - Azul vivo (#2F66C7) */
+    --primary: 217 62% 48%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary - Deep Emerald */
-    --secondary: 160 40% 20%;
-    --secondary-foreground: 160 60% 70%;
+    /* Secondary - Deep blue */
+    --secondary: 221 65% 25%;
+    --secondary-foreground: 210 60% 80%;
     
     /* Muted */
-    --muted: 20 5% 14%;
-    --muted-foreground: 40 10% 50%;
+    --muted: 231 30% 12%;
+    --muted-foreground: 210 15% 50%;
     
-    /* Accent - warm glow */
-    --accent: 12 50% 25%;
-    --accent-foreground: 40 20% 95%;
+    /* Accent - Azul médio (#1E3F8F) */
+    --accent: 221 65% 34%;
+    --accent-foreground: 210 20% 95%;
     
     /* Card */
-    --card: 20 6% 10%;
-    --card-foreground: 40 20% 95%;
+    --card: 231 35% 5%;
+    --card-foreground: 210 20% 95%;
     
     /* Popover */
-    --popover: 20 6% 10%;
-    --popover-foreground: 40 20% 95%;
+    --popover: 231 35% 5%;
+    --popover-foreground: 210 20% 95%;
     
-    /* Border - subtle warm tint */
-    --border: 12 15% 20%;
-    --input: 12 15% 20%;
-    --ring: 12 95% 55%;
+    /* Border - subtle blue tint */
+    --border: 221 30% 18%;
+    --input: 221 30% 18%;
+    --ring: 217 62% 48%;
     
     /* Kairo accent colors */
     --kairo-accent-green: 160 60% 40%;
     --kairo-accent-amber: 38 95% 50%;
     --kairo-accent-red: 0 70% 50%;
-    --kairo-fox-orange: 12 95% 55%;
+    --kairo-fox-orange: 217 62% 48%;
     
-    /* Vibrant gradients matching logo */
-    --gradient-primary-start: 12 95% 55%;
-    --gradient-primary-mid: 350 85% 50%;
-    --gradient-primary-end: 280 70% 45%;
+    /* Blue gradient - #2F66C7 → #1E3F8F → #05060C */
+    --gradient-primary-start: 217 62% 48%;
+    --gradient-primary-mid: 221 65% 34%;
+    --gradient-primary-end: 231 41% 3%;
     
-    --gradient-glow: 12 95% 55%;
+    --gradient-glow: 217 62% 48%;
     
     /* Destructive */
     --destructive: 0 70% 50%;
-    --destructive-foreground: 40 20% 95%;
+    --destructive-foreground: 210 20% 95%;
     
     /* Warning */
     --warning: 38 95% 50%;
-    --warning-foreground: 20 8% 8%;
+    --warning-foreground: 231 41% 3%;
     
     /* Success - Emerald */
     --success: 160 60% 40%;
-    --success-foreground: 20 8% 8%;
+    --success-foreground: 231 41% 3%;
     
     /* Sidebar */
-    --sidebar-background: 20 6% 11%;
-    --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 12 95% 55%;
+    --sidebar-background: 231 35% 6%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 217 62% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 12 50% 20%;
-    --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 12 15% 20%;
-    --sidebar-ring: 12 95% 55%;
+    --sidebar-accent: 221 40% 22%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 221 30% 18%;
+    --sidebar-ring: 217 62% 48%;
     
     --radius: 1rem;
   }
