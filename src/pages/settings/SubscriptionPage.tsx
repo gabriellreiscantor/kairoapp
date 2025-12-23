@@ -11,17 +11,17 @@ const PLAN_DETAILS: Record<string, { name: string; price: string; features: stri
   free: {
     name: "Grátis",
     price: "R$ 0",
-    features: ["14 eventos por semana", "Alertas básicos", "Chat com IA"]
+    features: ["14 eventos por semana", "Alertas básicos", "Chat com IA", "Fonte do sistema"]
   },
   plus: {
     name: "Plus",
     price: "R$ 14,90/mês",
-    features: ["50 eventos por semana", "Me Ligue ilimitado", "Alertas críticos", "Suporte prioritário"]
+    features: ["50 eventos por semana", "Me Ligue ilimitado", "Alertas críticos", "Suporte prioritário", "Fontes personalizadas"]
   },
   super: {
     name: "Super",
     price: "R$ 29,90/mês",
-    features: ["280 eventos por semana", "Me Ligue ilimitado", "Alertas críticos", "Suporte VIP", "Recursos exclusivos"]
+    features: ["280 eventos por semana", "Me Ligue ilimitado", "Alertas críticos", "Suporte VIP", "Recursos exclusivos", "Fontes personalizadas"]
   }
 };
 

@@ -1,7 +1,9 @@
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Check, Lock, Crown, Type } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
+import { useFontPreference, FONT_OPTIONS, FontOption } from "@/hooks/useFontPreference";
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -27,8 +29,10 @@ const LIGHT_THEME_COLORS = [
 ];
 
 const AppearancePage = () => {
+  const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { currentFont, setFont, isPremium, fontOptions, loading: fontLoading } = useFontPreference();
   
   // Get current theme colors
   const currentColors = mounted && resolvedTheme === 'dark' ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
@@ -49,6 +53,15 @@ const AppearancePage = () => {
   }, [resolvedTheme, mounted]);
 
   const currentTheme = theme as Theme || 'dark';
+
+  const handleFontSelect = (fontId: FontOption) => {
+    if (!isPremium && fontId !== 'system') {
+      // Navigate to subscription page
+      navigate('/settings/subscription');
+      return;
+    }
+    setFont(fontId);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,6 +109,81 @@ const AppearancePage = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Font Selection */}
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-xs text-muted-foreground uppercase tracking-wider">
+              Fonte
+            </h2>
+            {!isPremium && (
+              <div className="flex items-center gap-1 text-xs text-primary">
+                <Crown className="w-3 h-3" />
+                <span>Premium</span>
+              </div>
+            )}
+          </div>
+          <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
+            {fontOptions.map((fontOption, index) => {
+              const isSystem = fontOption.id === 'system';
+              const isLocked = !isPremium && !isSystem;
+              const isSelected = currentFont === fontOption.id;
+              
+              return (
+                <button
+                  key={fontOption.id}
+                  onClick={() => handleFontSelect(fontOption.id)}
+                  className={`w-full flex items-center justify-between px-4 py-4 ${
+                    index < fontOptions.length - 1 ? 'border-b border-border/10' : ''
+                  } ${isLocked ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isSelected 
+                        ? 'bg-primary/20' 
+                        : 'bg-background'
+                    }`}>
+                      <Type className={`w-5 h-5 ${
+                        isSelected 
+                          ? 'text-primary' 
+                          : 'text-muted-foreground'
+                      }`} />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="text-foreground font-medium block"
+                          style={{ fontFamily: fontOption.family }}
+                        >
+                          {fontOption.name}
+                        </span>
+                        {isLocked && (
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{fontOption.description}</span>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <Check className="w-5 h-5 text-primary" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          
+          {!isPremium && (
+            <button 
+              onClick={() => navigate('/settings/subscription')}
+              className="mt-3 w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl border border-primary/30"
+            >
+              <Crown className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">
+                Desbloqueie fontes personalizadas com Premium
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Preview */}
@@ -192,7 +280,7 @@ const AppearancePage = () => {
 
         {/* Note */}
         <p className="text-xs text-muted-foreground px-1">
-          O tema "Sistema" segue automaticamente as configurações de aparência do seu dispositivo.
+          O tema "Sistema" segue automaticamente as configurações de aparência do seu dispositivo. A fonte padrão usa a tipografia nativa do seu dispositivo para melhor legibilidade.
         </p>
       </div>
     </div>
