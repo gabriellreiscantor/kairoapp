@@ -190,6 +190,7 @@ export type Database = {
           push_enabled: boolean
           smart_suggestions_enabled: boolean | null
           sound_enabled: boolean
+          timezone: string | null
           updated_at: string | null
           vibration_enabled: boolean
           voip_token: string | null
@@ -221,6 +222,7 @@ export type Database = {
           push_enabled?: boolean
           smart_suggestions_enabled?: boolean | null
           sound_enabled?: boolean
+          timezone?: string | null
           updated_at?: string | null
           vibration_enabled?: boolean
           voip_token?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           push_enabled?: boolean
           smart_suggestions_enabled?: boolean | null
           sound_enabled?: boolean
+          timezone?: string | null
           updated_at?: string | null
           vibration_enabled?: boolean
           voip_token?: string | null
