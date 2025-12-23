@@ -9,6 +9,7 @@ import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import horahHeader from "@/assets/horah-header.png";
+import horahHeaderDark from "@/assets/horah-logo-dark.png";
 import horahAvatar from "@/assets/horah-logo-light.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventDeletedCard from "@/components/chat/EventDeletedCard";
@@ -1195,7 +1196,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             onClick={() => onViewChange('chat')}
             className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
           >
-            <img src={horahHeader} alt="Horah" className="w-full h-full object-cover" />
+            <img src={resolvedTheme === 'dark' ? horahHeaderDark : horahHeader} alt="Horah" className="w-full h-full object-cover" />
           </button>
           
           {/* Settings - Right */}
