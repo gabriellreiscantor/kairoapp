@@ -496,7 +496,7 @@ const MainApp = () => {
   // Calendar/List Views
   return (
     <div 
-      className="h-screen bg-background flex flex-col overflow-hidden touch-pan-y"
+      className="h-screen bg-background flex flex-col overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -585,7 +585,7 @@ const MainApp = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 pt-20 pb-28 overflow-hidden">
+      <div className="flex-1 pt-20 pb-28 overflow-hidden bg-background">
         {activeView === 'calendar' ? (
           <CalendarView 
             selectedDate={selectedDate}
@@ -595,7 +595,13 @@ const MainApp = () => {
             events={events}
           />
         ) : (
-          <div className="h-full overflow-y-auto hide-scrollbar">
+          <div 
+            className="h-full overflow-y-auto hide-scrollbar bg-background"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+            }}
+          >
             <DayListView
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}

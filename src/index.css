@@ -199,11 +199,13 @@ input, textarea, [contenteditable="true"] {
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch;
     touch-action: manipulation;
+    background-color: hsl(var(--background));
   }
   
-  /* Enable smooth scrolling on scrollable containers */
+  /* Enable smooth scrolling on scrollable containers with iOS rubber-band prevention */
   .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   
   html::-webkit-scrollbar,
