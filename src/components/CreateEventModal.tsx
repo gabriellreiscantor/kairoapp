@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -20,7 +20,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
-import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel } from "@/lib/event-constants";
+import { EVENT_COLORS, REPEAT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel, getAvailableAlertOptions, getBestValidAlert } from "@/lib/event-constants";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -71,12 +71,30 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef(0);
 
+  // Calculate available alert options based on event date/time
+  const availableAlertOptions = useMemo(() => {
+    return getAvailableAlertOptions(startDate, isAllDay ? null : startTime, isAllDay);
+  }, [startDate, startTime, isAllDay]);
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setScreenView('main');
     }
   }, [isOpen]);
+
+  // Update alerts when available options change (e.g., user changes time)
+  useEffect(() => {
+    const updatedAlerts = alerts.map(alert => ({
+      time: getBestValidAlert(alert.time, availableAlertOptions)
+    }));
+    
+    // Only update if there are actual changes
+    const hasChanges = updatedAlerts.some((alert, idx) => alert.time !== alerts[idx].time);
+    if (hasChanges) {
+      setAlerts(updatedAlerts);
+    }
+  }, [availableAlertOptions]);
 
   if (!isOpen) return null;
 
@@ -353,7 +371,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                       onChange={(e) => updateAlertTime(index, e.target.value)}
                       className="bg-transparent text-muted-foreground text-right focus:outline-none"
                     >
-                      {ALERT_OPTIONS.map((opt) => (
+                      {availableAlertOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>

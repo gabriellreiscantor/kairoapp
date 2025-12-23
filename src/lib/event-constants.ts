@@ -83,3 +83,62 @@ export const getRepeatLabel = (repeatValue: string): string => {
 export const getAlertLabel = (alertValue: string): string => {
   return ALERT_OPTIONS.find(a => a.value === alertValue)?.label || '1 hora antes';
 };
+
+// Convert alert value to minutes
+export const getAlertMinutes = (alertValue: string): number => {
+  const alertMinutesMap: Record<string, number> = {
+    'exact': 0,
+    '5min': 5,
+    '15min': 15,
+    '30min': 30,
+    '1hour': 60,
+    '2hours': 120,
+    '1day': 1440, // 24 * 60
+  };
+  return alertMinutesMap[alertValue] ?? 60;
+};
+
+// Filter available alerts based on time remaining until event
+export const getAvailableAlertOptions = (
+  eventDate: Date, 
+  eventTime: string | null,
+  isAllDay: boolean
+): typeof ALERT_OPTIONS => {
+  // For all-day events, all options are valid
+  if (isAllDay || !eventTime) {
+    return ALERT_OPTIONS;
+  }
+  
+  // Calculate time remaining until event
+  const now = new Date();
+  const [hours, minutes] = eventTime.split(':').map(Number);
+  const eventDateTime = new Date(eventDate);
+  eventDateTime.setHours(hours, minutes, 0, 0);
+  
+  const diffMs = eventDateTime.getTime() - now.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  
+  // If event already passed, return only "exact" option
+  if (diffMinutes <= 0) {
+    return ALERT_OPTIONS.filter(opt => opt.value === 'exact');
+  }
+  
+  // Filter options that make sense based on time remaining
+  return ALERT_OPTIONS.filter(opt => {
+    const alertMinutes = getAlertMinutes(opt.value);
+    return alertMinutes <= diffMinutes;
+  });
+};
+
+// Get best valid alert for when user changes time and current selection becomes invalid
+export const getBestValidAlert = (
+  currentAlert: string,
+  availableOptions: typeof ALERT_OPTIONS
+): string => {
+  // If current is still valid, keep it
+  if (availableOptions.some(opt => opt.value === currentAlert)) {
+    return currentAlert;
+  }
+  // Otherwise return the last (longest) valid option, or 'exact' as fallback
+  return availableOptions.length > 0 ? availableOptions[availableOptions.length - 1].value : 'exact';
+};
