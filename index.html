@@ -31,6 +31,17 @@
   </head>
 
   <body style="background-color: #0a0a0c;">
+    <script>
+      // Prevent flash of wrong theme - apply theme class before React loads
+      (function() {
+        try {
+          const theme = localStorage.getItem('theme') || 'dark';
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
