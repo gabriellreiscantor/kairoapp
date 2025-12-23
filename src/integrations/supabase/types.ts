@@ -181,6 +181,7 @@ export type Database = {
           first_event_created: boolean | null
           font_preference: string | null
           id: string
+          last_weather_forecast_at: string | null
           last_weekly_report_at: string | null
           learn_patterns_enabled: boolean | null
           onboarding_completed: boolean | null
@@ -192,9 +193,13 @@ export type Database = {
           sound_enabled: boolean
           timezone: string | null
           updated_at: string | null
+          user_city: string | null
+          user_latitude: number | null
+          user_longitude: number | null
           vibration_enabled: boolean
           voip_token: string | null
           weather_forecast_enabled: boolean | null
+          weather_forecast_hour: number | null
           weather_forecast_time: string | null
           weekly_report_enabled: boolean | null
           weekly_report_hour: number | null
@@ -213,6 +218,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id: string
+          last_weather_forecast_at?: string | null
           last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
@@ -224,9 +230,13 @@ export type Database = {
           sound_enabled?: boolean
           timezone?: string | null
           updated_at?: string | null
+          user_city?: string | null
+          user_latitude?: number | null
+          user_longitude?: number | null
           vibration_enabled?: boolean
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
+          weather_forecast_hour?: number | null
           weather_forecast_time?: string | null
           weekly_report_enabled?: boolean | null
           weekly_report_hour?: number | null
@@ -245,6 +255,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id?: string
+          last_weather_forecast_at?: string | null
           last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
@@ -256,9 +267,13 @@ export type Database = {
           sound_enabled?: boolean
           timezone?: string | null
           updated_at?: string | null
+          user_city?: string | null
+          user_latitude?: number | null
+          user_longitude?: number | null
           vibration_enabled?: boolean
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
+          weather_forecast_hour?: number | null
           weather_forecast_time?: string | null
           weekly_report_enabled?: boolean | null
           weekly_report_hour?: number | null
