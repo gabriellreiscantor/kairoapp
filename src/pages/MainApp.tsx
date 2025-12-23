@@ -21,6 +21,8 @@ import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useToast } from "@/hooks/use-toast";
 import horahLogo from "@/assets/horah-logo.png";
+import horahLogoDark from "@/assets/horah-logo-dark.png";
+import { useTheme } from "next-themes";
 
 interface Event {
   id: string;
@@ -44,6 +46,7 @@ const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { resolvedTheme } = useTheme();
   const dateLocale = getDateLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const settingsParamProcessed = useRef(false);
@@ -381,7 +384,7 @@ const MainApp = () => {
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <img 
-            src={horahLogo} 
+            src={resolvedTheme === 'dark' ? horahLogoDark : horahLogo} 
             alt="Horah" 
             className="w-full h-full object-cover"
             draggable={false}
