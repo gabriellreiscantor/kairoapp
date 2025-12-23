@@ -63,6 +63,8 @@ export default {
           amber: "hsl(var(--kairo-accent-amber))",
           red: "hsl(var(--kairo-accent-red))",
           fox: "hsl(var(--kairo-fox-orange))",
+          orange: "hsl(12 95% 55%)",
+          purple: "hsl(280 70% 45%)",
           surface1: "hsl(var(--kairo-surface-1))",
           surface2: "hsl(var(--kairo-surface-2))",
           surface3: "hsl(var(--kairo-surface-3))",
