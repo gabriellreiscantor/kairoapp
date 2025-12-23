@@ -137,10 +137,10 @@ const NotificationSettingsPage = () => {
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3.5">
-              <div>
-                <p className="text-foreground">Alertas Críticos</p>
+              <div className="flex-1 mr-3">
+                <p className="text-foreground">Ignorar Modo Silencioso</p>
                 <p className="text-xs text-muted-foreground">
-                  Toca mesmo no modo silencioso
+                  Me Ligue toca mesmo no silencioso
                 </p>
               </div>
               <Switch 
@@ -150,7 +150,7 @@ const NotificationSettingsPage = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 px-1">
-            Alertas críticos ignoram o modo silencioso e "Não Perturbe" para garantir que você não perca compromissos importantes.
+            Quando ativado, o "Me Ligue" usa chamadas VoIP que ignoram o modo silencioso e "Não Perturbe" do iOS, garantindo que você não perca compromissos importantes.
           </p>
         </div>
       </div>

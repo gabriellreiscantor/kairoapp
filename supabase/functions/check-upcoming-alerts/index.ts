@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
         
         // Check if event is within our target window (55-65 minutes from now)
         if (eventDateTime >= targetTimeMin && eventDateTime <= targetTimeMax) {
-          // Fetch user profile separately (no JOIN needed)
+          // Fetch user profile with notification preferences
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('fcm_token, display_name')
+            .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled')
             .eq('id', event.user_id)
             .maybeSingle();
 
@@ -60,9 +60,18 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Check if user has call alerts enabled
+          const callEnabled = profile?.call_enabled !== false; // Default true if not set
+          if (!callEnabled) {
+            console.log(`User ${event.user_id} has call_enabled=false, skipping event ${event.id}`);
+            continue;
+          }
+
           const fcmToken = profile?.fcm_token;
+          const pushEnabled = profile?.push_enabled !== false; // Default true if not set
+          const criticalAlertsEnabled = profile?.critical_alerts_enabled !== false; // Default true if not set
           
-          if (!fcmToken) {
+          if (!fcmToken && pushEnabled) {
             console.log(`User ${event.user_id} has no FCM token, skipping event ${event.id}`);
             continue;
           }
@@ -72,42 +81,51 @@ Deno.serve(async (req) => {
           // Format time for display
           const timeDisplay = event.event_time?.slice(0, 5) || '';
 
-          // Send VoIP push for iOS CallKit (primary) and regular push as fallback
-          const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
-            body: {
-              user_id: event.user_id,
-              event_id: event.id,
-              event_title: event.title,
-              event_time: event.event_time,
-              event_location: event.location || '',
-              event_emoji: '📅',
-            },
-          });
-
-          if (voipError) {
-            console.log(`VoIP push failed for ${event.id}, falling back to regular push:`, voipError);
-          }
-
-          // Also send regular push as fallback for Android and web
-          const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
-            body: {
-              user_id: event.user_id,
-              title: '📞 Me Ligue - Kairo',
-              body: `${event.title} às ${timeDisplay}`,
-              data: {
-                type: 'call-alert',
+          // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
+          // VoIP calls ignore silent mode, so we only send if user wants that behavior
+          if (criticalAlertsEnabled) {
+            const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
+              body: {
+                user_id: event.user_id,
                 event_id: event.id,
                 event_title: event.title,
                 event_time: event.event_time,
                 event_location: event.location || '',
+                event_emoji: '📅',
               },
-            },
-          });
+            });
 
-          if (pushError) {
-            console.error(`Error sending push for event ${event.id}:`, pushError);
-            errors.push(`Event ${event.id}: ${pushError.message}`);
-            continue;
+            if (voipError) {
+              console.log(`VoIP push failed for ${event.id}, falling back to regular push:`, voipError);
+            }
+          } else {
+            console.log(`User ${event.user_id} has critical_alerts_enabled=false, skipping VoIP (will use regular push)`);
+          }
+
+          // Also send regular push as fallback for Android and web (if push enabled)
+          if (pushEnabled && fcmToken) {
+            const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+              body: {
+                user_id: event.user_id,
+                title: '📞 Me Ligue - Kairo',
+                body: `${event.title} às ${timeDisplay}`,
+                data: {
+                  type: 'call-alert',
+                  event_id: event.id,
+                  event_title: event.title,
+                  event_time: event.event_time,
+                  event_location: event.location || '',
+                },
+              },
+            });
+
+            if (pushError) {
+              console.error(`Error sending push for event ${event.id}:`, pushError);
+              errors.push(`Event ${event.id}: ${pushError.message}`);
+              continue;
+            }
+          } else {
+            console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping regular push`);
           }
 
           // Mark event as notified
