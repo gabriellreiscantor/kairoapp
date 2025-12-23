@@ -36,12 +36,6 @@ interface Event {
 }
 
 type ViewType = 'chat' | 'list' | 'calendar';
-// Ordem: chat -> calendar -> list (swipe direita avança, swipe esquerda volta)
-const VIEW_ORDER: ViewType[] = ['chat', 'calendar', 'list'];
-const SWIPE_THRESHOLD = 50;
-const SWIPE_ANGLE_THRESHOLD = 30; // Degrees - if angle > 30deg from horizontal, it's a scroll
-const SWIPE_TRANSITION_DURATION = '0.4s'; // Duração da animação de transição
-const MOVEMENT_THRESHOLD = 15; // Pixels para decidir direção (aumentado de 10 para 15)
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -128,13 +122,6 @@ const MainApp = () => {
   
   // Initial edit message from EventDetailPage to ChatPage
   const [initialEditMessage, setInitialEditMessage] = useState<{ eventId: string; message: string } | null>(null);
-  // Swipe state
-  const [swipeX, setSwipeX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const [isSwipeDecided, setIsSwipeDecided] = useState(false);
-  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
 
   // Real events from database
   const [events, setEvents] = useState<Record<string, Event[]>>({});
@@ -291,126 +278,6 @@ const MainApp = () => {
     setShowMonthPicker(false);
   };
 
-  // Ref para timeout de segurança
-  const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Limpar timeout quando componente desmonta
-  useEffect(() => {
-    return () => {
-      if (swipeTimeoutRef.current) {
-        clearTimeout(swipeTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  // Reset forçado de swipe state para evitar estados presos
-  const resetSwipeState = useCallback(() => {
-    setSwipeX(0);
-    setIsSwiping(false);
-    setIsSwipeDecided(false);
-    setIsHorizontalSwipe(false);
-    if (swipeTimeoutRef.current) {
-      clearTimeout(swipeTimeoutRef.current);
-      swipeTimeoutRef.current = null;
-    }
-  }, []);
-
-  // Swipe navigation handlers - improved to separate horizontal swipe from vertical scroll
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Ignorar se o toque foi em um botão ou elemento interativo
-    const target = e.target as HTMLElement;
-    if (target.closest('button, a, [role="button"], .event-card')) {
-      return; // Deixar o botão lidar com o evento
-    }
-    
-    // Verificar se o toque está dentro de uma área scrollável (lista de eventos)
-    const scrollableParent = target.closest('.scroll-container, .overflow-y-auto, .overflow-auto');
-    if (scrollableParent && activeView === 'list') {
-      // Não iniciar swipe se estiver numa área scrollável da lista
-      // Deixar o scroll nativo funcionar
-      return;
-    }
-    
-    // Limpar qualquer estado anterior preso
-    resetSwipeState();
-    
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    setIsSwiping(true);
-    
-    // Timeout de segurança - reseta após 500ms se não houver touchEnd
-    swipeTimeoutRef.current = setTimeout(() => {
-      resetSwipeState();
-    }, 500);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping) return;
-    
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    const deltaY = e.touches[0].clientY - touchStartY.current;
-    
-    // Decide direction on first significant movement
-    if (!isSwipeDecided && (Math.abs(deltaX) > MOVEMENT_THRESHOLD || Math.abs(deltaY) > MOVEMENT_THRESHOLD)) {
-      setIsSwipeDecided(true);
-      
-      // Calculate angle: if mostly horizontal (angle < 30deg), it's a swipe
-      const angle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
-      const isHorizontal = angle < SWIPE_ANGLE_THRESHOLD || angle > (180 - SWIPE_ANGLE_THRESHOLD);
-      
-      // Se for scroll vertical, cancela o swipe COMPLETAMENTE
-      if (!isHorizontal) {
-        resetSwipeState();
-        return;
-      }
-      
-      setIsHorizontalSwipe(true);
-    }
-    
-    // Only track horizontal movement if decided as horizontal swipe
-    if (isSwipeDecided && isHorizontalSwipe) {
-      setSwipeX(deltaX);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    // Limpar timeout de segurança
-    if (swipeTimeoutRef.current) {
-      clearTimeout(swipeTimeoutRef.current);
-      swipeTimeoutRef.current = null;
-    }
-    
-    if (!isSwiping) return;
-    
-    // Only navigate if it was a horizontal swipe
-    if (isSwipeDecided && isHorizontalSwipe) {
-      const currentIndex = VIEW_ORDER.indexOf(activeView);
-      
-      // Swipe para DIREITA (positivo) = avança na ordem (chat -> calendar -> list)
-      // Swipe para ESQUERDA (negativo) = volta na ordem (list -> calendar -> chat) ou abre settings
-      if (swipeX > SWIPE_THRESHOLD) {
-        // Swipe DIREITA = avança
-        if (currentIndex < VIEW_ORDER.length - 1) {
-          // Avança para próxima view (chat -> calendar -> list)
-          setActiveView(VIEW_ORDER[currentIndex + 1]);
-        }
-        // Na list view (índice 2), swipe direita não faz nada (está no fim)
-      } else if (swipeX < -SWIPE_THRESHOLD) {
-        // Swipe ESQUERDA = volta ou abre settings
-        if (activeView === 'chat') {
-          // No chat, swipe esquerda abre settings
-          setIsSettingsOpen(true);
-        } else if (currentIndex > 0) {
-          // Volta para view anterior (list -> calendar -> chat)
-          setActiveView(VIEW_ORDER[currentIndex - 1]);
-        }
-      }
-    }
-    
-    // Reset completo do estado
-    resetSwipeState();
-  };
-
   // Floating Dock Component
   const FloatingDock = () => (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 safe-area-bottom">
@@ -468,16 +335,7 @@ const MainApp = () => {
           onSnooze={handleSnooze}
         />
         
-        <div
-          className="h-screen touch-pan-y"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{ 
-            transform: (isSwiping && isHorizontalSwipe && Math.abs(swipeX) > 5) ? `translateX(${swipeX * 0.3}px)` : 'none',
-            transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
-          }}
-        >
+        <div className="h-screen">
           <ChatPage 
             onNavigateToCalendar={() => setActiveView('list')}
             onOpenSettings={() => setIsSettingsOpen(true)}
@@ -538,16 +396,7 @@ const MainApp = () => {
 
   // Calendar/List Views
   return (
-    <div 
-      className="h-screen bg-background flex flex-col overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{ 
-        transform: (isSwiping && isHorizontalSwipe && Math.abs(swipeX) > 5) ? `translateX(${swipeX * 0.3}px)` : 'none',
-        transition: (isSwiping && isHorizontalSwipe) ? 'none' : `transform ${SWIPE_TRANSITION_DURATION} cubic-bezier(0.4, 0, 0.2, 1)`
-      }}
-    >
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Gradient Overlay Top */}
       <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
@@ -638,13 +487,7 @@ const MainApp = () => {
             events={events}
           />
         ) : (
-          <div 
-            className="h-full overflow-y-auto hide-scrollbar bg-background"
-            style={{
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'none',
-            }}
-          >
+          <div className="h-full overflow-y-auto hide-scrollbar bg-background">
             <DayListView
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
