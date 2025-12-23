@@ -169,6 +169,7 @@ export type Database = {
           first_event_created: boolean | null
           font_preference: string | null
           id: string
+          last_weekly_report_at: string | null
           learn_patterns_enabled: boolean | null
           onboarding_completed: boolean | null
           onboarding_step: string | null
@@ -182,6 +183,8 @@ export type Database = {
           voip_token: string | null
           weather_forecast_enabled: boolean | null
           weather_forecast_time: string | null
+          weekly_report_day: number | null
+          weekly_report_enabled: boolean | null
           whatsapp_enabled: boolean
         }
         Insert: {
@@ -197,6 +200,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id: string
+          last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
@@ -210,6 +214,8 @@ export type Database = {
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
+          weekly_report_day?: number | null
+          weekly_report_enabled?: boolean | null
           whatsapp_enabled?: boolean
         }
         Update: {
@@ -225,6 +231,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id?: string
+          last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
@@ -238,6 +245,8 @@ export type Database = {
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
+          weekly_report_day?: number | null
+          weekly_report_enabled?: boolean | null
           whatsapp_enabled?: boolean
         }
         Relationships: []
@@ -302,6 +311,51 @@ export type Database = {
           started_at?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reports: {
+        Row: {
+          category_distribution: Json
+          created_at: string
+          description: string | null
+          headline: string
+          id: string
+          language: string | null
+          total_events: number
+          total_hours: number
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }
+        Insert: {
+          category_distribution?: Json
+          created_at?: string
+          description?: string | null
+          headline: string
+          id?: string
+          language?: string | null
+          total_events?: number
+          total_hours?: number
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }
+        Update: {
+          category_distribution?: Json
+          created_at?: string
+          description?: string | null
+          headline?: string
+          id?: string
+          language?: string | null
+          total_events?: number
+          total_hours?: number
+          user_id?: string
+          week_end?: string
+          week_number?: number
+          week_start?: string
         }
         Relationships: []
       }
