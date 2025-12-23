@@ -88,13 +88,13 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
 
   const getSettingsHint = () => {
     switch (language) {
-      case 'en-US': return 'Set your weekly summary day in Settings → Smart Actions.';
-      case 'es-ES': return 'Configura el día del resumen semanal en Configuración → Acciones Inteligentes.';
-      case 'fr-FR': return 'Configurez le jour du résumé hebdomadaire dans Paramètres → Actions Intelligentes.';
-      case 'ja-JP': return '設定 → スマートアクションで週間サマリーの曜日を設定できます。';
-      case 'ko-KR': return '설정 → 스마트 작업에서 주간 요약 요일을 설정하세요.';
-      case 'zh-CN': return '在设置 → 智能操作中配置周报日期。';
-      default: return 'Configure o dia do resumo semanal em Configurações → Ações Inteligentes.';
+      case 'en-US': return 'Set your weekly summary time in Settings → Smart Actions.';
+      case 'es-ES': return 'Configura el horario del resumen semanal en Configuración → Acciones Inteligentes.';
+      case 'fr-FR': return 'Configurez l\'heure du résumé hebdomadaire dans Paramètres → Actions Intelligentes.';
+      case 'ja-JP': return '設定 → スマートアクションで週間サマリーの時間を設定できます。';
+      case 'ko-KR': return '설정 → 스마트 작업에서 주간 요약 시간을 설정하세요.';
+      case 'zh-CN': return '在设置 → 智能操作中配置周报时间。';
+      default: return 'Configure o horário do resumo semanal em Configurações → Ações Inteligentes.';
     }
   };
 

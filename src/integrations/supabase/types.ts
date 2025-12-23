@@ -196,8 +196,8 @@ export type Database = {
           voip_token: string | null
           weather_forecast_enabled: boolean | null
           weather_forecast_time: string | null
-          weekly_report_day: number | null
           weekly_report_enabled: boolean | null
+          weekly_report_hour: number | null
           whatsapp_enabled: boolean
         }
         Insert: {
@@ -228,8 +228,8 @@ export type Database = {
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
-          weekly_report_day?: number | null
           weekly_report_enabled?: boolean | null
+          weekly_report_hour?: number | null
           whatsapp_enabled?: boolean
         }
         Update: {
@@ -260,8 +260,8 @@ export type Database = {
           voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_time?: string | null
-          weekly_report_day?: number | null
           weekly_report_enabled?: boolean | null
+          weekly_report_hour?: number | null
           whatsapp_enabled?: boolean
         }
         Relationships: []
