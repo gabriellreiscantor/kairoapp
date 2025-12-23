@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel } from "@/lib/event-constants";
+import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel, getAvailableAlertOptions, getBestValidAlert } from "@/lib/event-constants";
 
 interface EventData {
   id: string;
@@ -146,6 +146,24 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
       setIsReactivating(false);
     }
   }, [event, isOpen]);
+
+  // Calculate available alert options based on event date/time
+  const availableAlertOptions = useMemo(() => {
+    return getAvailableAlertOptions(eventDate, isAllDay ? null : eventTime, isAllDay);
+  }, [eventDate, eventTime, isAllDay]);
+
+  // Update alerts when available options change (e.g., user changes time)
+  useEffect(() => {
+    const updatedAlerts = alerts.map(alert => ({
+      time: getBestValidAlert(alert.time, availableAlertOptions)
+    }));
+    
+    // Only update if there are actual changes
+    const hasChanges = updatedAlerts.some((alert, idx) => alert.time !== alerts[idx].time);
+    if (hasChanges) {
+      setAlerts(updatedAlerts);
+    }
+  }, [availableAlertOptions]);
 
   if (!isOpen) return null;
 
@@ -494,7 +512,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
               <SheetTitle className="text-foreground text-center">Quando alertar?</SheetTitle>
             </SheetHeader>
             <div className="space-y-1 pb-8">
-              {ALERT_OPTIONS.map((opt) => {
+              {availableAlertOptions.map((opt) => {
                 const isSelected = editingAlertIndex !== null && alerts[editingAlertIndex]?.time === opt.value;
                 return (
                   <button 
