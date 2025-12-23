@@ -257,6 +257,29 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           if (eventToPlay) {
             console.log('[CallKit] Playing TTS for event:', eventToPlay.title, 'time:', eventToPlay.time);
             
+            // SAVE: Mark call as answered in database
+            if (eventToPlay.id && eventToPlay.id !== 'call-event') {
+              console.log('[CallKit] Saving call answered to database for event:', eventToPlay.id);
+              try {
+                const { error } = await supabase
+                  .from('events')
+                  .update({ 
+                    call_alert_answered: true,
+                    call_alert_answered_at: new Date().toISOString(),
+                    call_alert_outcome: 'answered'
+                  })
+                  .eq('id', eventToPlay.id);
+                
+                if (error) {
+                  console.error('[CallKit] Error saving call answered:', error);
+                } else {
+                  console.log('[CallKit] ✅ Call answered saved to database');
+                }
+              } catch (e) {
+                console.error('[CallKit] Exception saving call answered:', e);
+              }
+            }
+            
             // Wait only 300ms for audio session to stabilize (TTS is already pre-loaded)
             console.log('[CallKit] Waiting 300ms for audio session...');
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -331,9 +354,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         // Listen for call ended
         console.log('[CallKit] Setting up callEnded listener...');
-        CallKitVoip.addListener('callEnded', (data: any) => {
+        CallKitVoip.addListener('callEnded', async (data: any) => {
           console.log('[CallKit] ====== CALL ENDED ======');
           console.log('[CallKit] End data:', JSON.stringify(data));
+          
+          // Check if call was answered (TTS was playing means it was answered)
+          const wasAnswered = isCallingTTSRef.current;
           
           // IMPORTANT: Stop TTS immediately when call ends
           isCallingTTSRef.current = false;
@@ -349,6 +375,35 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               console.log('[CallKit] Error stopping audio:', e);
             }
             audioRef.current = null;
+          }
+          
+          // If call was NOT answered (missed/declined), update database
+          const eventId = data?.eventId || currentEventRef.current?.id;
+          if (eventId && eventId !== 'call-event' && !wasAnswered) {
+            console.log('[CallKit] Call was NOT answered, marking as missed for event:', eventId);
+            try {
+              // Check current outcome first - don't overwrite 'answered'
+              const { data: eventData } = await supabase
+                .from('events')
+                .select('call_alert_outcome')
+                .eq('id', eventId)
+                .maybeSingle();
+              
+              if (eventData?.call_alert_outcome !== 'answered') {
+                const { error } = await supabase
+                  .from('events')
+                  .update({ call_alert_outcome: 'missed' })
+                  .eq('id', eventId);
+                
+                if (error) {
+                  console.error('[CallKit] Error saving call missed:', error);
+                } else {
+                  console.log('[CallKit] ✅ Call marked as missed in database');
+                }
+              }
+            } catch (e) {
+              console.error('[CallKit] Exception saving call missed:', e);
+            }
           }
           
           cleanupCall();

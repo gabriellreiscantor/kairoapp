@@ -128,10 +128,23 @@ Deno.serve(async (req) => {
             console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping regular push`);
           }
 
-          // Mark event as notified
+          // Mark event as notified and increment attempts
+          // Get current attempts count first
+          const { data: currentEvent } = await supabase
+            .from('events')
+            .select('call_alert_attempts')
+            .eq('id', event.id)
+            .maybeSingle();
+          
+          const currentAttempts = currentEvent?.call_alert_attempts || 0;
+          
           const { error: updateError } = await supabase
             .from('events')
-            .update({ call_alert_sent_at: new Date().toISOString() })
+            .update({ 
+              call_alert_sent_at: new Date().toISOString(),
+              call_alert_attempts: currentAttempts + 1,
+              call_alert_outcome: 'sent' // Will be updated by client when answered/missed
+            })
             .eq('id', event.id);
 
           if (updateError) {
