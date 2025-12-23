@@ -301,8 +301,9 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
-  // Get the time the call will be made (1h before)
-  const callAlertTime = getCallAlertTime(event.event_time);
+  // Get the time the call will be made (dynamic based on remaining time)
+  const callAlertInfo = getCallAlertTime(event.event_date, event.event_time);
+  const canEnableCallAlert = callAlertInfo !== null;
 
   // É dia inteiro APENAS se: is_all_day é true OU não tem hora
   // Ter hora sem duração = mostrar só o horário de início (não o intervalo)
@@ -430,20 +431,31 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           )}
         </div>
         
-        {/* Me Ligue toggle - disabled for expired events */}
+        {/* Me Ligue toggle - disabled for expired events or events too close */}
         <div className="relative pl-6">
           <div 
             className="flex items-center justify-between py-1"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <Phone className={`w-4 h-4 ${isExpired ? 'text-muted-foreground/50' : 'text-green-500'}`} />
-              <span className={`text-sm ${isExpired ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Ligue</span>
+              <Phone className={`w-4 h-4 ${isExpired || !canEnableCallAlert ? 'text-muted-foreground/50' : 'text-green-500'}`} />
+              <span className={`text-sm ${isExpired || !canEnableCallAlert ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Ligue</span>
+              {/* Show dynamic timing info */}
+              {callAlertInfo && !isExpired && (
+                <span className="text-xs text-muted-foreground">
+                  ({callAlertInfo.label})
+                </span>
+              )}
+              {!canEnableCallAlert && !isExpired && (
+                <span className="text-xs text-amber-500">
+                  (muito próximo)
+                </span>
+              )}
             </div>
             <Switch 
-              checked={isExpired ? false : callAlertEnabled} 
+              checked={isExpired || !canEnableCallAlert ? false : callAlertEnabled} 
               onCheckedChange={(checked) => handleToggleCallAlert({stopPropagation: () => {}} as React.MouseEvent, checked)}
-              disabled={!event.id || isUpdating || isExpired}
+              disabled={!event.id || isUpdating || isExpired || !canEnableCallAlert}
               className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
             />
           </div>
@@ -483,12 +495,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           )}
           
           {/* Tooltip when activated */}
-          {showCallAlertTooltip && !isExpired && (
+          {showCallAlertTooltip && !isExpired && callAlertInfo && (
             <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
               <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
-                {callAlertTime 
-                  ? `Te ligaremos às ${callAlertTime}` 
-                  : 'Te ligaremos 1h antes do seu compromisso'}
+                Te ligaremos às {callAlertInfo.time} ({callAlertInfo.label})
               </div>
             </div>
           )}
@@ -497,6 +507,13 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {isExpired && (
             <p className="text-xs text-muted-foreground/50 mt-1">
               Não disponível para eventos passados
+            </p>
+          )}
+          
+          {/* Tooltip for events too close */}
+          {!isExpired && !canEnableCallAlert && (
+            <p className="text-xs text-amber-500/80 mt-1">
+              Evento muito próximo para ativar
             </p>
           )}
         </div>

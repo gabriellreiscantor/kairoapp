@@ -29,14 +29,49 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
   }
 };
 
-// Schedule a call alert 1 hour before the event
+// Calculate the best call alert time based on remaining time until event
+export const getBestCallAlertMinutes = (
+  eventDate: string, 
+  eventTime: string | null | undefined
+): number | null => {
+  if (!eventTime) return 60; // For all-day events, 1h before 9:00 AM
+  
+  const now = new Date();
+  const [hours, minutes] = eventTime.split(':').map(Number);
+  const eventDateTime = new Date(eventDate);
+  eventDateTime.setHours(hours, minutes, 0, 0);
+  
+  const diffMs = eventDateTime.getTime() - now.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  
+  // If already passed or too close (less than 2 minutes), not available
+  if (diffMinutes <= 2) return null;
+  
+  // Choose the best interval based on remaining time
+  if (diffMinutes <= 5) return 2;        // Call 2 min before
+  if (diffMinutes <= 15) return 5;       // Call 5 min before
+  if (diffMinutes <= 30) return 15;      // Call 15 min before
+  if (diffMinutes <= 60) return 30;      // Call 30 min before
+  if (diffMinutes <= 120) return 60;     // Call 1h before
+  return 60;                             // Default: 1h before
+};
+
+// Schedule a call alert before the event (dynamic timing)
 export const scheduleCallAlert = async (event: EventData): Promise<number | null> => {
   if (!event.id || !event.event_date) {
     console.warn('[CallAlertScheduler] Missing event data:', event);
     return null;
   }
 
-  // Calculate notification time (1 hour before event)
+  // Get the best alert time based on remaining time
+  const alertMinutes = getBestCallAlertMinutes(event.event_date, event.event_time);
+  
+  if (alertMinutes === null) {
+    console.log('[CallAlertScheduler] Event too close, cannot schedule call alert');
+    return null;
+  }
+
+  // Calculate notification time
   let notificationDate: Date;
   
   if (event.event_time) {
@@ -44,12 +79,13 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
     const [hours, minutes] = event.event_time.split(':').map(Number);
     notificationDate = new Date(event.event_date);
     notificationDate.setHours(hours, minutes, 0, 0);
-    // Subtract 1 hour
-    notificationDate.setHours(notificationDate.getHours() - 1);
+    // Subtract the dynamic alert time
+    notificationDate.setMinutes(notificationDate.getMinutes() - alertMinutes);
   } else {
-    // All-day event - schedule for 9:00 AM
+    // All-day event - schedule for 9:00 AM minus alertMinutes
     notificationDate = new Date(event.event_date);
     notificationDate.setHours(9, 0, 0, 0);
+    notificationDate.setMinutes(notificationDate.getMinutes() - alertMinutes);
   }
 
   // Don't schedule if time has already passed
@@ -60,6 +96,11 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
 
   // Generate unique notification ID from event ID
   const notificationId = generateNotificationId(event.id);
+  
+  // Format the alert label for logs
+  const alertLabel = alertMinutes < 60 
+    ? `${alertMinutes} min antes` 
+    : `${Math.floor(alertMinutes / 60)} hora${Math.floor(alertMinutes / 60) > 1 ? 's' : ''} antes`;
   
   if (!isNative()) {
     // Web fallback - use setTimeout (only works if app is open)
@@ -77,7 +118,7 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
     // Store mapping in localStorage for web
     localStorage.setItem(`call-alert-${event.id}`, String(timeoutId));
     
-    console.log(`[CallAlertScheduler] Web: Scheduled for ${notificationDate.toLocaleString()} (in ${Math.round(delay/60000)} min)`);
+    console.log(`[CallAlertScheduler] Web: Scheduled for ${notificationDate.toLocaleString()} (${alertLabel}, in ${Math.round(delay/60000)} min)`);
     return notificationId;
   }
 
@@ -87,7 +128,7 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
         {
           id: notificationId,
           title: '📞 Horah - Me Ligue',
-          body: `${event.title}${event.event_time ? ` às ${event.event_time}` : ''}`,
+          body: `${event.title}${event.event_time ? ` às ${event.event_time}` : ''} (${alertLabel})`,
           schedule: { at: notificationDate },
           extra: {
             eventId: event.id,
@@ -104,7 +145,7 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
     };
 
     await LocalNotifications.schedule(scheduleOptions);
-    console.log(`[CallAlertScheduler] Scheduled notification ${notificationId} for ${notificationDate.toLocaleString()}`);
+    console.log(`[CallAlertScheduler] Scheduled notification ${notificationId} for ${notificationDate.toLocaleString()} (${alertLabel})`);
     
     return notificationId;
   } catch (error) {
@@ -152,20 +193,46 @@ const generateNotificationId = (eventId: string): number => {
   return Math.abs(hash);
 };
 
-// Get formatted time for tooltip (1 hour before event)
-export const getCallAlertTime = (eventTime?: string): string | null => {
-  if (!eventTime) return null;
+// Get formatted time and label for call alert (dynamic based on remaining time)
+export const getCallAlertTime = (
+  eventDate: string,
+  eventTime?: string | null
+): { time: string; label: string; minutesBefore: number } | null => {
+  const alertMinutes = getBestCallAlertMinutes(eventDate, eventTime);
   
-  try {
+  if (alertMinutes === null) return null;
+  
+  // Calculate the actual call time
+  let callTime: string;
+  
+  if (eventTime) {
     const [hours, minutes] = eventTime.split(':').map(Number);
-    const alertHours = hours - 1;
+    const eventDateTime = new Date();
+    eventDateTime.setHours(hours, minutes, 0, 0);
+    eventDateTime.setMinutes(eventDateTime.getMinutes() - alertMinutes);
     
-    if (alertHours < 0) {
-      return `${23 + alertHours + 1}:${String(minutes).padStart(2, '0')}`;
-    }
+    const callHours = eventDateTime.getHours();
+    const callMinutes = eventDateTime.getMinutes();
+    callTime = `${String(callHours).padStart(2, '0')}:${String(callMinutes).padStart(2, '0')}`;
+  } else {
+    // All-day event: 9:00 AM - alertMinutes
+    const eventDateTime = new Date();
+    eventDateTime.setHours(9, 0, 0, 0);
+    eventDateTime.setMinutes(eventDateTime.getMinutes() - alertMinutes);
     
-    return `${String(alertHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  } catch {
-    return null;
+    const callHours = eventDateTime.getHours();
+    const callMinutes = eventDateTime.getMinutes();
+    callTime = `${String(callHours).padStart(2, '0')}:${String(callMinutes).padStart(2, '0')}`;
   }
+  
+  // Create friendly label
+  const label = alertMinutes < 60 
+    ? `${alertMinutes} min antes` 
+    : `${Math.floor(alertMinutes / 60)} hora${Math.floor(alertMinutes / 60) > 1 ? 's' : ''} antes`;
+  
+  return {
+    time: callTime,
+    label,
+    minutesBefore: alertMinutes
+  };
 };
