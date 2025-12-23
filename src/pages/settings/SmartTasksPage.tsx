@@ -1,9 +1,19 @@
-import { Sparkles, Brain, Clock, Repeat, CloudSun } from "lucide-react";
+import { Sparkles, Brain, Clock, Repeat, CloudSun, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
+
+const WEEKDAYS = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda' },
+  { value: 2, label: 'Terça' },
+  { value: 3, label: 'Quarta' },
+  { value: 4, label: 'Quinta' },
+  { value: 5, label: 'Sexta' },
+  { value: 6, label: 'Sábado' },
+];
 
 const SmartTasksPage = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -14,6 +24,8 @@ const SmartTasksPage = () => {
   const [learnPatterns, setLearnPatterns] = useState(true);
   const [weatherForecast, setWeatherForecast] = useState(false);
   const [weatherTime, setWeatherTime] = useState("07:00");
+  const [weeklyReport, setWeeklyReport] = useState(true);
+  const [weeklyReportDay, setWeeklyReportDay] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
   // Load preferences from profile
@@ -25,10 +37,12 @@ const SmartTasksPage = () => {
       setLearnPatterns(profile.learn_patterns_enabled ?? true);
       setWeatherForecast(profile.weather_forecast_enabled ?? false);
       setWeatherTime(profile.weather_forecast_time ?? "07:00");
+      setWeeklyReport((profile as any).weekly_report_enabled ?? true);
+      setWeeklyReportDay((profile as any).weekly_report_day ?? 0);
     }
   }, [profile]);
 
-  const updatePreference = async (field: string, value: boolean | string) => {
+  const updatePreference = async (field: string, value: boolean | string | number) => {
     if (!user) return;
     
     setIsSaving(true);
@@ -76,6 +90,16 @@ const SmartTasksPage = () => {
   const handleWeatherTimeChange = (time: string) => {
     setWeatherTime(time);
     updatePreference('weather_forecast_time', time);
+  };
+
+  const handleWeeklyReport = (checked: boolean) => {
+    setWeeklyReport(checked);
+    updatePreference('weekly_report_enabled', checked);
+  };
+
+  const handleWeeklyReportDayChange = (day: number) => {
+    setWeeklyReportDay(day);
+    updatePreference('weekly_report_day', day);
   };
 
   return (
@@ -165,7 +189,7 @@ const SmartTasksPage = () => {
             </div>
 
             {/* Weather Forecast */}
-            <div className="px-4 py-3.5">
+            <div className="px-4 py-3.5 border-b border-border/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CloudSun className="w-5 h-5 text-muted-foreground" />
@@ -192,6 +216,43 @@ const SmartTasksPage = () => {
                     className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     disabled={isSaving}
                   />
+                </div>
+              )}
+            </div>
+
+            {/* Weekly Report */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-foreground">Resumo Semanal</p>
+                    <p className="text-xs text-muted-foreground">Relatório inteligente da sua semana</p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={weeklyReport} 
+                  onCheckedChange={handleWeeklyReport}
+                  disabled={isSaving}
+                />
+              </div>
+              
+              {/* Day Picker - Only visible when enabled */}
+              {weeklyReport && (
+                <div className="mt-3 ml-8 flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">Enviar:</span>
+                  <select
+                    value={weeklyReportDay}
+                    onChange={(e) => handleWeeklyReportDayChange(Number(e.target.value))}
+                    className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    disabled={isSaving}
+                  >
+                    {WEEKDAYS.map(day => (
+                      <option key={day.value} value={day.value}>
+                        {day.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

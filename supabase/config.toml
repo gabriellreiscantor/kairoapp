@@ -27,3 +27,7 @@ verify_jwt = false
 [functions.send-voip-push]
 enabled = true
 verify_jwt = false
+
+[functions.generate-weekly-report]
+enabled = true
+verify_jwt = false
