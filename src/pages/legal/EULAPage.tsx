@@ -29,7 +29,7 @@ const EULAPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Concessão de Licença</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Kairo concede a você uma licença limitada, não exclusiva, não transferível e revogável para usar o aplicativo em dispositivos que você possui ou controla, exclusivamente para fins pessoais e não comerciais.
+              Horah concede a você uma licença limitada, não exclusiva, não transferível e revogável para usar o aplicativo em dispositivos que você possui ou controla, exclusivamente para fins pessoais e não comerciais.
             </p>
           </section>
 
@@ -51,7 +51,7 @@ const EULAPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">3. Propriedade Intelectual</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              O aplicativo, incluindo design, código, gráficos, interface e todo o conteúdo, é propriedade do Kairo e protegido por leis de propriedade intelectual. Esta licença não lhe concede nenhum direito de propriedade sobre o aplicativo.
+              O aplicativo, incluindo design, código, gráficos, interface e todo o conteúdo, é propriedade do Horah e protegido por leis de propriedade intelectual. Esta licença não lhe concede nenhum direito de propriedade sobre o aplicativo.
             </p>
           </section>
 
@@ -65,7 +65,7 @@ const EULAPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">5. Atualizações</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Kairo pode fornecer atualizações, correções ou melhorias ao aplicativo. Estas atualizações podem ser instaladas automaticamente e estão sujeitas a este EULA.
+              Horah pode fornecer atualizações, correções ou melhorias ao aplicativo. Estas atualizações podem ser instaladas automaticamente e estão sujeitas a este EULA.
             </p>
           </section>
 
@@ -79,7 +79,7 @@ const EULAPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">7. Limitação de Responsabilidade</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              EM NENHUMA CIRCUNSTÂNCIA O KAIRO SERÁ RESPONSÁVEL POR DANOS INDIRETOS, INCIDENTAIS, ESPECIAIS, CONSEQUENCIAIS OU PUNITIVOS. NOSSA RESPONSABILIDADE TOTAL NÃO EXCEDERÁ O VALOR PAGO PELA ASSINATURA NOS ÚLTIMOS 12 MESES.
+              EM NENHUMA CIRCUNSTÂNCIA O HORAH SERÁ RESPONSÁVEL POR DANOS INDIRETOS, INCIDENTAIS, ESPECIAIS, CONSEQUENCIAIS OU PUNITIVOS. NOSSA RESPONSABILIDADE TOTAL NÃO EXCEDERÁ O VALOR PAGO PELA ASSINATURA NOS ÚLTIMOS 12 MESES.
             </p>
           </section>
 
@@ -103,7 +103,7 @@ const EULAPage = () => {
               Se você baixou o aplicativo através da Apple App Store ou Google Play:
             </p>
             <ul className="text-muted-foreground text-sm leading-relaxed list-disc list-inside space-y-1 mb-4">
-              <li>Este EULA é entre você e Kairo, não com Apple/Google</li>
+              <li>Este EULA é entre você e Horah, não com Apple/Google</li>
               <li>Apple/Google não têm obrigação de fornecer suporte</li>
               <li>Apple/Google são beneficiários terceiros deste EULA</li>
             </ul>
@@ -123,7 +123,7 @@ const EULAPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">11. Contato</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Para questões sobre este EULA: legal@kairo.app
+              Para questões sobre este EULA: contato@horah.app
             </p>
           </section>
 

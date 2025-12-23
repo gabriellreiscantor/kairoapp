@@ -252,11 +252,11 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                 {t('settings.kairo')}
               </h4>
               <div className="space-y-1">
-                <SettingItem 
+              <SettingItem 
                   icon={<Calendar className="w-4.5 h-4.5" />}
                   iconColor="bg-blue-500/10 text-blue-500"
                   label={t('settings.calendars')}
-                  value="Kairo"
+                  value="Horah"
                   onClick={() => handleNavigate('/settings/calendars')}
                 />
                 <SettingItem 

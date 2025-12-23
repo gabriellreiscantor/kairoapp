@@ -26,14 +26,14 @@ const TermsPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Aceitação dos Termos</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Ao acessar ou usar o aplicativo Kairo ("Serviço"), você concorda em estar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não poderá acessar o Serviço.
+              Ao acessar ou usar o aplicativo Horah ("Serviço"), você concorda em estar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não poderá acessar o Serviço.
             </p>
           </section>
 
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">2. Descrição do Serviço</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              O Kairo é um aplicativo de gerenciamento de agenda e lembretes que permite aos usuários criar, organizar e receber notificações sobre eventos e compromissos. O serviço inclui integração com WhatsApp, notificações push e recursos de inteligência artificial.
+              O Horah é um aplicativo de gerenciamento de agenda e lembretes que permite aos usuários criar, organizar e receber notificações sobre eventos e compromissos. O serviço inclui integração com WhatsApp, notificações push e recursos de inteligência artificial.
             </p>
           </section>
 
@@ -65,21 +65,21 @@ const TermsPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">5. Assinaturas e Pagamentos</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Alguns recursos do Kairo requerem uma assinatura paga. Os pagamentos são processados através da App Store ou Google Play. Você pode cancelar sua assinatura a qualquer momento através das configurações de sua loja de aplicativos.
+              Alguns recursos do Horah requerem uma assinatura paga. Os pagamentos são processados através da App Store ou Google Play. Você pode cancelar sua assinatura a qualquer momento através das configurações de sua loja de aplicativos.
             </p>
           </section>
 
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">6. Propriedade Intelectual</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              O Serviço e seu conteúdo original, recursos e funcionalidades são e permanecerão propriedade exclusiva do Kairo e seus licenciadores. O Serviço é protegido por direitos autorais, marcas registradas e outras leis.
+              O Serviço e seu conteúdo original, recursos e funcionalidades são e permanecerão propriedade exclusiva do Horah e seus licenciadores. O Serviço é protegido por direitos autorais, marcas registradas e outras leis.
             </p>
           </section>
 
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">7. Limitação de Responsabilidade</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              O Kairo não será responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do uso ou impossibilidade de uso do Serviço.
+              O Horah não será responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do uso ou impossibilidade de uso do Serviço.
             </p>
           </section>
 
@@ -93,7 +93,7 @@ const TermsPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">9. Contato</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Se você tiver dúvidas sobre estes Termos, entre em contato conosco em: legal@kairo.app
+              Se você tiver dúvidas sobre estes Termos, entre em contato conosco em: contato@horah.app
             </p>
           </section>
         </div>

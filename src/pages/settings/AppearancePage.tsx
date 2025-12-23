@@ -156,7 +156,7 @@ const AppearancePage = () => {
                 ? `Usando tema ${mounted && resolvedTheme === 'dark' ? 'escuro' : 'claro'} do sistema` 
                 : currentTheme === 'dark' 
                   ? 'Tema escuro ativado'
-                  : 'Tema claro com as cores vibrantes do Kairo'
+                  : 'Tema claro com as cores vibrantes do Horah'
               }
             </p>
           </div>
@@ -165,7 +165,7 @@ const AppearancePage = () => {
         {/* Accent Colors Preview */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Cores do Kairo
+            Cores do Horah
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl p-4">
             <div className="flex items-center justify-center gap-2">

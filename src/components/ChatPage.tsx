@@ -107,9 +107,9 @@ Assim você não precisa guardar tudo na cabeça.
 
 Pode ser qualquer coisa — me conta o que você gostaria de lembrar.`;
 
-const ONBOARDING_FIRST_EVENT_SUCCESS = `Excelente! Você acabou de criar seu primeiro lembrete no Kairo.
+const ONBOARDING_FIRST_EVENT_SUCCESS = `Excelente! Você acabou de criar seu primeiro lembrete no Horah.
 
-A partir de agora, o Kairo cuida disso pra você.`;
+A partir de agora, o Horah cuida disso pra você.`;
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated, initialEditMessage, onClearInitialEditMessage }: ChatPageProps) => {
   const { user, session } = useAuth();
