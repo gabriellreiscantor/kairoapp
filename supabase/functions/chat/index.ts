@@ -27,7 +27,7 @@ const corsHeaders = {
 
 // JSON structure that AI will return - MASTER PROMPT CONTRACT
 interface KairoAction {
-  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao' | 'data_passada';
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao' | 'data_passada' | 'relatorio_semanal' | 'relatorio_nao_pronto';
   titulo?: string;
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
@@ -56,6 +56,8 @@ interface KairoAction {
   _alreadyExecuted?: boolean; // Flag to skip executeAction when action was already processed
   evento_atualizado?: any; // Full updated event in Supabase format for EventCreatedCard
   evento_deletado?: any; // Full deleted event data for EventDeletedCard
+  weeklyReportData?: any; // Weekly report data for WeeklyReportCard
+  weeklyReportNotReady?: any; // Weekly report not ready data
 }
 
 interface UserProfile {
@@ -2382,6 +2384,20 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             required: ["busca_evento", "resposta_usuario"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "request_weekly_report",
+          description: "Use quando usuario pedir o relatorio semanal, resumo da semana, ou perguntar sobre seu desempenho/estatisticas. Palavras-chave: 'relatorio', 'relatório', 'resumo', 'semana', 'desempenho', 'estatisticas', 'como foi minha semana', 'meu relatorio', 'meus eventos da semana', 'weekly report', 'resumen semanal'.",
+          parameters: {
+            type: "object",
+            properties: {
+              resposta_usuario: { type: "string", description: "Resposta amigavel sobre o relatorio. Ex: 'Deixa eu pegar seu relatorio!', 'Vou buscar seu resumo da semana!'" }
+            },
+            required: ["resposta_usuario"]
+          }
+        }
       }
     ];
 
@@ -2741,6 +2757,81 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             resposta_usuario: args.resposta_usuario || 'Qual evento você quer remover?'
           };
         }
+      } else if (functionName === "request_weekly_report") {
+        // Request weekly report
+        console.log('Weekly report requested:', args);
+        
+        let weeklyReportData: any = null;
+        let weeklyReportNotReady: any = null;
+        
+        if (userId && supabase) {
+          // Check for existing reports
+          const { data: existingReports } = await supabase
+            .from('weekly_reports')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (existingReports && existingReports.length > 0) {
+            // Has a report - return it with isPreviousWeek flag
+            weeklyReportData = {
+              report: existingReports[0],
+              isPreviousWeek: true
+            };
+            console.log('Found existing report:', existingReports[0].id);
+            
+            action = {
+              acao: 'relatorio_semanal',
+              resposta_usuario: args.resposta_usuario || 'Aqui está seu último relatório semanal!',
+              _alreadyExecuted: true,
+              weeklyReportData
+            };
+          } else {
+            // No reports yet - check if user is new (less than 7 days)
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('created_at')
+              .eq('id', userId)
+              .single();
+            
+            if (profile?.created_at) {
+              const userCreatedAt = new Date(profile.created_at);
+              const daysSinceCreation = (Date.now() - userCreatedAt.getTime()) / (1000 * 60 * 60 * 24);
+              const daysRemaining = Math.ceil(7 - daysSinceCreation);
+              
+              if (daysSinceCreation < 7) {
+                weeklyReportNotReady = {
+                  daysRemaining: Math.max(1, daysRemaining)
+                };
+                console.log(`User account is ${daysSinceCreation.toFixed(1)} days old, ${daysRemaining} days until first report`);
+                
+                action = {
+                  acao: 'relatorio_nao_pronto',
+                  resposta_usuario: `Você ainda não completou os 7 dias para o primeiro relatório. Faltam ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}!`,
+                  _alreadyExecuted: true,
+                  weeklyReportNotReady
+                };
+              } else {
+                // User is old enough but no report generated yet
+                action = {
+                  acao: 'conversar',
+                  resposta_usuario: 'Seu relatório semanal ainda está sendo preparado. Aguarde um momento!'
+                };
+              }
+            } else {
+              action = {
+                acao: 'conversar',
+                resposta_usuario: args.resposta_usuario || 'Não consegui encontrar seu relatório. Tente novamente.'
+              };
+            }
+          }
+        } else {
+          action = {
+            acao: 'conversar',
+            resposta_usuario: args.resposta_usuario || 'Preciso que você esteja logado para ver seu relatório.'
+          };
+        }
       } else {
         // chat_response
         action = {
@@ -2823,7 +2914,9 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       resumo_evento: action.resumo_evento,
       evento_atualizado: action.evento_atualizado, // CRITICAL: Include for update card persistence
       evento_deletado: action.evento_deletado, // CRITICAL: Include for delete card persistence
-      eventos: listedEvents // Include structured events for list action
+      eventos: listedEvents, // Include structured events for list action
+      weeklyReportData: action.weeklyReportData, // Weekly report data
+      weeklyReportNotReady: action.weeklyReportNotReady // Weekly report not ready data
     };
     
     const actionJson = JSON.stringify([actionData]);
