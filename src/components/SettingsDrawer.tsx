@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import kairoLogo from "@/assets/kairo-logo.png";
+import defaultAvatar from "@/assets/default-avatar.png";
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -155,7 +155,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     />
                   ) : (
                     <img 
-                      src={kairoLogo} 
+                      src={defaultAvatar} 
                       alt="Avatar" 
                       className="w-full h-full object-cover"
                     />

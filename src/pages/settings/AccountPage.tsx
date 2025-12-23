@@ -1,4 +1,5 @@
-import { ChevronLeft, User, Mail, Shield, Trash2, Pencil, Loader2 } from "lucide-react";
+import { ChevronLeft, Mail, Shield, Trash2, Pencil, Loader2 } from "lucide-react";
+import defaultAvatar from "@/assets/default-avatar.png";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,9 +79,11 @@ const AccountPage = () => {
                 className="w-24 h-24 rounded-full object-cover"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-kairo-surface-3 flex items-center justify-center">
-                <User className="w-12 h-12 text-muted-foreground" />
-              </div>
+              <img 
+                src={defaultAvatar} 
+                alt="Avatar padrão" 
+                className="w-24 h-24 rounded-full object-cover"
+              />
             )}
             <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <Pencil className="w-4 h-4 text-primary-foreground" />
