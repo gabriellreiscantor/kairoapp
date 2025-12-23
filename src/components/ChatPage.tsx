@@ -11,6 +11,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import horahHeader from "@/assets/horah-header.png";
 import horahHeaderDark from "@/assets/horah-logo-dark.png";
 import horahAvatar from "@/assets/horah-logo-light.png";
+import horahAvatarDark from "@/assets/horah-avatar-dark.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventDeletedCard from "@/components/chat/EventDeletedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
@@ -1306,7 +1307,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.content && (
                       <div className="flex items-start gap-3 pl-1">
                         <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-<img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+<img src={resolvedTheme === 'dark' ? horahAvatarDark : horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <div className="flex-1 pt-0.5">
                           <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
