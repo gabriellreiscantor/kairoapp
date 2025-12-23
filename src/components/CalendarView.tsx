@@ -256,12 +256,11 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col h-full px-1 overflow-hidden touch-none"
+      className="flex flex-col h-full px-1 overflow-hidden touch-manipulation"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onWheel={handleWheel}
-      onClick={handleDoubleTap}
     >
       {/* Zoom indicator */}
       {appliedScale !== 1.5 && (
@@ -315,13 +314,24 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
                       e.stopPropagation();
                       onDateSelect(day);
                     }}
+                    onTouchEnd={(e) => {
+                      // Fallback para iOS que às vezes não dispara onClick
+                      e.stopPropagation();
+                      // Usar setTimeout para evitar double-fire com onClick
+                      const now = Date.now();
+                      if (now - lastTapTime.current > 350) {
+                        onDateSelect(day);
+                      }
+                    }}
                     className={`
                       relative flex flex-col items-start p-1 transition-all duration-200 border-r border-border/5 last:border-r-0
                       ${isCurrentMonth ? '' : 'opacity-50'}
                     `}
                     style={{ 
                       minHeight: `${cellHeight}px`,
-                      height: 'auto'
+                      height: 'auto',
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation'
                     }}
                   >
                     {/* Date number */}
