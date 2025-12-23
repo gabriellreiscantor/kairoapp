@@ -112,7 +112,7 @@ const SubscriptionPage = () => {
           <div className="space-y-3">
             {planDetails.features.map((feature, index) => (
               <div key={index} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-kairo-green shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
                 <span className="text-foreground text-sm">{feature}</span>
               </div>
             ))}
