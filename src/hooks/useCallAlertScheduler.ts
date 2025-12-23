@@ -38,8 +38,10 @@ export const getBestCallAlertMinutes = (
   
   const now = new Date();
   const [hours, minutes] = eventTime.split(':').map(Number);
-  const eventDateTime = new Date(eventDate);
-  eventDateTime.setHours(hours, minutes, 0, 0);
+  
+  // Parse date components to avoid timezone issues
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
   
   const diffMs = eventDateTime.getTime() - now.getTime();
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
@@ -74,17 +76,18 @@ export const scheduleCallAlert = async (event: EventData): Promise<number | null
   // Calculate notification time
   let notificationDate: Date;
   
+  // Parse date components to avoid timezone issues
+  const [year, month, day] = event.event_date.split('-').map(Number);
+  
   if (event.event_time) {
     // Event has specific time
     const [hours, minutes] = event.event_time.split(':').map(Number);
-    notificationDate = new Date(event.event_date);
-    notificationDate.setHours(hours, minutes, 0, 0);
+    notificationDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
     // Subtract the dynamic alert time
     notificationDate.setMinutes(notificationDate.getMinutes() - alertMinutes);
   } else {
     // All-day event - schedule for 9:00 AM minus alertMinutes
-    notificationDate = new Date(event.event_date);
-    notificationDate.setHours(9, 0, 0, 0);
+    notificationDate = new Date(year, month - 1, day, 9, 0, 0, 0);
     notificationDate.setMinutes(notificationDate.getMinutes() - alertMinutes);
   }
 
@@ -205,10 +208,12 @@ export const getCallAlertTime = (
   // Calculate the actual call time
   let callTime: string;
   
+  // Parse date components to avoid timezone issues
+  const [year, month, day] = eventDate.split('-').map(Number);
+  
   if (eventTime) {
     const [hours, minutes] = eventTime.split(':').map(Number);
-    const eventDateTime = new Date();
-    eventDateTime.setHours(hours, minutes, 0, 0);
+    const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
     eventDateTime.setMinutes(eventDateTime.getMinutes() - alertMinutes);
     
     const callHours = eventDateTime.getHours();
@@ -216,8 +221,7 @@ export const getCallAlertTime = (
     callTime = `${String(callHours).padStart(2, '0')}:${String(callMinutes).padStart(2, '0')}`;
   } else {
     // All-day event: 9:00 AM - alertMinutes
-    const eventDateTime = new Date();
-    eventDateTime.setHours(9, 0, 0, 0);
+    const eventDateTime = new Date(year, month - 1, day, 9, 0, 0, 0);
     eventDateTime.setMinutes(eventDateTime.getMinutes() - alertMinutes);
     
     const callHours = eventDateTime.getHours();
