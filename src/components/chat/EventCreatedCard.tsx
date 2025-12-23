@@ -63,10 +63,14 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     // Recurring events never expire in this sense
     if (event.repeat && event.repeat !== 'never') return false;
     
-    // Build the event datetime
+    // Build the event datetime - parse explicitly to avoid timezone issues
+    const [year, month, day] = event.event_date.split('-').map(Number);
     const eventDateTime = event.event_time 
-      ? new Date(`${event.event_date}T${event.event_time}`)
-      : new Date(`${event.event_date}T23:59:59`);
+      ? (() => {
+          const [hours, minutes] = event.event_time.split(':').map(Number);
+          return new Date(year, month - 1, day, hours, minutes, 0, 0);
+        })()
+      : new Date(year, month - 1, day, 23, 59, 59, 0);
     
     return eventDateTime < new Date();
   }, [event.event_date, event.event_time, event.repeat]);
