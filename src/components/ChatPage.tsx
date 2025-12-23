@@ -8,9 +8,8 @@ import { useTheme } from "next-themes";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import kairoLogo from "@/assets/kairo-logo.png";
-import kairoFoxWhite from "@/assets/kairo-fox-white.png";
-import kairoFoxColor from "@/assets/kairo-fox-color.png";
+import horahLogoLight from "@/assets/horah-logo-light.png";
+import horahLogo from "@/assets/horah-logo.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventDeletedCard from "@/components/chat/EventDeletedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
@@ -126,7 +125,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     completeOnboarding 
   } = useOnboarding();
   
-  const kairoFox = resolvedTheme === 'dark' ? kairoFoxWhite : kairoFoxColor;
+  const kairoFox = resolvedTheme === 'dark' ? horahLogo : horahLogoLight;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1196,7 +1195,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             onClick={() => onViewChange('chat')}
             className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
           >
-            <img src={kairoLogo} alt="Horah" className="w-full h-full object-cover" />
+            <img src={kairoFox} alt="Horah" className="w-full h-full object-cover" />
           </button>
           
           {/* Settings - Right */}
