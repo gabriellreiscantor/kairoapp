@@ -1722,7 +1722,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, imageAnalysis, isOnboarding, onboardingStep, timezone } = body;
+    const { messages, imageAnalysis, isOnboarding, onboardingStep, timezone, language: requestLanguage } = body;
     
     // Use user's timezone or fallback to America/Sao_Paulo
     const userTimezone = timezone || 'America/Sao_Paulo';
@@ -2823,11 +2823,62 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
                   weeklyReportNotReady
                 };
               } else {
-                // User is old enough but no report generated yet
-                action = {
-                  acao: 'conversar',
-                  resposta_usuario: 'Seu relatório semanal ainda está sendo preparado. Aguarde um momento!'
-                };
+                // User is old enough - generate report immediately
+                console.log('User is old enough, generating report now');
+                
+                try {
+                  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+                  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+                  
+                  const reportResponse = await fetch(`${SUPABASE_URL}/functions/v1/generate-weekly-report`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    },
+                    body: JSON.stringify({ 
+                      userId, 
+                      language: requestLanguage || 'pt-BR',
+                      forceGenerate: true 
+                    }),
+                  });
+                  
+                  if (reportResponse.ok) {
+                    const reportData = await reportResponse.json();
+                    
+                    if (reportData.report) {
+                      weeklyReportData = {
+                        report: reportData.report,
+                        isPreviousWeek: true
+                      };
+                      console.log('Report generated successfully:', reportData.report.id);
+                      
+                      action = {
+                        acao: 'relatorio_semanal',
+                        resposta_usuario: args.resposta_usuario || 'Aqui está seu relatório semanal!',
+                        _alreadyExecuted: true,
+                        weeklyReportData
+                      };
+                    } else {
+                      action = {
+                        acao: 'conversar',
+                        resposta_usuario: 'Não foi possível gerar seu relatório. Tente novamente mais tarde.'
+                      };
+                    }
+                  } else {
+                    console.error('Report generation failed:', await reportResponse.text());
+                    action = {
+                      acao: 'conversar',
+                      resposta_usuario: 'Ocorreu um erro ao gerar seu relatório. Tente novamente.'
+                    };
+                  }
+                } catch (reportError) {
+                  console.error('Error generating report:', reportError);
+                  action = {
+                    acao: 'conversar',
+                    resposta_usuario: 'Ocorreu um erro ao gerar seu relatório. Tente novamente.'
+                  };
+                }
               }
             } else {
               action = {
