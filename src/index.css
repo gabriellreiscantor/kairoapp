@@ -133,9 +133,9 @@ input, textarea, [contenteditable="true"] {
     --secondary: 160 30% 92%;
     --secondary-foreground: 160 50% 30%;
     
-    /* Muted - Soft warm grays */
+    /* Muted - Soft warm grays - darker foreground for better contrast */
     --muted: 30 10% 94%;
-    --muted-foreground: 20 8% 45%;
+    --muted-foreground: 20 12% 35%;
     
     /* Accent - Light warm tint */
     --accent: 12 30% 95%;
