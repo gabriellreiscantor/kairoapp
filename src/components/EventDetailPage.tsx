@@ -289,6 +289,7 @@ const EventDetailPage = ({
   const [isDragging, setIsDragging] = useState(false);
   const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Sort events by time (earliest first, all-day events at the end)
   const sortedEvents = [...events].sort((a, b) => {
@@ -329,11 +330,22 @@ const EventDetailPage = ({
   // Touch handlers for swipe gesture
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
-    setIsDragging(true);
+    // Só permite arrastar para fechar se o scroll estiver no topo
+    const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
+    setIsDragging(scrollTop <= 0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
+    
+    const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
+    // Se scrollou para baixo, cancela o arraste do modal
+    if (scrollTop > 0) {
+      setIsDragging(false);
+      setDragY(0);
+      return;
+    }
+    
     const currentY = e.touches[0].clientY;
     const deltaY = currentY - touchStartY.current;
     // Only allow dragging down
@@ -477,7 +489,7 @@ const EventDetailPage = ({
         </div>
 
         {/* Timeline Events */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-8">
           {sortedEvents.map((event) => (
             <SingleEventCard
               key={event.id}
