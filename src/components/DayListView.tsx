@@ -62,7 +62,7 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
   };
 
   return (
-    <div className="px-4 pb-8 space-y-1">
+    <div className="px-4 pb-8 space-y-1 bg-background min-h-full">
       {days.map((day, index) => {
         const isTodayDate = isToday(day);
         const dayEvents = getDayEvents(day);
@@ -71,7 +71,7 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
         const isFirstOfMonth = day.getDate() === 1;
 
         return (
-          <div key={day.toISOString()} className="animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
+          <div key={day.toISOString()}>
             {/* Month separator */}
             {isFirstOfMonth && index !== 0 && (
               <div className="flex items-center gap-3 py-4 mt-4">
