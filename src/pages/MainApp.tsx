@@ -289,6 +289,12 @@ const MainApp = () => {
 
   // Swipe navigation handlers - improved to separate horizontal swipe from vertical scroll
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Ignorar se o toque foi em um botão ou elemento interativo
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, [role="button"], .event-card')) {
+      return; // Deixar o botão lidar com o evento
+    }
+    
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsSwiping(true);

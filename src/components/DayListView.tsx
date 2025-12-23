@@ -92,11 +92,17 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
               {/* Date Column */}
               <button
                 onClick={() => hasEvents ? onDateSelect(day) : onAddEvent(day)}
+                onTouchEnd={(e) => {
+                  // Fallback para iOS
+                  e.stopPropagation();
+                  hasEvents ? onDateSelect(day) : onAddEvent(day);
+                }}
                 className={`flex flex-col items-center min-w-[52px] py-2 px-1 rounded-xl transition-all duration-200 ${
                   isTodayDate 
                     ? 'bg-primary text-primary-foreground' 
                     : 'hover:bg-muted/50 active:scale-95'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
               >
                 <span className={`text-2xl font-bold leading-none ${
                   isTodayDate ? 'text-primary-foreground' : 'text-foreground'
@@ -118,7 +124,13 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
                       <button
                         key={event.id}
                         onClick={() => onDateSelect(day)}
-                        className="w-full bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl p-4 text-left transition-all duration-200 hover:border-primary/30 active:scale-[0.98] group"
+                        onTouchEnd={(e) => {
+                          // Fallback para iOS
+                          e.stopPropagation();
+                          onDateSelect(day);
+                        }}
+                        className="w-full bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl p-4 text-left transition-all duration-200 hover:border-primary/30 active:scale-[0.98] group event-card"
+                        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                       >
                         <div className="flex items-start gap-3">
                           {/* Emoji or Priority Indicator */}
@@ -165,7 +177,13 @@ const DayListView = ({ selectedDate, onDateSelect, onAddEvent, events }: DayList
                   /* Empty day - subtle add button */
                   <button
                     onClick={() => onAddEvent(day)}
+                    onTouchEnd={(e) => {
+                      // Fallback para iOS
+                      e.stopPropagation();
+                      onAddEvent(day);
+                    }}
                     className="w-full py-3 flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-muted/30 rounded-xl transition-all duration-200"
+                    style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                   >
                     <Plus className="w-5 h-5" />
                   </button>
