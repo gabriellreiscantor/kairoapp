@@ -38,7 +38,7 @@ const WEATHER_HOURS = [
 
 const SmartTasksPage = () => {
   const { user, profile, refreshProfile } = useAuth();
-  const { getCurrentAddress, isLoading: isLoadingLocation } = useGeolocation();
+  const { getCurrentAddress, requestLocationPermission, error: locationError, permissionStatus } = useGeolocation();
   
   const [smartSuggestions, setSmartSuggestions] = useState(true);
   const [autoReschedule, setAutoReschedule] = useState(true);
@@ -108,16 +108,30 @@ const SmartTasksPage = () => {
   };
 
   const handleWeatherForecast = async (checked: boolean) => {
-    setWeatherForecast(checked);
-    
     if (checked) {
       // Check if we already have location
       const hasLocation = (profile as any)?.user_latitude && (profile as any)?.user_longitude;
       
       if (!hasLocation) {
-        // Capture location when enabling weather forecast
+        // First request permission explicitly
         setIsCapturingLocation(true);
+        
         try {
+          // This triggers the native iOS/Android permission popup
+          const hasPermission = await requestLocationPermission();
+          
+          if (!hasPermission) {
+            // Permission denied - show appropriate message
+            if (permissionStatus === 'denied') {
+              toast.error('Permissão negada. Vá em Ajustes > Horah para permitir o acesso à localização.');
+            } else {
+              toast.error('Precisamos da sua localização para enviar a previsão do tempo.');
+            }
+            setIsCapturingLocation(false);
+            return;
+          }
+          
+          // Permission granted - now get the address
           const address = await getCurrentAddress();
           
           if (address) {
@@ -138,24 +152,26 @@ const SmartTasksPage = () => {
             if (error) throw error;
             
             setUserCity(cityName);
+            setWeatherForecast(true);
             toast.success(`Localização capturada: ${cityName}`);
             await refreshProfile();
           } else {
-            toast.error('Não foi possível obter sua localização');
-            setWeatherForecast(false);
+            toast.error(locationError || 'Não foi possível obter sua localização');
           }
         } catch (error) {
           console.error('Error capturing location:', error);
           toast.error('Erro ao capturar localização. Verifique as permissões.');
-          setWeatherForecast(false);
         } finally {
           setIsCapturingLocation(false);
         }
       } else {
-        updatePreference('weather_forecast_enabled', checked);
+        // Already has location - just enable
+        setWeatherForecast(true);
+        updatePreference('weather_forecast_enabled', true);
       }
     } else {
-      updatePreference('weather_forecast_enabled', checked);
+      setWeatherForecast(false);
+      updatePreference('weather_forecast_enabled', false);
     }
   };
 
