@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -16,7 +16,11 @@ import {
   Plus,
   Trash2,
   Palette,
-  Repeat
+  Repeat,
+  Clock,
+  RefreshCw,
+  Lock,
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -74,6 +78,8 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
+  const [showReactivateSheet, setShowReactivateSheet] = useState(false);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -106,6 +112,21 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef(0);
 
+  // Calculate if event is expired (already happened) - only for non-recurring events
+  const isExpired = useMemo(() => {
+    if (!event) return false;
+    // If user is reactivating, don't show as expired
+    if (isReactivating) return false;
+    // Recurring events never expire
+    if (event.repeat && event.repeat !== 'never') return false;
+    
+    const eventDateTime = event.event_time 
+      ? new Date(`${event.event_date}T${event.event_time}`)
+      : new Date(`${event.event_date}T23:59:59`);
+    
+    return eventDateTime < new Date();
+  }, [event, isReactivating]);
+
   // Initialize form with event data
   useEffect(() => {
     if (event && isOpen) {
@@ -122,10 +143,23 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
       setColor(event.color || "primary");
       setAlerts(event.alerts && Array.isArray(event.alerts) ? event.alerts : [{ time: "1hour" }]);
       setScreenView('main');
+      setIsReactivating(false);
     }
   }, [event, isOpen]);
 
   if (!isOpen) return null;
+
+  // Handle reactivation with new date/time
+  const handleReactivate = () => {
+    // Set a new future date (tomorrow at noon by default)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0);
+    setEventDate(tomorrow);
+    setEventTime("12:00");
+    setIsReactivating(true);
+    setShowReactivateSheet(false);
+  };
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -485,136 +519,212 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in overflow-hidden">
       <header className="flex items-center justify-between px-4 py-4 safe-area-top">
         <button onClick={onClose} className="text-foreground font-medium">Cancelar</button>
-        <h1 className="text-lg font-semibold text-foreground">Editar Evento</h1>
-        <button onClick={handleSave} disabled={isSaving} className="text-primary font-medium disabled:opacity-50 flex items-center gap-2">
-          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-          Salvar
-        </button>
+        <h1 className="text-lg font-semibold text-foreground">
+          {isExpired ? 'Evento Realizado' : 'Editar Evento'}
+        </h1>
+        {!isExpired ? (
+          <button onClick={handleSave} disabled={isSaving} className="text-primary font-medium disabled:opacity-50 flex items-center gap-2">
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Salvar
+          </button>
+        ) : (
+          <div className="w-14" />
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-8">
+        {/* Expired Banner */}
+        {isExpired && (
+          <div className="mx-4 mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-foreground font-medium">Este evento já aconteceu</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Para editar, você precisa reativar o evento com uma nova data.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Emoji Picker */}
         <div className="flex justify-center py-6">
-          <button onClick={() => setScreenView('emoji')} className={`w-24 h-24 rounded-full ${getColorClassName(color)} flex items-center justify-center shadow-lg transition-transform hover:scale-105`}>
+          <button 
+            onClick={() => !isExpired && setScreenView('emoji')} 
+            disabled={isExpired}
+            className={`w-24 h-24 rounded-full ${getColorClassName(color)} flex items-center justify-center shadow-lg transition-transform ${
+              isExpired ? 'opacity-60 cursor-not-allowed' : 'hover:scale-105'
+            }`}
+          >
             <span className="text-4xl">{emoji}</span>
           </button>
         </div>
 
         {/* Title Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none" />
+        <div className={`mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden ${isExpired ? 'opacity-60' : ''}`}>
+          <input 
+            type="text" 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)} 
+            placeholder="Título" 
+            disabled={isExpired}
+            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed" 
+          />
         </div>
 
         {/* All Day & Date/Time Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+        <div className={`mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden ${isExpired ? 'opacity-60' : ''}`}>
           {/* All Day Toggle */}
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
             <span className="text-foreground">Dia inteiro</span>
-            <Switch checked={isAllDay} onCheckedChange={setIsAllDay} />
+            <Switch checked={isAllDay} onCheckedChange={setIsAllDay} disabled={isExpired} />
           </div>
 
           {/* Date */}
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
             <span className="text-foreground">Data</span>
-            <DatePicker date={eventDate} onDateChange={setEventDate} />
+            {isExpired ? (
+              <span className="text-muted-foreground">{format(eventDate, "dd/MM/yyyy", { locale: ptBR })}</span>
+            ) : (
+              <DatePicker date={eventDate} onDateChange={setEventDate} />
+            )}
           </div>
 
           {/* Time - only show if not all day */}
           {!isAllDay && (
             <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
               <span className="text-foreground">Hora</span>
-              <TimePicker time={eventTime} onTimeChange={setEventTime} />
+              {isExpired ? (
+                <span className="text-muted-foreground">{eventTime}</span>
+              ) : (
+                <TimePicker time={eventTime} onTimeChange={setEventTime} />
+              )}
             </div>
           )}
 
           {/* Location */}
-          <button onClick={() => setScreenView('location')} className="w-full px-4 py-4 flex items-center justify-between gap-3">
+          <button 
+            onClick={() => !isExpired && setScreenView('location')} 
+            disabled={isExpired}
+            className="w-full px-4 py-4 flex items-center justify-between gap-3 disabled:cursor-not-allowed"
+          >
             <span className="text-foreground flex-shrink-0">Local</span>
             <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
               <span className={`text-sm text-right truncate ${location ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {location || 'Adicionar'}
+                {location || (isExpired ? 'Nenhum' : 'Adicionar')}
               </span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              {!isExpired && <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />}
             </div>
           </button>
         </div>
 
         {/* Repeat Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <button onClick={() => setRepeatSheetOpen(true)} className="w-full px-4 py-4 flex items-center justify-between">
+        <div className={`mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden ${isExpired ? 'opacity-60' : ''}`}>
+          <button 
+            onClick={() => !isExpired && setRepeatSheetOpen(true)} 
+            disabled={isExpired}
+            className="w-full px-4 py-4 flex items-center justify-between disabled:cursor-not-allowed"
+          >
             <div className="flex items-center gap-3">
               <Repeat className="w-5 h-5 text-muted-foreground" />
               <span className="text-foreground">Repetir</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <span>{getRepeatLabel(repeat)}</span>
-              <ChevronRight className="w-5 h-5" />
+              {!isExpired && <ChevronRight className="w-5 h-5" />}
             </div>
           </button>
         </div>
 
         {/* Color Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <button onClick={() => setScreenView('color')} className="w-full px-4 py-4 flex items-center justify-between">
+        <div className={`mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden ${isExpired ? 'opacity-60' : ''}`}>
+          <button 
+            onClick={() => !isExpired && setScreenView('color')} 
+            disabled={isExpired}
+            className="w-full px-4 py-4 flex items-center justify-between disabled:cursor-not-allowed"
+          >
             <div className="flex items-center gap-3">
               <Palette className="w-5 h-5 text-muted-foreground" />
               <span className="text-foreground">Cor do Evento</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full ${getColorClassName(color)}`} />
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              {!isExpired && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
             </div>
           </button>
         </div>
 
-        {/* Alerts Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          {/* Notification Toggle */}
-          <button onClick={() => setNotificationEnabled(!notificationEnabled)} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${notificationEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'}`}>
-                <Bell className={`w-5 h-5 ${notificationEnabled ? 'text-white' : 'text-muted-foreground'}`} />
+        {/* Alerts Card - hidden for expired */}
+        {!isExpired && (
+          <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
+            {/* Notification Toggle */}
+            <button onClick={() => setNotificationEnabled(!notificationEnabled)} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${notificationEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'}`}>
+                  <Bell className={`w-5 h-5 ${notificationEnabled ? 'text-white' : 'text-muted-foreground'}`} />
+                </div>
+                <div className="text-left">
+                  <span className="text-foreground">Notificação Push</span>
+                  <p className="text-xs text-muted-foreground">Receber alerta no celular</p>
+                </div>
               </div>
-              <div className="text-left">
-                <span className="text-foreground">Notificação Push</span>
-                <p className="text-xs text-muted-foreground">Receber alerta no celular</p>
+              <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${notificationEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
+                {notificationEnabled && <Check className="w-4 h-4 text-background" />}
               </div>
-            </div>
-            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${notificationEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
-              {notificationEnabled && <Check className="w-4 h-4 text-background" />}
-            </div>
-          </button>
+            </button>
 
-          {/* Call Alert Toggle */}
-          <button onClick={() => setCallAlertEnabled(!callAlertEnabled)} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${callAlertEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'}`}>
-                <Phone className={`w-5 h-5 ${callAlertEnabled ? 'text-white' : 'text-muted-foreground'}`} />
+            {/* Call Alert Toggle */}
+            <button onClick={() => setCallAlertEnabled(!callAlertEnabled)} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${callAlertEnabled ? 'bg-gradient-to-br from-primary/80 to-pink-500' : 'bg-kairo-surface-3'}`}>
+                  <Phone className={`w-5 h-5 ${callAlertEnabled ? 'text-white' : 'text-muted-foreground'}`} />
+                </div>
+                <div className="text-left">
+                  <span className="text-foreground">Me ligue pra lembrar</span>
+                  <p className="text-xs text-muted-foreground">1 hora antes do evento</p>
+                </div>
               </div>
-              <div className="text-left">
-                <span className="text-foreground">Me ligue pra lembrar</span>
-                <p className="text-xs text-muted-foreground">1 hora antes do evento</p>
+              <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${callAlertEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
+                {callAlertEnabled && <Check className="w-4 h-4 text-background" />}
               </div>
-            </div>
-            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${callAlertEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
-              {callAlertEnabled && <Check className="w-4 h-4 text-background" />}
-            </div>
-          </button>
+            </button>
 
-          {/* Alerts List */}
-          <button onClick={() => setScreenView('alerts')} className="w-full px-4 py-4 flex items-center justify-between">
-            <span className="text-foreground">Alertas</span>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>{alerts.length} alerta{alerts.length !== 1 ? 's' : ''}</span>
-              <ChevronRight className="w-5 h-5" />
-            </div>
-          </button>
-        </div>
+            {/* Alerts List */}
+            <button onClick={() => setScreenView('alerts')} className="w-full px-4 py-4 flex items-center justify-between">
+              <span className="text-foreground">Alertas</span>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span>{alerts.length} alerta{alerts.length !== 1 ? 's' : ''}</span>
+                <ChevronRight className="w-5 h-5" />
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Notes Card */}
-        <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas" rows={4} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
+        <div className={`mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden ${isExpired ? 'opacity-60' : ''}`}>
+          <textarea 
+            value={notes} 
+            onChange={(e) => setNotes(e.target.value)} 
+            placeholder="Notas" 
+            rows={4} 
+            disabled={isExpired}
+            className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none disabled:cursor-not-allowed" 
+          />
         </div>
+
+        {/* Reactivate Button - only for expired events */}
+        {isExpired && (
+          <div className="mx-4 mb-4">
+            <button 
+              onClick={() => setShowReactivateSheet(true)}
+              className="w-full bg-primary/10 text-primary rounded-2xl px-4 py-4 flex items-center justify-center gap-3 hover:bg-primary/20 transition-colors"
+            >
+              <RefreshCw className="w-5 h-5" />
+              <span className="font-medium">Reativar Evento</span>
+            </button>
+          </div>
+        )}
 
         {/* Delete Event Button */}
         <div className="mx-4 mb-8">
@@ -650,6 +760,35 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bottom Sheet para reativar evento */}
+      <Sheet open={showReactivateSheet} onOpenChange={setShowReactivateSheet}>
+        <SheetContent side="bottom" className="rounded-t-3xl bg-kairo-surface-2 border-border/30">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-foreground text-center">Reativar Evento</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 pb-8">
+            <p className="text-sm text-muted-foreground text-center">
+              Para reativar o evento, precisamos definir uma nova data e hora no futuro.
+            </p>
+            
+            <button 
+              onClick={handleReactivate}
+              className="w-full px-4 py-4 flex items-center justify-center gap-3 rounded-xl bg-primary text-primary-foreground font-medium"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Escolher nova data
+            </button>
+            
+            <button 
+              onClick={() => setShowReactivateSheet(false)}
+              className="w-full px-4 py-4 flex items-center justify-center rounded-xl bg-kairo-surface-1/50 text-foreground"
+            >
+              Cancelar
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Bottom Sheet para selecionar repetição */}
       <Sheet open={repeatSheetOpen} onOpenChange={setRepeatSheetOpen}>
