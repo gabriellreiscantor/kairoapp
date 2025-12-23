@@ -3,7 +3,11 @@ import { format, parseISO } from "date-fns";
 import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { X, Share2, Settings } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useTheme } from "next-themes";
+import {
+  Drawer,
+  DrawerContent,
+} from "@/components/ui/drawer";
 
 interface CategoryDistribution {
   category: string;
@@ -37,7 +41,9 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
   report,
   onOpenSettings 
 }) => {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   
   const getLocale = () => {
     switch (language) {
@@ -74,7 +80,6 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
         });
       } else {
         await navigator.clipboard.writeText(shareText);
-        // Could show a toast here
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -93,153 +98,160 @@ const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
     }
   };
 
+  const gradientStyle = isDark 
+    ? 'linear-gradient(135deg, #2F66C7 0%, #1E3F8F 50%, #05060C 100%)'
+    : 'linear-gradient(135deg, #1F5BFF 0%, #39B7E5 50%, #63E0A3 100%)';
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 bg-background border-border overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* Header with gradient */}
-        <div 
-          className="relative p-6 pb-8"
-          style={{
-            background: 'linear-gradient(135deg, #1F5BFF 0%, #39B7E5 50%, #63E0A3 100%)',
-          }}
-        >
-          {/* Close button */}
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-          >
-            <X className="w-4 h-4 text-white" />
-          </button>
-          
-          {/* Week info */}
-          <div className="mb-4">
-            <span className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-3 py-1.5 rounded-full">
-              S{report.week_number}
-            </span>
-          </div>
-          
-          <p className="text-white/80 text-sm mb-2">
-            {formatDateRange()}
-          </p>
-          
-          {/* Headline */}
-          <h2 className="text-white text-2xl font-bold leading-tight">
-            {report.headline}
-          </h2>
-        </div>
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="max-h-[90vh] bg-background border-border">
+        {/* Drag handle bar */}
+        <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-muted mt-4" />
         
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Description */}
-          {report.description && (
-            <p className="text-muted-foreground leading-relaxed">
-              {report.description}
+        <div className="overflow-y-auto max-h-[85vh]">
+          {/* Header with gradient */}
+          <div 
+            className="relative p-6 pb-8 mt-2"
+            style={{ background: gradientStyle }}
+          >
+            {/* Close button */}
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+            
+            {/* Week info */}
+            <div className="mb-4">
+              <span className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-3 py-1.5 rounded-full">
+                S{report.week_number}
+              </span>
+            </div>
+            
+            <p className="text-white/80 text-sm mb-2">
+              {formatDateRange()}
             </p>
-          )}
-          
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-8 py-4">
-            <div className="text-center">
-              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
-                {language === 'en-US' ? 'Hours' : language === 'ja-JP' ? '時間' : language === 'ko-KR' ? '시간' : language === 'zh-CN' ? '小时' : 'Horas'}
-              </p>
-              <p className="text-foreground text-3xl font-bold">
-                {report.total_hours}
-              </p>
-            </div>
-            <div className="w-px h-12 bg-border" />
-            <div className="text-center">
-              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
-                {language === 'en-US' ? 'Events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'Eventos'}
-              </p>
-              <p className="text-foreground text-3xl font-bold">
-                {report.total_events}
-              </p>
-            </div>
+            
+            {/* Headline */}
+            <h2 className="text-white text-2xl font-bold leading-tight">
+              {report.headline}
+            </h2>
           </div>
           
-          {/* Category distribution */}
-          {report.category_distribution.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-                {language === 'en-US' ? 'Category Distribution' : 
-                 language === 'es-ES' ? 'Distribución por Categoría' :
-                 language === 'fr-FR' ? 'Répartition par Catégorie' :
-                 language === 'ja-JP' ? 'カテゴリー分布' :
-                 language === 'ko-KR' ? '카테고리 분포' :
-                 language === 'zh-CN' ? '分类分布' :
-                 'Distribuição por Categoria'}
-              </h3>
-              
-              <div className="space-y-3">
-                {report.category_distribution.map((cat, index) => (
-                  <div key={index} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        <span className="text-foreground font-medium">
-                          {cat.category}
-                        </span>
-                        <span className="text-muted-foreground">
-                          ({cat.count} {cat.count === 1 
-                            ? (language === 'en-US' ? 'event' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'evento') 
-                            : (language === 'en-US' ? 'events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'eventos')})
-                        </span>
-                      </div>
-                      <span className="text-muted-foreground font-medium">
-                        {cat.percentage}%
-                      </span>
-                    </div>
-                    
-                    {/* Progress bar */}
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${cat.percentage}%`,
-                          backgroundColor: cat.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          {/* Content */}
+          <div className="p-6 space-y-6">
+            {/* Description */}
+            {report.description && (
+              <p className="text-muted-foreground leading-relaxed">
+                {report.description}
+              </p>
+            )}
+            
+            {/* Stats */}
+            <div className="flex items-center justify-center gap-8 py-4">
+              <div className="text-center">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                  {language === 'en-US' ? 'Hours' : language === 'ja-JP' ? '時間' : language === 'ko-KR' ? '시간' : language === 'zh-CN' ? '小时' : 'Horas'}
+                </p>
+                <p className="text-foreground text-3xl font-bold">
+                  {report.total_hours}
+                </p>
+              </div>
+              <div className="w-px h-12 bg-border" />
+              <div className="text-center">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                  {language === 'en-US' ? 'Events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'Eventos'}
+                </p>
+                <p className="text-foreground text-3xl font-bold">
+                  {report.total_events}
+                </p>
               </div>
             </div>
-          )}
-          
-          {/* Share button */}
-          <div className="flex justify-center pt-2">
+            
+            {/* Category distribution */}
+            {report.category_distribution.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
+                  {language === 'en-US' ? 'Category Distribution' : 
+                   language === 'es-ES' ? 'Distribución por Categoría' :
+                   language === 'fr-FR' ? 'Répartition par Catégorie' :
+                   language === 'ja-JP' ? 'カテゴリー分布' :
+                   language === 'ko-KR' ? '카테고리 분포' :
+                   language === 'zh-CN' ? '分类分布' :
+                   'Distribuição por Categoria'}
+                </h3>
+                
+                <div className="space-y-3">
+                  {report.category_distribution.map((cat, index) => (
+                    <div key={index} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <span className="text-foreground font-medium">
+                            {cat.category}
+                          </span>
+                          <span className="text-muted-foreground">
+                            ({cat.count} {cat.count === 1 
+                              ? (language === 'en-US' ? 'event' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'evento') 
+                              : (language === 'en-US' ? 'events' : language === 'ja-JP' ? 'イベント' : language === 'ko-KR' ? '일정' : language === 'zh-CN' ? '活动' : 'eventos')})
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground font-medium">
+                          {cat.percentage}%
+                        </span>
+                      </div>
+                      
+                      {/* Progress bar */}
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${cat.percentage}%`,
+                            backgroundColor: cat.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Share button */}
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-2 px-6 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-full transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="font-medium">
+                  {language === 'en-US' ? 'Share' : 
+                   language === 'es-ES' ? 'Compartir' :
+                   language === 'fr-FR' ? 'Partager' :
+                   language === 'ja-JP' ? '共有' :
+                   language === 'ko-KR' ? '공유' :
+                   language === 'zh-CN' ? '分享' :
+                   'Compartilhar'}
+                </span>
+              </button>
+            </div>
+            
+            {/* Settings hint */}
             <button
-              onClick={handleShare}
-              className="flex items-center gap-2 px-6 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-full transition-colors"
+              onClick={onOpenSettings}
+              className="flex items-center justify-center gap-2 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-2 pb-6"
             >
-              <Share2 className="w-4 h-4" />
-              <span className="font-medium">
-                {language === 'en-US' ? 'Share' : 
-                 language === 'es-ES' ? 'Compartir' :
-                 language === 'fr-FR' ? 'Partager' :
-                 language === 'ja-JP' ? '共有' :
-                 language === 'ko-KR' ? '공유' :
-                 language === 'zh-CN' ? '分享' :
-                 'Compartilhar'}
-              </span>
+              <Settings className="w-3 h-3" />
+              {getSettingsHint()}
             </button>
           </div>
-          
-          {/* Settings hint */}
-          <button
-            onClick={onOpenSettings}
-            className="flex items-center justify-center gap-2 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-2"
-          >
-            <Settings className="w-3 h-3" />
-            {getSettingsHint()}
-          </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
