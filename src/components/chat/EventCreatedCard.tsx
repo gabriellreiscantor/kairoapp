@@ -20,6 +20,11 @@ interface EventCreatedCardProps {
     category?: string;
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
+    call_alert_sent_at?: string;
+    call_alert_attempts?: number;
+    call_alert_answered?: boolean;
+    call_alert_answered_at?: string;
+    call_alert_outcome?: string;
     emoji?: string;
     color?: string;
     is_all_day?: boolean;
@@ -345,6 +350,40 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
               className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
             />
           </div>
+          
+          {/* Call status indicator - show when call was sent */}
+          {event.call_alert_sent_at && (
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              {event.call_alert_answered ? (
+                <>
+                  <span className="inline-flex items-center gap-1 text-emerald-500">
+                    <Phone className="w-3 h-3" />
+                    ✅ Atendida
+                  </span>
+                  {event.call_alert_answered_at && (
+                    <span className="text-muted-foreground">
+                      às {format(parseISO(event.call_alert_answered_at), 'HH:mm')}
+                    </span>
+                  )}
+                </>
+              ) : event.call_alert_outcome === 'missed' ? (
+                <span className="inline-flex items-center gap-1 text-amber-500">
+                  <Phone className="w-3 h-3" />
+                  📞 Ligamos {event.call_alert_attempts && event.call_alert_attempts > 1 ? `${event.call_alert_attempts}x` : ''} - não atendida
+                </span>
+              ) : event.call_alert_outcome === 'sent' ? (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  📞 Ligação enviada às {format(parseISO(event.call_alert_sent_at), 'HH:mm')}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-muted-foreground/60">
+                  <Phone className="w-3 h-3" />
+                  📞 Ligamos (sem dados de resultado)
+                </span>
+              )}
+            </div>
+          )}
           
           {/* Tooltip when activated */}
           {showCallAlertTooltip && !isExpired && (
