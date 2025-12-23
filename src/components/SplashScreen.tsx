@@ -10,7 +10,12 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [fadeOut, setFadeOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -21,6 +26,19 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     return () => clearTimeout(timer);
   }, [onComplete]);
 
+  // Fallback enquanto o tema não está resolvido
+  if (!mounted) {
+    return (
+      <div className="fixed inset-0 bg-[#0a0a0c] flex items-center justify-center z-50">
+        <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
+      </div>
+    );
+  }
+
+  // Usar dark como fallback se theme não estiver resolvido
+  const isDark = resolvedTheme === 'dark' || resolvedTheme === undefined;
+  const logoSrc = isDark ? horahLogoDark : horahLogoLight;
+
   return (
     <div
       className={`fixed inset-0 bg-background flex flex-col items-center justify-center z-50 transition-opacity duration-500 ${
@@ -29,7 +47,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     >
       <div className="animate-scale-in flex flex-col items-center gap-6">
         <img 
-          src={resolvedTheme === 'dark' ? horahLogoDark : horahLogoLight} 
+          src={logoSrc} 
           alt="Horah" 
           className="w-32 h-32 rounded-3xl shadow-2xl"
         />
