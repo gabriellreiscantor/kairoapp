@@ -27,11 +27,11 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       <div className="animate-scale-in flex flex-col items-center gap-6">
         <img 
           src={kairoLogo} 
-          alt="Kairo" 
+          alt="Horah" 
           className="w-32 h-32 rounded-3xl shadow-2xl"
         />
         <h1 className="text-3xl font-bold text-foreground tracking-wide">
-          Kairo
+          Horah
         </h1>
         <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>

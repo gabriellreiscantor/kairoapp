@@ -26,7 +26,7 @@ const PrivacyPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Introdução</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              O Kairo ("nós", "nosso" ou "Empresa") opera o aplicativo móvel Kairo. Esta página informa sobre nossas políticas relativas à coleta, uso e divulgação de dados pessoais quando você usa nosso Serviço.
+              O Horah ("nós", "nosso" ou "Empresa") opera o aplicativo móvel Horah. Esta página informa sobre nossas políticas relativas à coleta, uso e divulgação de dados pessoais quando você usa nosso Serviço.
             </p>
           </section>
 
@@ -115,7 +115,7 @@ const PrivacyPage = () => {
           <section className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">10. Contato</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Para questões sobre privacidade, entre em contato: privacy@kairo.app
+              Para questões sobre privacidade, entre em contato: contato@horah.app
             </p>
           </section>
         </div>

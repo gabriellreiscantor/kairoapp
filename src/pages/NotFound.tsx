@@ -29,11 +29,11 @@ const NotFound = () => {
       </button>
 
       <div className="relative z-10 flex flex-col items-center px-8 text-center animate-fade-in">
-        {/* Kairo Logo */}
+        {/* Horah Logo */}
         <div className="mb-8">
           <img 
             src={kairoLogo} 
-            alt="Kairo" 
+            alt="Horah" 
             className="h-24 w-24 object-contain"
           />
         </div>
