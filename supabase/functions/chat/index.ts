@@ -27,7 +27,7 @@ const corsHeaders = {
 
 // JSON structure that AI will return - MASTER PROMPT CONTRACT
 interface KairoAction {
-  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao' | 'data_passada' | 'relatorio_semanal' | 'relatorio_nao_pronto';
+  acao: 'criar_evento' | 'listar_eventos' | 'editar_evento' | 'deletar_evento' | 'conversar' | 'coletar_informacoes' | 'solicitar_confirmacao' | 'data_passada' | 'relatorio_semanal' | 'relatorio_nao_pronto' | 'previsao_tempo';
   titulo?: string;
   data?: string; // YYYY-MM-DD
   hora?: string; // HH:MM
@@ -58,6 +58,7 @@ interface KairoAction {
   evento_deletado?: any; // Full deleted event data for EventDeletedCard
   weeklyReportData?: any; // Weekly report data for WeeklyReportCard
   weeklyReportNotReady?: any; // Weekly report not ready data
+  weatherData?: any; // Weather forecast data for WeatherForecastCard
 }
 
 interface UserProfile {
@@ -2408,6 +2409,20 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             required: ["resposta_usuario"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "request_weather_forecast",
+          description: "Use quando usuario pedir previsao do tempo, clima, ou perguntar como esta o tempo. Palavras-chave: 'tempo', 'clima', 'previsão', 'previsao', 'weather', 'forecast', 'como ta o tempo', 'vai chover', 'ta frio', 'ta quente', 'temperatura', 'chuva'.",
+          parameters: {
+            type: "object",
+            properties: {
+              resposta_usuario: { type: "string", description: "Resposta amigavel. Ex: 'Vou ver como ta o tempo ai!', 'Deixa eu conferir a previsao!'" }
+            },
+            required: ["resposta_usuario"]
+          }
+        }
       }
     ];
 
@@ -2893,6 +2908,79 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             resposta_usuario: args.resposta_usuario || 'Preciso que você esteja logado para ver seu relatório.'
           };
         }
+      } else if (functionName === "request_weather_forecast") {
+        // Handle weather forecast request
+        console.log('Weather forecast requested:', args);
+        
+        if (userId && supabase) {
+          // Get user profile with location
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_latitude, user_longitude, user_city, timezone')
+            .eq('id', userId)
+            .single();
+          
+          if (profile?.user_latitude && profile?.user_longitude) {
+            try {
+              // Call get-weather-forecast edge function
+              const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+              const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+              
+              const weatherResponse = await fetch(`${SUPABASE_URL}/functions/v1/get-weather-forecast`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+                body: JSON.stringify({ 
+                  latitude: profile.user_latitude,
+                  longitude: profile.user_longitude,
+                  timezone: profile.timezone || 'America/Sao_Paulo'
+                }),
+              });
+              
+              if (weatherResponse.ok) {
+                const data = await weatherResponse.json();
+                console.log('Weather data received:', data);
+                
+                const weatherData = {
+                  ...data.forecast,
+                  city: profile.user_city || 'Sua cidade'
+                };
+                
+                action = {
+                  acao: 'previsao_tempo',
+                  resposta_usuario: args.resposta_usuario || 'Aqui está a previsão do tempo!',
+                  _alreadyExecuted: true,
+                  weatherData
+                };
+              } else {
+                console.error('Weather API error:', await weatherResponse.text());
+                action = {
+                  acao: 'conversar',
+                  resposta_usuario: 'Não consegui buscar a previsão do tempo. Tente novamente mais tarde.'
+                };
+              }
+            } catch (weatherError) {
+              console.error('Error fetching weather:', weatherError);
+              action = {
+                acao: 'conversar',
+                resposta_usuario: 'Ocorreu um erro ao buscar a previsão. Tente novamente.'
+              };
+            }
+          } else {
+            // No location saved
+            action = {
+              acao: 'conversar',
+              resposta_usuario: 'Você ainda não configurou sua localização. Vá em Configurações > Ações Inteligentes e ative a previsão do tempo para salvar sua localização.'
+            };
+          }
+        } else {
+          action = {
+            acao: 'conversar',
+            resposta_usuario: args.resposta_usuario || 'Preciso que você esteja logado para ver a previsão.'
+          };
+        }
       } else {
         // chat_response
         action = {
@@ -2977,7 +3065,8 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       evento_deletado: action.evento_deletado, // CRITICAL: Include for delete card persistence
       eventos: listedEvents, // Include structured events for list action
       weeklyReportData: action.weeklyReportData, // Weekly report data
-      weeklyReportNotReady: action.weeklyReportNotReady // Weekly report not ready data
+      weeklyReportNotReady: action.weeklyReportNotReady, // Weekly report not ready data
+      weatherData: action.weatherData // Weather forecast data
     };
     
     const actionJson = JSON.stringify([actionData]);

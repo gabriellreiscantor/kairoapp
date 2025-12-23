@@ -115,6 +115,7 @@ interface ExecutedAction {
   weeklyReportNotReady?: { // Weekly report not ready data
     daysRemaining: number;
   };
+  weatherData?: any; // Weather forecast data
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -571,6 +572,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let finalPastDateData: any = undefined; // Track past date warning for persistence
       let finalWeeklyReportData: any = undefined; // Track weekly report data for persistence
       let finalWeeklyReportNotReady: any = undefined; // Track weekly report not ready data
+      let finalWeatherData: any = undefined; // Track weather forecast data for persistence
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -870,6 +872,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     finalWeeklyReportNotReady = weeklyReportNotReady;
                   }
                   
+                  // Check if WEATHER FORECAST requested
+                  const weatherAction = executedActions.find(a => a.action === 'previsao_tempo');
+                  let weatherData = undefined;
+                  
+                  if (weatherAction?.weatherData) {
+                    weatherData = weatherAction.weatherData;
+                    console.log('[ChatPage] Weather forecast found:', weatherData);
+                    finalWeatherData = weatherData;
+                  }
+                  
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
                     listedEvents: listedEvents?.length || 0 
@@ -888,6 +900,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       pastDateData,
                       weeklyReportData,
                       weeklyReportNotReady,
+                      weatherData,
                     } : m
                   ));
 
@@ -947,8 +960,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
       });
       
-      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady) {
-        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady) 
+      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData) {
+        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData) 
           ? { 
               eventData: finalEventData, 
               deletedEventData: finalDeletedEventData, 
@@ -956,6 +969,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               pastDateData: finalPastDateData,
               weeklyReportData: finalWeeklyReportData,
               weeklyReportNotReady: finalWeeklyReportNotReady,
+              weatherData: finalWeatherData,
             }
           : undefined;
         
