@@ -5,14 +5,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BackButton from "@/components/BackButton";
 
-const WEEKDAYS = [
-  { value: 0, label: 'Domingo' },
-  { value: 1, label: 'Segunda' },
-  { value: 2, label: 'Terça' },
-  { value: 3, label: 'Quarta' },
-  { value: 4, label: 'Quinta' },
-  { value: 5, label: 'Sexta' },
-  { value: 6, label: 'Sábado' },
+const HOURS = [
+  { value: 12, label: '12:00' },
+  { value: 13, label: '13:00' },
+  { value: 14, label: '14:00' },
+  { value: 15, label: '15:00' },
+  { value: 16, label: '16:00' },
+  { value: 17, label: '17:00' },
+  { value: 18, label: '18:00' },
+  { value: 19, label: '19:00' },
+  { value: 20, label: '20:00' },
+  { value: 21, label: '21:00' },
 ];
 
 const SmartTasksPage = () => {
@@ -25,7 +28,7 @@ const SmartTasksPage = () => {
   const [weatherForecast, setWeatherForecast] = useState(false);
   const [weatherTime, setWeatherTime] = useState("07:00");
   const [weeklyReport, setWeeklyReport] = useState(true);
-  const [weeklyReportDay, setWeeklyReportDay] = useState(0);
+  const [weeklyReportHour, setWeeklyReportHour] = useState(12);
   const [isSaving, setIsSaving] = useState(false);
 
   // Load preferences from profile
@@ -38,7 +41,7 @@ const SmartTasksPage = () => {
       setWeatherForecast(profile.weather_forecast_enabled ?? false);
       setWeatherTime(profile.weather_forecast_time ?? "07:00");
       setWeeklyReport((profile as any).weekly_report_enabled ?? true);
-      setWeeklyReportDay((profile as any).weekly_report_day ?? 0);
+      setWeeklyReportHour((profile as any).weekly_report_hour ?? 12);
     }
   }, [profile]);
 
@@ -97,9 +100,9 @@ const SmartTasksPage = () => {
     updatePreference('weekly_report_enabled', checked);
   };
 
-  const handleWeeklyReportDayChange = (day: number) => {
-    setWeeklyReportDay(day);
-    updatePreference('weekly_report_day', day);
+  const handleWeeklyReportHourChange = (hour: number) => {
+    setWeeklyReportHour(hour);
+    updatePreference('weekly_report_hour', hour);
   };
 
   return (
@@ -227,7 +230,7 @@ const SmartTasksPage = () => {
                   <BarChart3 className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-foreground">Resumo Semanal</p>
-                    <p className="text-xs text-muted-foreground">Relatório inteligente da sua semana</p>
+                    <p className="text-xs text-muted-foreground">Relatório inteligente todo domingo</p>
                   </div>
                 </div>
                 <Switch 
@@ -237,19 +240,19 @@ const SmartTasksPage = () => {
                 />
               </div>
               
-              {/* Day Picker - Only visible when enabled */}
+              {/* Hour Picker - Only visible when enabled */}
               {weeklyReport && (
                 <div className="mt-3 ml-8 flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">Enviar:</span>
+                  <span className="text-sm text-muted-foreground">Horário:</span>
                   <select
-                    value={weeklyReportDay}
-                    onChange={(e) => handleWeeklyReportDayChange(Number(e.target.value))}
+                    value={weeklyReportHour}
+                    onChange={(e) => handleWeeklyReportHourChange(Number(e.target.value))}
                     className="bg-kairo-surface-3 border border-border/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     disabled={isSaving}
                   >
-                    {WEEKDAYS.map(day => (
-                      <option key={day.value} value={day.value}>
-                        {day.label}
+                    {HOURS.map(hour => (
+                      <option key={hour.value} value={hour.value}>
+                        {hour.label}
                       </option>
                     ))}
                   </select>

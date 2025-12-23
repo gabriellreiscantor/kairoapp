@@ -14,8 +14,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
  * 
  * This function is called by a cron job every hour.
  * It checks all users with weekly_report_enabled=true and:
- * 1. Checks if today is the user's configured weekly_report_day
- * 2. Checks if it's around midnight in the user's timezone
+ * 1. Checks if today is Sunday (fixed day for all users)
+ * 2. Checks if the current hour matches the user's configured weekly_report_hour
  * 3. Generates the report by calling generate-weekly-report
  * 4. Creates a chat message with the report
  * 5. Sends a push notification
@@ -35,7 +35,7 @@ serve(async (req) => {
     // Get all users with weekly reports enabled
     const { data: users, error: usersError } = await supabase
       .from('profiles')
-      .select('id, timezone, weekly_report_day, last_weekly_report_at, fcm_token')
+      .select('id, timezone, weekly_report_hour, last_weekly_report_at, fcm_token')
       .eq('weekly_report_enabled', true);
 
     if (usersError) {
@@ -58,8 +58,9 @@ serve(async (req) => {
         const userDayOfWeek = userLocalTime.getDay(); // 0 = Sunday
         const userHour = userLocalTime.getHours();
 
-        // Check if it's the configured day and around midnight (between 0:00 and 0:59)
-        if (userDayOfWeek !== (user.weekly_report_day ?? 0) || userHour !== 0) {
+        // Fixed: Only send on Sunday (day 0), at the user's configured hour
+        const userConfiguredHour = user.weekly_report_hour ?? 12;
+        if (userDayOfWeek !== 0 || userHour !== userConfiguredHour) {
           continue;
         }
 
