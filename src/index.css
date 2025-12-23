@@ -202,10 +202,17 @@ input, textarea, [contenteditable="true"] {
     background-color: hsl(var(--background));
   }
   
-  /* Desabilitar rubber banding completamente no iOS */
+  /* Desabilitar rubber banding mas permitir scroll vertical */
   .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
+    overscroll-behavior: contain;
+  }
+  
+  /* Scroll container para áreas de lista - deixar browser controlar scroll vertical */
+  .scroll-container {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   
   /* Garantir que html/body também tenham overscroll desabilitado */
