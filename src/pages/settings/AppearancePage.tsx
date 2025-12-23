@@ -19,12 +19,11 @@ const DARK_THEME_COLORS = [
   { color: 'hsl(160, 60%, 40%)', name: 'Verde esmeralda' },
 ];
 
-// Cores principais do tema claro
+// Cores principais do tema claro - Degradê azul → verde água
 const LIGHT_THEME_COLORS = [
-  { color: 'hsl(12, 95%, 55%)', name: 'Laranja coral' },
-  { color: 'hsl(38, 90%, 48%)', name: 'Âmbar dourado' },
-  { color: 'hsl(160, 55%, 38%)', name: 'Verde suave' },
-  { color: 'hsl(0, 65%, 48%)', name: 'Vermelho coral' },
+  { color: 'hsl(220, 100%, 56%)', name: 'Azul vibrante' },
+  { color: 'hsl(195, 75%, 56%)', name: 'Azul ciano' },
+  { color: 'hsl(153, 65%, 63%)', name: 'Verde água' },
 ];
 
 const AppearancePage = () => {
@@ -110,9 +109,9 @@ const AppearancePage = () => {
               <div className="flex-1 rounded-xl overflow-hidden border border-border/20">
                 <div className="bg-white p-3 h-24 flex flex-col justify-between">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-[hsl(12,95%,55%)]" />
-                    <div className="w-2 h-2 rounded-full bg-[hsl(350,85%,50%)]" />
-                    <div className="w-2 h-2 rounded-full bg-[hsl(280,70%,45%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(220,100%,56%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(195,75%,56%)]" />
+                    <div className="w-2 h-2 rounded-full bg-[hsl(153,65%,63%)]" />
                   </div>
                   <div className="space-y-1">
                     <div className="h-2 w-3/4 rounded bg-gray-200" />
