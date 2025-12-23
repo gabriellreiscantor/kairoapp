@@ -2034,6 +2034,16 @@ serve(async (req) => {
       day: '2-digit'
     });
 
+    // NOVO: Calcular "amanhã" EXPLICITAMENTE para evitar erros da IA
+    const tomorrowDate = new Date(currentDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowISO = tomorrowDate.toLocaleDateString('en-CA', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
     const greetingInstruction = userName 
       ? `Cumprimente o usuario pelo nome "${userName}". Exemplo: "E ai ${userName}, o que vamos agendar hoje?"`
       : `Use uma saudacao casual como "E ai, o que vamos agendar hoje?"`;
@@ -2259,7 +2269,7 @@ NAO repita a mesma frase. Seja criativo e casual, como se fosse um amigo.
 
 Data de hoje: ${todayStr} (${todayISO})
 - "hoje" = ${todayISO}
-- "amanha" = dia seguinte
+- "amanha" = ${tomorrowISO}
 - Dias da semana = proxima ocorrencia
 
 Idiomas suportados: pt, en, es, fr, de, it, ja, ko, zh
