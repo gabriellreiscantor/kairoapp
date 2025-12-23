@@ -13,12 +13,11 @@ const THEMES: { id: Theme; icon: typeof Sun; label: string; description: string 
   { id: 'system', icon: Monitor, label: 'Sistema', description: 'Segue as configurações do dispositivo' },
 ];
 
-// Cores principais do tema escuro
+// Cores principais do tema escuro - Degradê Horah
 const DARK_THEME_COLORS = [
-  { color: 'hsl(12, 95%, 55%)', name: 'Laranja vibrante' },
-  { color: 'hsl(350, 85%, 50%)', name: 'Rosa quente' },
-  { color: 'hsl(280, 70%, 45%)', name: 'Roxo profundo' },
-  { color: 'hsl(160, 60%, 40%)', name: 'Verde esmeralda' },
+  { color: '#1F5BFF', name: 'Azul vibrante' },
+  { color: '#39B7E5', name: 'Azul ciano' },
+  { color: '#63E0A3', name: 'Verde água' },
 ];
 
 // Cores principais do tema claro - Degradê azul → verde água

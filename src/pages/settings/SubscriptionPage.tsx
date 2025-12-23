@@ -58,7 +58,7 @@ const SubscriptionPage = () => {
 
       <div className="px-4 pb-8 space-y-6">
         {/* Current Plan Card */}
-        <div className="bg-gradient-to-br from-kairo-orange via-kairo-red to-kairo-purple rounded-2xl p-5 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3] rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10" />
           
           <div className="relative">
@@ -182,7 +182,7 @@ const SubscriptionPage = () => {
         {currentPlan === 'free' && (
           <Button 
             onClick={() => navigate('/settings/plan')}
-            className="w-full bg-gradient-to-r from-kairo-orange via-kairo-red to-kairo-purple text-white font-bold py-6 text-lg"
+            className="w-full bg-gradient-to-r from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3] text-white font-bold py-6 text-lg"
           >
             <Crown className="w-5 h-5 mr-2" />
             Fazer Upgrade
