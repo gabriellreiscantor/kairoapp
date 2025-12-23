@@ -43,8 +43,11 @@ Deno.serve(async (req) => {
 
     for (const event of events || []) {
       try {
-        // Combine date and time to create full datetime
-        const eventDateTime = new Date(`${event.event_date}T${event.event_time}`);
+        // Parse date and time components explicitly to avoid timezone issues
+        // IMPORTANT: new Date(string) can interpret dates as UTC in some browsers
+        const [year, month, day] = event.event_date.split('-').map(Number);
+        const [hours, minutes] = (event.event_time || '00:00').split(':').map(Number);
+        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
         
         // Check if event is within our target window (55-65 minutes from now)
         if (eventDateTime >= targetTimeMin && eventDateTime <= targetTimeMax) {

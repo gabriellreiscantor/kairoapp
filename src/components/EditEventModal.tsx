@@ -120,9 +120,14 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
     // Recurring events never expire
     if (event.repeat && event.repeat !== 'never') return false;
     
+    // Parse date components explicitly to avoid timezone issues
+    const [year, month, day] = event.event_date.split('-').map(Number);
     const eventDateTime = event.event_time 
-      ? new Date(`${event.event_date}T${event.event_time}`)
-      : new Date(`${event.event_date}T23:59:59`);
+      ? (() => {
+          const [hours, minutes] = event.event_time.split(':').map(Number);
+          return new Date(year, month - 1, day, hours, minutes, 0, 0);
+        })()
+      : new Date(year, month - 1, day, 23, 59, 59, 0);
     
     return eventDateTime < new Date();
   }, [event, isReactivating]);
@@ -132,7 +137,13 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
     if (event && isOpen) {
       setTitle(event.title || "");
       setLocation(event.location || "");
-      setEventDate(event.event_date ? new Date(event.event_date + 'T00:00:00') : new Date());
+      // Parse date explicitly to avoid timezone issues
+      if (event.event_date) {
+        const [year, month, day] = event.event_date.split('-').map(Number);
+        setEventDate(new Date(year, month - 1, day, 0, 0, 0, 0));
+      } else {
+        setEventDate(new Date());
+      }
       setEventTime(event.event_time?.slice(0, 5) || "12:00");
       setNotificationEnabled(event.notification_enabled ?? true);
       setCallAlertEnabled(event.call_alert_enabled ?? false);

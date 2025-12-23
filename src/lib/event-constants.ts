@@ -110,10 +110,15 @@ export const getAvailableAlertOptions = (
   }
   
   // Calculate time remaining until event
+  // IMPORTANT: Parse date components explicitly to avoid timezone issues
+  // Using getFullYear/getMonth/getDate since eventDate is a Date object
   const now = new Date();
   const [hours, minutes] = eventTime.split(':').map(Number);
-  const eventDateTime = new Date(eventDate);
-  eventDateTime.setHours(hours, minutes, 0, 0);
+  
+  const year = eventDate.getFullYear();
+  const month = eventDate.getMonth(); // Already 0-indexed for Date objects
+  const day = eventDate.getDate();
+  const eventDateTime = new Date(year, month, day, hours, minutes, 0, 0);
   
   const diffMs = eventDateTime.getTime() - now.getTime();
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
