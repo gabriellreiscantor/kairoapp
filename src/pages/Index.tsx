@@ -8,15 +8,12 @@ import { Loader2 } from "lucide-react";
 type AppState = 'splash' | 'loading' | 'app';
 
 const Index = () => {
-  // Verificar se splash já foi mostrado NESTA SESSÃO (sessionStorage limpa ao fechar app)
-  const hasSeenSplash = sessionStorage.getItem('horah_splash_seen') === 'true';
-  
-  const [appState, setAppState] = useState<AppState>(hasSeenSplash ? 'loading' : 'splash');
+  // Sempre mostrar splash na primeira renderização
+  const [appState, setAppState] = useState<AppState>('splash');
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('horah_splash_seen', 'true');
     setAppState('loading');
   };
 
@@ -34,24 +31,32 @@ const Index = () => {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  // Loading screen component with solid background (theme-safe)
-  const LoadingScreen = () => (
-    <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-primary animate-spin" />
-    </div>
-  );
-
+  // Loading screen com fundo sólido
   if (appState === 'loading') {
-    return <LoadingScreen />;
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: '#0a0a0c' }}
+      >
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
   }
 
-  // Only render MainApp when we have confirmed user
+  // MainApp quando usuário confirmado
   if (appState === 'app' && user) {
     return <MainApp />;
   }
 
-  // Safety fallback - prevents black screen in any edge case
-  return <LoadingScreen />;
+  // Fallback de segurança
+  return (
+    <div 
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: '#0a0a0c' }}
+    >
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
 };
 
 export default Index;

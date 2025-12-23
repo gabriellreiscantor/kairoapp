@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CallKitProvider } from "@/contexts/CallKitContext";
 import FontInitializer from "@/components/FontInitializer";
+import IOSWebViewConfigurator from "@/components/IOSWebViewConfigurator";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -40,8 +41,9 @@ const App = () => (
         <AuthProvider>
           {/* ⚡ CallKitProvider roda IMEDIATAMENTE - antes de qualquer login */}
           <CallKitProvider>
-            {/* Initialize font preference */}
+            {/* Initialize font preference and iOS WebView config */}
             <FontInitializer />
+            <IOSWebViewConfigurator />
             <TooltipProvider>
               <Toaster />
               <Sonner />
