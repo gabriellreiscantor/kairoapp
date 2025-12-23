@@ -1,6 +1,7 @@
 import React from "react";
 import { Calendar, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTheme } from "next-themes";
 
 interface WeeklyReportNotReadyCardProps {
   daysRemaining: number;
@@ -8,6 +9,8 @@ interface WeeklyReportNotReadyCardProps {
 
 const WeeklyReportNotReadyCard: React.FC<WeeklyReportNotReadyCardProps> = ({ daysRemaining }) => {
   const { language } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   const getTitle = () => {
     switch (language) {
@@ -40,9 +43,11 @@ const WeeklyReportNotReadyCard: React.FC<WeeklyReportNotReadyCardProps> = ({ day
       <div className="relative overflow-hidden rounded-2xl p-5">
         {/* Gradient background */}
         <div 
-          className="absolute inset-0 opacity-80"
+          className="absolute inset-0"
           style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+            background: isDark 
+              ? 'linear-gradient(135deg, #2F66C7 0%, #1E3F8F 50%, #05060C 100%)'
+              : 'linear-gradient(135deg, #1F5BFF 0%, #39B7E5 50%, #63E0A3 100%)',
           }}
         />
         
