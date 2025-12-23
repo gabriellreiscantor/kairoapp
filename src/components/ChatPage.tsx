@@ -335,7 +335,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
         if (sortedData.length > 0) {
           const loadedMessages: Message[] = sortedData.map(parseDbMessage);
-          setMessages(loadedMessages);
+          // Deduplicate by id (safety check for duplicate key errors)
+          const uniqueMessages = loadedMessages.filter((msg, index, self) => 
+            index === self.findIndex(m => m.id === msg.id)
+          );
+          setMessages(uniqueMessages);
           // Check if there might be more messages
           setHasMoreMessages(data.length === 50);
         } else {
@@ -1037,7 +1041,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       createdAt: new Date()
     };
     
-    const newMessages = [...messages, userMessage];
+    // Deduplicate to prevent duplicate key errors
+    const newMessages = [...messages.filter(m => m.id !== userMessage.id), userMessage];
     setMessages(newMessages);
     setInputValue('');
     
