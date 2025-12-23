@@ -962,14 +962,25 @@ serve(async (req) => {
       }
     }
 
-    const today = new Date();
-    const todayStr = today.toLocaleDateString('pt-BR', { 
+    // Calcular data "hoje" no timezone do usuário (não UTC)
+    const currentDate = new Date();
+    
+    // Formata a data no timezone do usuário para obter o dia correto
+    const todayStr = currentDate.toLocaleDateString('pt-BR', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
-      day: 'numeric' 
+      day: 'numeric',
+      timeZone: userTimezone
     });
-    const todayISO = today.toISOString().split('T')[0];
+    
+    // Obtém a data ISO no timezone do usuário (en-CA retorna YYYY-MM-DD)
+    const todayISO = currentDate.toLocaleDateString('en-CA', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
 
     const greetingInstruction = userName 
       ? `Cumprimente o usuario pelo nome "${userName}". Exemplo: "E ai ${userName}, o que vamos agendar hoje?"`
