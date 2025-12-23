@@ -96,6 +96,23 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
     }
   }, [availableAlertOptions]);
 
+  // Handle location search with debounce - MUST be before conditional return
+  useEffect(() => {
+    if (!locationSearch || locationSearch.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchAddresses(locationSearch);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [locationSearch, searchAddresses]);
+
   if (!isOpen) return null;
 
   const handleSave = () => {
@@ -167,22 +184,6 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
     setSwipingAlertIndex(null);
   };
 
-  // Handle location search with debounce
-  useEffect(() => {
-    if (!locationSearch || locationSearch.length < 3) {
-      setSearchResults([]);
-      return;
-    }
-
-    const timeoutId = setTimeout(async () => {
-      setIsSearching(true);
-      const results = await searchAddresses(locationSearch);
-      setSearchResults(results);
-      setIsSearching(false);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [locationSearch, searchAddresses]);
 
   const handleGetCurrentLocation = async () => {
     const result = await getCurrentAddress();
