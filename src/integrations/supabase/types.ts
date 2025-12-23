@@ -167,6 +167,7 @@ export type Database = {
           fcm_token: string | null
           fcm_token_updated_at: string | null
           first_event_created: boolean | null
+          font_preference: string | null
           id: string
           learn_patterns_enabled: boolean | null
           onboarding_completed: boolean | null
@@ -194,6 +195,7 @@ export type Database = {
           fcm_token?: string | null
           fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
+          font_preference?: string | null
           id: string
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
@@ -221,6 +223,7 @@ export type Database = {
           fcm_token?: string | null
           fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
+          font_preference?: string | null
           id?: string
           learn_patterns_enabled?: boolean | null
           onboarding_completed?: boolean | null
