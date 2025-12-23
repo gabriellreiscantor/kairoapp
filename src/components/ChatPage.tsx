@@ -877,9 +877,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
       });
       
-      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData) {
-        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData) 
-          ? { eventData: finalEventData, deletedEventData: finalDeletedEventData, eventsListData: finalEventsListData, pastDateData: finalPastDateData }
+      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady) {
+        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady) 
+          ? { 
+              eventData: finalEventData, 
+              deletedEventData: finalDeletedEventData, 
+              eventsListData: finalEventsListData, 
+              pastDateData: finalPastDateData,
+              weeklyReportData: finalWeeklyReportData,
+              weeklyReportNotReady: finalWeeklyReportNotReady,
+            }
           : undefined;
         
         console.log('[ChatPage] Constructed metadata for save:', metadata);
