@@ -40,7 +40,7 @@ const SpecialFeaturesPage = () => {
           <div className="flex items-center gap-3 mb-3">
             <Crown className="w-7 h-7 text-white" />
             <div>
-              <h2 className="text-white font-bold text-lg">Kairo Premium</h2>
+              <h2 className="text-white font-bold text-lg">Horah Premium</h2>
               <p className="text-white/70 text-sm">Desbloqueie todo o potencial</p>
             </div>
           </div>
