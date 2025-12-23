@@ -8,8 +8,8 @@ import { useTheme } from "next-themes";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import horahLogoLight from "@/assets/horah-logo-light.png";
-import horahLogo from "@/assets/horah-logo.png";
+import horahHeader from "@/assets/horah-header.png";
+import horahAvatar from "@/assets/horah-logo-light.png";
 import EventCreatedCard from "@/components/chat/EventCreatedCard";
 import EventDeletedCard from "@/components/chat/EventDeletedCard";
 import EventCreatingAnimation from "@/components/chat/EventCreatingAnimation";
@@ -125,7 +125,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     completeOnboarding 
   } = useOnboarding();
   
-  const kairoFox = resolvedTheme === 'dark' ? horahLogo : horahLogoLight;
+  // Header image (colorful octopus) and avatar image (transparent) are now separate
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1195,7 +1195,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             onClick={() => onViewChange('chat')}
             className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
           >
-            <img src={kairoFox} alt="Horah" className="w-full h-full object-cover" />
+            <img src={horahHeader} alt="Horah" className="w-full h-full object-cover" />
           </button>
           
           {/* Settings - Right */}
@@ -1245,7 +1245,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             {/* Welcome message */}
             <div className="flex items-start gap-3 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
-<img src={kairoFox} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+<img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
               <div className="flex-1">
                 <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
@@ -1305,7 +1305,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.content && (
                       <div className="flex items-start gap-3 pl-1">
                         <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-<img src={kairoFox} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+<img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <div className="flex-1 pt-0.5">
                           <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
@@ -1319,7 +1319,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     {message.confirmationData && (
                       <div className="flex items-start gap-3 pl-1">
                         <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-<img src={kairoFox} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+<img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <EventConfirmationCard
                           resumo={message.confirmationData}
@@ -1396,7 +1396,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           {isLoading && (
             <div className="flex items-start gap-3 mb-4 pl-1">
               <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-                <img src={kairoFox} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+                <img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
               <div className="flex items-center gap-1 pt-2">
                 <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0ms]" />
