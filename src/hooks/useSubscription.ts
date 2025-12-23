@@ -10,6 +10,7 @@ interface PlanLimits {
   chat_capacity_multiplier: number;
   has_conflict_detection: boolean;
   has_daily_overview: boolean;
+  has_critical_alerts: boolean;
   price_monthly: number;
   price_yearly: number;
 }

@@ -117,6 +117,7 @@ export type Database = {
         Row: {
           chat_capacity_multiplier: number
           has_conflict_detection: boolean | null
+          has_critical_alerts: boolean
           has_daily_overview: boolean | null
           id: string
           max_events_per_week: number
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           chat_capacity_multiplier?: number
           has_conflict_detection?: boolean | null
+          has_critical_alerts?: boolean
           has_daily_overview?: boolean | null
           id?: string
           max_events_per_week: number
@@ -141,6 +143,7 @@ export type Database = {
         Update: {
           chat_capacity_multiplier?: number
           has_conflict_detection?: boolean | null
+          has_critical_alerts?: boolean
           has_daily_overview?: boolean | null
           id?: string
           max_events_per_week?: number
