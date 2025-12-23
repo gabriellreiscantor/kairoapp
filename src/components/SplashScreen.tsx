@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SplashScreen as NativeSplash } from '@capacitor/splash-screen';
 import horahLogoDark from "@/assets/horah-splash-dark.png";
 import horahLogoLight from "@/assets/horah-splash-light.png";
 
@@ -24,6 +25,13 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   });
 
   const splashImage = isDarkMode ? horahLogoLight : horahLogoDark;
+
+  // Esconder splash nativo do Capacitor quando React assumir
+  useEffect(() => {
+    NativeSplash.hide().catch(() => {
+      // Silently ignore - não está rodando em ambiente nativo
+    });
+  }, []);
 
   // Esconder splash inline do HTML e pré-carregar imagem
   useEffect(() => {
