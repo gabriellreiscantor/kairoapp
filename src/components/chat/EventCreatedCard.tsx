@@ -57,6 +57,22 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     call_alert_answered_at: event.call_alert_answered_at,
     call_alert_outcome: event.call_alert_outcome,
   });
+
+  // Sync callAlertEnabled when event prop changes
+  useEffect(() => {
+    setCallAlertEnabled(event?.call_alert_enabled || false);
+  }, [event?.call_alert_enabled]);
+
+  // Sync liveCallData when event prop changes
+  useEffect(() => {
+    setLiveCallData({
+      call_alert_sent_at: event.call_alert_sent_at,
+      call_alert_attempts: event.call_alert_attempts,
+      call_alert_answered: event.call_alert_answered,
+      call_alert_answered_at: event.call_alert_answered_at,
+      call_alert_outcome: event.call_alert_outcome,
+    });
+  }, [event.call_alert_sent_at, event.call_alert_attempts, event.call_alert_answered, event.call_alert_answered_at, event.call_alert_outcome]);
   
   // Check if event is expired (already happened) - only for non-recurring events
   const isExpired = useMemo(() => {
