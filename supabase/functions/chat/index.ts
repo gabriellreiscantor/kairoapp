@@ -1091,6 +1091,334 @@ function getCategoryEmoji(category: string, title?: string): string {
       '銀行': '🏦', 'ぎんこう': '🏦',
       '은행': '🏦',
       '银行': '🏦',
+      
+      // ============================================
+      // FASE 4: SOCIAL, FAMÍLIA & EVENTOS ESPECIAIS (~125 emojis)
+      // ============================================
+      
+      // --- ANIVERSÁRIO / BIRTHDAY ---
+      'aniversario': '🎂', 'aniversário': '🎂', 'niver': '🎂',
+      'birthday': '🎂', 'bday': '🎂', 'b-day': '🎂',
+      'cumpleanos': '🎂', 'cumpleaños': '🎂', 'cumple': '🎂',
+      'anniversaire': '🎂',
+      'geburtstag': '🎂',
+      'compleanno': '🎂',
+      '誕生日': '🎂', 'たんじょうび': '🎂',
+      '생일': '🎂',
+      '生日': '🎂',
+      
+      // --- CASAMENTO / WEDDING ---
+      'casamento': '💒', 'casar': '💒',
+      'wedding': '💒', 'marriage': '💒', 'bride': '💒', 'groom': '💒',
+      'boda': '💒', 'casarse': '💒',
+      'mariage': '💒', 'noces': '💒', 'mariée': '💒',
+      'hochzeit': '💒', 'heirat': '💒', 'braut': '💒',
+      'matrimonio': '💒', 'nozze': '💒', 'sposa': '💒', 'sposo': '💒',
+      '結婚式': '💒', 'けっこんしき': '💒', '結婚': '💒',
+      '결혼식': '💒', '결혼': '💒',
+      '婚礼': '💒', '结婚': '💒',
+      
+      // --- AMIGOS / FRIENDS ---
+      'amigos': '👯', 'amigas': '👯', 'galera': '👯',
+      'friends': '👯', 'friend': '👯', 'buddies': '👯', 'pals': '👯', 'hang out': '👯',
+      'cuates': '👯', 'panas': '👯',
+      'amis': '👯', 'ami': '👯', 'copains': '👯', 'potes': '👯',
+      'freunde': '👯', 'freund': '👯', 'kumpel': '👯',
+      'amici': '👯', 'amico': '👯', 'amica': '👯',
+      '友達': '👯', 'ともだち': '👯', '友人': '👯',
+      '친구': '👯', '친구들': '👯',
+      '朋友': '👯', '朋友们': '👯',
+      
+      // --- FAMÍLIA / FAMILY ---
+      'familia': '👨‍👩‍👧', 'família': '👨‍👩‍👧', 'familias': '👨‍👩‍👧',
+      'family': '👨‍👩‍👧', 'relatives': '👨‍👩‍👧',
+      'familiares': '👨‍👩‍👧', 'parientes': '👨‍👩‍👧',
+      'famille': '👨‍👩‍👧', 'proches': '👨‍👩‍👧',
+      'familie': '👨‍👩‍👧', 'verwandte': '👨‍👩‍👧',
+      'famiglia': '👨‍👩‍👧', 'parenti': '👨‍👩‍👧',
+      '家族': '👨‍👩‍👧', 'かぞく': '👨‍👩‍👧',
+      '가족': '👨‍👩‍👧',
+      '家人': '👨‍👩‍👧', '家庭': '👨‍👩‍👧',
+      
+      // --- PAIS / PARENTS ---
+      'pais': '👨‍👩‍👦', 'pai': '👨', 'mae': '👩', 'mãe': '👩', 'papai': '👨', 'mamae': '👩', 'mamãe': '👩',
+      'parents': '👨‍👩‍👦', 'dad': '👨', 'mom': '👩', 'father': '👨', 'mother': '👩', 'daddy': '👨', 'mommy': '👩',
+      'padres': '👨‍👩‍👦', 'papá': '👨', 'mamá': '👩',
+      'pere': '👨', 'père': '👨', 'mère': '👩', 'mere': '👩', 'maman': '👩',
+      'eltern': '👨‍👩‍👦', 'vater': '👨', 'mutter': '👩',
+      'genitori': '👨‍👩‍👦', 'papà': '👨', 'mamma': '👩', 'padre it': '👨', 'madre it': '👩',
+      '両親': '👨‍👩‍👦', 'りょうしん': '👨‍👩‍👦', '父': '👨', '母': '👩', 'ちち': '👨', 'はは': '👩',
+      '부모님': '👨‍👩‍👦', '아버지': '👨', '어머니': '👩', '아빠': '👨', '엄마': '👩',
+      '父母': '👨‍👩‍👦', '爸爸': '👨', '妈妈': '👩',
+      
+      // --- AVÓS / GRANDPARENTS ---
+      'avos': '👴', 'avó': '👵', 'avo': '👴', 'vovo': '👵', 'vovó': '👵', 'vovô': '👴',
+      'grandparents': '👴', 'grandma': '👵', 'grandpa': '👴', 'grandmother': '👵', 'grandfather': '👴', 'granny': '👵',
+      'abuelos': '👴', 'abuela': '👵', 'abuelo': '👴', 'abuelita': '👵', 'abuelito': '👴',
+      'grands-parents': '👴', 'grand-mere': '👵', 'grand-père': '👴', 'mamie': '👵', 'papi': '👴',
+      'grosseltern': '👴', 'oma': '👵', 'opa': '👴', 'großmutter': '👵', 'großvater': '👴',
+      'nonni': '👴', 'nonna': '👵', 'nonno': '👴',
+      '祖父母': '👴', 'そふぼ': '👴', 'おじいちゃん': '👴', 'おばあちゃん': '👵',
+      '조부모': '👴', '할아버지': '👴', '할머니': '👵',
+      '爷爷': '👴', '奶奶': '👵', '外公': '👴', '外婆': '👵',
+      
+      // --- FILHOS / CHILDREN ---
+      'filhos': '👶', 'filho': '👶', 'filha': '👶', 'crianca': '👶', 'criança': '👶', 'bebe': '👶', 'bebê': '👶',
+      'children': '👶', 'child': '👶', 'kids': '👶', 'kid': '👶', 'baby': '👶', 'son': '👶', 'daughter': '👶',
+      'hijos': '👶', 'hijo': '👶', 'hija': '👶', 'ninos': '👶', 'niños': '👶', 'nino': '👶', 'niña': '👶',
+      'enfants': '👶', 'enfant': '👶', 'fils': '👶', 'fille': '👶', 'bébé': '👶',
+      'kinder': '👶', 'kind': '👶', 'sohn': '👶', 'tochter': '👶',
+      'figli': '👶', 'figlio': '👶', 'figlia': '👶', 'bambini': '👶', 'bambino': '👶',
+      '子供': '👶', 'こども': '👶', '息子': '👶', '娘': '👶', '赤ちゃん': '👶',
+      '아이': '👶', '아이들': '👶', '아들': '👶', '딸': '👶',
+      '孩子': '👶', '儿子': '👶', '女儿': '👶', '宝宝': '👶',
+      
+      // --- IRMÃOS / SIBLINGS ---
+      'irmaos': '👫', 'irmãos': '👫', 'irmao': '👫', 'irmão': '👫', 'irma': '👫', 'irmã': '👫',
+      'siblings': '👫', 'brother': '👫', 'sister': '👫', 'bro': '👫', 'sis': '👫',
+      'hermanos': '👫', 'hermano': '👫', 'hermana': '👫',
+      'frères et sœurs': '👫', 'frere': '👫', 'frère': '👫', 'sœur': '👫', 'soeur': '👫',
+      'geschwister': '👫', 'bruder': '👫', 'schwester': '👫',
+      'fratelli': '👫', 'fratello': '👫', 'sorella': '👫',
+      '兄弟': '👫', 'きょうだい': '👫', '兄': '👫', '弟': '👫', '姉': '👫', '妹': '👫',
+      '형제': '👫', '오빠': '👫', '형': '👫', '누나': '👫', '언니': '👫', '동생': '👫',
+      '兄弟姐妹': '👫', '哥哥': '👫', '弟弟': '👫', '姐姐': '👫', '妹妹': '👫',
+      
+      // --- NATAL / CHRISTMAS ---
+      'natal': '🎄', 'natalino': '🎄', 'papai noel': '🎅',
+      'christmas': '🎄', 'xmas': '🎄', 'santa': '🎅', 'santa claus': '🎅',
+      'navidad': '🎄', 'nochebuena': '🎄',
+      'noël': '🎄', 'noel': '🎄', 'père noël': '🎅',
+      'weihnachten': '🎄', 'weihnachtsmann': '🎅', 'heiligabend': '🎄',
+      'natale': '🎄', 'babbo natale': '🎅', 'vigilia': '🎄',
+      'クリスマス': '🎄', 'サンタ': '🎅',
+      '크리스마스': '🎄', '산타': '🎅',
+      '圣诞节': '🎄', '圣诞老人': '🎅',
+      
+      // --- ANO NOVO / NEW YEAR ---
+      'ano novo': '🎆', 'reveillon': '🎆', 'réveillon': '🎆', 'virada': '🎆',
+      'new year': '🎆', 'new years': '🎆', 'new years eve': '🎆', 'nye': '🎆',
+      'ano nuevo': '🎆', 'año nuevo': '🎆', 'nochevieja': '🎆',
+      'nouvel an': '🎆', 'saint sylvestre': '🎆',
+      'neujahr': '🎆', 'silvester': '🎆',
+      'capodanno': '🎆', 'anno nuovo': '🎆',
+      '新年': '🎆', 'しんねん': '🎆', 'お正月': '🎆', 'おしょうがつ': '🎆',
+      '새해': '🎆', '신년': '🎆',
+      '元旦': '🎆', '跨年': '🎆',
+      
+      // --- PÁSCOA / EASTER ---
+      'pascoa': '🐰', 'páscoa': '🐰',
+      'easter': '🐰', 'easter bunny': '🐰',
+      'semana santa es': '🐰',
+      'pâques': '🐰', 'paques': '🐰',
+      'ostern': '🐰', 'osterhase': '🐰',
+      'pasqua': '🐰',
+      'イースター': '🐰', '復活祭': '🐰',
+      '부활절': '🐰',
+      '复活节': '🐰',
+      
+      // --- DIA DAS MÃES / MOTHER'S DAY ---
+      'dia das maes': '💐', 'dia das mães': '💐',
+      'mothers day': '💐', "mother's day": '💐',
+      'dia de la madre': '💐', 'día de la madre': '💐',
+      'fete des meres': '💐', 'fête des mères': '💐',
+      'muttertag': '💐',
+      'festa della mamma': '💐',
+      '母の日': '💐', 'ははのひ': '💐',
+      '어머니날': '💐',
+      '母亲节': '💐',
+      
+      // --- DIA DOS PAIS / FATHER'S DAY ---
+      'dia dos pais': '👔',
+      'fathers day': '👔', "father's day": '👔',
+      'dia del padre': '👔', 'día del padre': '👔',
+      'fete des peres': '👔', 'fête des pères': '👔',
+      'vatertag': '👔',
+      'festa del papà': '👔', 'festa del papa': '👔',
+      '父の日': '👔', 'ちちのひ': '👔',
+      '아버지날': '👔',
+      '父亲节': '👔',
+      
+      // --- VALENTINE'S DAY / DIA DOS NAMORADOS ---
+      'dia dos namorados': '💕', 'valentines': '💕', 'valentim': '💕',
+      'valentines day': '💕', "valentine's day": '💕',
+      'san valentin': '💕', 'san valentín': '💕', 'dia del amor': '💕',
+      'saint valentin': '💕',
+      'valentinstag': '💕',
+      'san valentino': '💕',
+      'バレンタイン': '💕', 'バレンタインデー': '💕',
+      '밸런타인데이': '💕', '발렌타인': '💕',
+      '情人节': '💕',
+      
+      // --- FORMATURA / GRADUATION ---
+      'formatura': '🎓', 'formar': '🎓', 'graduacao': '🎓', 'graduação': '🎓',
+      'graduation': '🎓', 'graduate': '🎓', 'commencement': '🎓',
+      'graduacion': '🎓', 'graduación': '🎓', 'licenciatura': '🎓',
+      'remise de diplôme': '🎓', 'diplome': '🎓', 'diplôme': '🎓',
+      'abschluss': '🎓', 'abschlussfeier': '🎓',
+      'laurea': '🎓', 'diploma': '🎓',
+      '卒業式': '🎓', 'そつぎょうしき': '🎓', '卒業': '🎓',
+      '졸업식': '🎓', '졸업': '🎓',
+      '毕业典礼': '🎓', '毕业': '🎓',
+      
+      // --- CHÁ DE BEBÊ / BABY SHOWER ---
+      'cha de bebe': '🍼', 'chá de bebê': '🍼', 'cha de fraldas': '🍼',
+      'baby shower': '🍼',
+      'lluvia de bebe': '🍼',
+      'fête prénatale': '🍼',
+      'babyparty': '🍼',
+      'festa per il bambino': '🍼',
+      'ベビーシャワー': '🍼',
+      '베이비샤워': '🍼',
+      '宝宝派对': '🍼',
+      
+      // --- NOIVADO / ENGAGEMENT ---
+      'noivado': '💍', 'noiva': '💍', 'noivo': '💍', 'pedido de casamento': '💍',
+      'engagement': '💍', 'engaged': '💍', 'proposal': '💍',
+      'compromiso': '💍', 'pedida de mano': '💍',
+      'fiançailles': '💍',
+      'verlobung': '💍', 'verlobt': '💍',
+      'fidanzamento': '💍', 'proposta di matrimonio': '💍',
+      '婚約': '💍', 'こんやく': '💍', 'プロポーズ': '💍',
+      '약혼': '💍', '프러포즈': '💍',
+      '订婚': '💍', '求婚': '💍',
+      
+      // --- BATIZADO / BAPTISM ---
+      'batizado': '⛪', 'batismo': '⛪',
+      'baptism': '⛪', 'christening': '⛪',
+      'bautizo': '⛪', 'bautismo': '⛪',
+      'baptême': '⛪', 'bapteme': '⛪',
+      'taufe': '⛪',
+      'battesimo': '⛪',
+      '洗礼': '⛪', 'せんれい': '⛪',
+      '세례': '⛪', '세례식': '⛪',
+      '受洗': '⛪',
+      
+      // --- ENCONTRO / DATE ---
+      'encontro': '❤️', 'date romantico': '❤️', 'romântico': '❤️',
+      'romantic': '❤️', 'romance': '❤️',
+      'cita romantica': '❤️', 'romántico': '❤️',
+      'rendez-vous': '❤️', 'rencontre': '❤️', 'romantique': '❤️',
+      'verabredung': '❤️', 'romantisch': '❤️',
+      'appuntamento': '❤️', 'romantico it': '❤️',
+      'デート': '❤️', 'ロマンチック': '❤️',
+      '데이트': '❤️', '로맨틱': '❤️',
+      '约会': '❤️', '浪漫': '❤️',
+      
+      // --- VISITA / VISIT ---
+      'visitar': '🏠', 'visitando': '🏠',
+      'visit': '🏠', 'visiting': '🏠',
+      'visita es': '🏠',
+      'visite': '🏠', 'rendre visite': '🏠',
+      'besuch': '🏠', 'besuchen': '🏠',
+      'visita it': '🏠', 'visitare': '🏠',
+      '訪問': '🏠', 'ほうもん': '🏠',
+      '방문': '🏠',
+      '拜访': '🏠', '探望': '🏠',
+      
+      // --- CHURRASCO FAMÍLIA / FAMILY BBQ ---
+      'churras familia': '🍖', 'churrasco em familia': '🍖', 'almoco em familia': '🍽️',
+      'family bbq': '🍖', 'family gathering': '👨‍👩‍👧', 'family dinner': '🍽️',
+      'reunion familiar': '👨‍👩‍👧', 'reunión familiar': '👨‍👩‍👧',
+      'repas de famille': '🍽️', 'réunion de famille': '👨‍👩‍👧',
+      'familientreffen': '👨‍👩‍👧', 'familienessen': '🍽️',
+      'pranzo in famiglia': '🍽️', 'riunione di famiglia': '👨‍👩‍👧',
+      '家族の集まり': '👨‍👩‍👧', 'かぞくのあつまり': '👨‍👩‍👧',
+      '가족 모임': '👨‍👩‍👧',
+      '家庭聚会': '👨‍👩‍👧', '家人聚餐': '🍽️',
+      
+      // --- BRINDE / TOAST ---
+      'brinde': '🥂', 'brindar': '🥂', 'comemorar': '🥂', 'comemoracao': '🥂',
+      'toast': '🥂', 'cheers': '🥂', 'celebrate': '🥂',
+      'brindis': '🥂', 'celebrar': '🥂',
+      'trinquer': '🥂', 'célébrer': '🥂', 'celebrer': '🥂', 'santé': '🥂',
+      'anstossen': '🥂', 'anstoßen': '🥂', 'prost': '🥂', 'feiern': '🥂',
+      'brindare': '🥂', 'cin cin': '🥂',
+      '乾杯': '🥂', 'かんぱい': '🥂', 'お祝い': '🥂',
+      '건배': '🥂', '축하': '🥂',
+      '干杯': '🥂', '庆祝': '🥂',
+      
+      // --- HALLOWEEN ---
+      'halloween': '🎃', 'dia das bruxas': '🎃',
+      'víspera de todos los santos': '🎃', 'noche de brujas': '🎃',
+      'toussaint': '🎃',
+      'ハロウィン': '🎃', 'ハロウィーン': '🎃',
+      '할로윈': '🎃',
+      '万圣节': '🎃',
+      
+      // --- AÇÃO DE GRAÇAS / THANKSGIVING ---
+      'acao de gracas': '🦃', 'ação de graças': '🦃',
+      'thanksgiving': '🦃',
+      'accion de gracias': '🦃', 'acción de gracias': '🦃', 'dia de gracias': '🦃',
+      'action de grâces': '🦃',
+      'erntedankfest': '🦃',
+      'ringraziamento': '🦃', 'giorno del ringraziamento': '🦃',
+      '感謝祭': '🦃', 'かんしゃさい': '🦃',
+      '추수감사절': '🦃',
+      '感恩节': '🦃',
+      
+      // --- CARNAVAL ---
+      'carnaval': '🎭', 'bloco': '🎭', 'bloquinho': '🎭', 'desfile': '🎭',
+      'carnival': '🎭', 'mardi gras': '🎭',
+      'karneval': '🎭', 'fasching': '🎭',
+      'carnevale': '🎭',
+      'カーニバル': '🎭',
+      '카니발': '🎭',
+      '狂欢节': '🎭',
+      
+      // --- FESTA JUNINA / JUNE FESTIVAL ---
+      'festa junina': '🌽', 'sao joao': '🌽', 'são joão': '🌽', 'arraial': '🌽', 'quadrilha': '🌽',
+      'june festival': '🌽', 'midsummer': '🌽',
+      'fiesta de san juan': '🌽',
+      'fête de la saint-jean': '🌽', 'saint-jean': '🌽',
+      'johannisfest': '🌽', 'mittsommer': '🌽',
+      'festa di san giovanni': '🌽',
+      '夏祭り': '🌽', 'なつまつり': '🌽',
+      '여름 축제': '🌽',
+      '夏日祭': '🌽',
+      
+      // --- REUNIÃO DE TURMA / CLASS REUNION ---
+      'reuniao de turma': '🎓', 'reencontro': '🎓', 'ex-alunos': '🎓',
+      'class reunion': '🎓', 'alumni': '🎓',
+      'reunion de exalumnos': '🎓', 'reunión de exalumnos': '🎓',
+      'reunion danciens': '🎓', 'réunion d\'anciens': '🎓',
+      'klassentreffen': '🎓', 'ehemaligentreffen': '🎓',
+      'riunione di classe': '🎓',
+      '同窓会': '🎓', 'どうそうかい': '🎓',
+      '동창회': '🎓',
+      '同学会': '🎓',
+      
+      // --- PIQUENIQUE / PICNIC ---
+      'piquenique': '🧺', 'picnic': '🧺',
+      'merienda campestre': '🧺',
+      'pique-nique': '🧺',
+      'picknick': '🧺',
+      'scampagnata': '🧺',
+      'ピクニック': '🧺',
+      '피크닉': '🧺', '소풍': '🧺',
+      '野餐': '🧺',
+      
+      // --- DESPEDIDA / FAREWELL ---
+      'despedida': '👋', 'despedir': '👋', 'adeus': '👋', 'tchau': '👋',
+      'farewell': '👋', 'goodbye': '👋', 'send-off': '👋',
+      'adiós': '👋', 'despedida es': '👋',
+      'adieu': '👋', 'au revoir': '👋', 'pot de départ': '👋',
+      'abschied': '👋', 'verabschiedung': '👋', 'tschüss': '👋',
+      'addio': '👋', 'arrivederci': '👋',
+      'お別れ': '👋', 'おわかれ': '👋', 'さようなら': '👋',
+      '송별회': '👋', '작별': '👋',
+      '告别': '👋', '送别': '👋',
+      
+      // --- PRESENTE / GIFT ---
+      'presente': '🎁', 'presentes': '🎁', 'dar presente': '🎁', 'comprar presente': '🎁',
+      'gift': '🎁', 'gifts': '🎁', 'present': '🎁', 'buy gift': '🎁',
+      'regalos': '🎁', 'regalo es': '🎁',
+      'cadeau': '🎁', 'cadeaux': '🎁',
+      'geschenk': '🎁', 'geschenke': '🎁',
+      'regalo it': '🎁', 'regali': '🎁',
+      'プレゼント': '🎁', '贈り物': '🎁', 'おくりもの': '🎁',
+      '선물': '🎁',
+      '礼物': '🎁', '送礼': '🎁',
     };
     
     for (const [keyword, emoji] of Object.entries(titleKeywords)) {
