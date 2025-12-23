@@ -593,6 +593,229 @@ function getCategoryEmoji(category: string, title?: string): string {
       '熨衣服': '👔', '熨烫': '👔',
       
       // ============================================
+      // FASE 2: TRABALHO & ESTUDO (~125 emojis)
+      // ============================================
+      
+      // --- REUNIÃO / MEETING ---
+      'reuniao': '📊', 'reunião': '📊', 'videoconferencia': '📊',
+      'meeting': '📊', 'conference': '📊', 'video call': '📊', 'zoom': '📊', 'teams': '📊',
+      'junta': '📊', 'videollamada': '📊',
+      'réunion': '📊', 'visioconference': '📊',
+      'besprechung': '📊', 'sitzung': '📊', 'konferenz': '📊',
+      'riunione': '📊', 'incontro': '📊', 'videochiamata': '📊',
+      '会議': '📊', 'ミーティング': '📊', 'かいぎ': '📊',
+      '회의': '📊', '미팅': '📊', '화상회의': '📊',
+      '开会': '📊', '视频会议': '📊',
+      
+      // --- TRABALHO / WORK ---
+      'trabalho': '💼', 'trampo': '💼', 'serviço': '💼', 'emprego': '💼',
+      'work': '💼', 'job': '💼', 'office': '💼', 'workplace': '💼',
+      'trabajo': '💼', 'oficina': '💼', 'curro': '💼', 'chamba': '💼',
+      'travail': '💼', 'boulot': '💼', 'bureau': '💼',
+      'arbeit': '💼', 'büro': '💼', 'arbeitsplatz': '💼',
+      'lavoro': '💼', 'ufficio': '💼',
+      '仕事': '💼', 'しごと': '💼', 'オフィス': '💼',
+      '일': '💼', '출근': '💼', '회사': '💼', '직장': '💼',
+      '工作': '💼', '上班': '💼', '办公室': '💼',
+      
+      // --- HOME OFFICE ---
+      'home office': '🏠', 'trabalhar de casa': '🏠', 'remoto': '🏠',
+      'remote work': '🏠', 'work from home': '🏠', 'wfh': '🏠',
+      'teletrabajo': '🏠', 'trabajo remoto': '🏠',
+      'télétravail': '🏠', 'teletravail': '🏠', 'travail a distance': '🏠',
+      'homeoffice': '🏠', 'heimarbeit': '🏠',
+      'lavoro da casa': '🏠', 'smart working': '🏠', 'telelavoro': '🏠',
+      'リモートワーク': '🏠', '在宅勤務': '🏠', 'テレワーク': '🏠',
+      '재택근무': '🏠', '원격근무': '🏠',
+      '远程工作': '🏠', '在家工作': '🏠', '居家办公': '🏠',
+      
+      // --- ESTUDAR / STUDY ---
+      'estudar': '📚', 'estudos': '📚', 'estudando': '📚',
+      'study': '📚', 'studying': '📚', 'homework': '📚', 'revision': '📚',
+      'estudiar': '📚', 'deberes': '📚', 'tarea': '📚',
+      'étudier': '📚', 'etudier': '📚', 'devoirs': '📚', 'révision': '📚',
+      'studieren': '📚', 'lernen': '📚', 'hausaufgaben': '📚',
+      'studiare': '📚', 'compiti': '📚',
+      '勉強': '📚', 'べんきょう': '📚', '宿題': '📚',
+      '공부': '📚', '공부하다': '📚', '숙제': '📚',
+      '学习': '📚', '作业': '📚',
+      
+      // --- ESCOLA / SCHOOL ---
+      'escola': '🏫', 'colegio': '🏫', 'colégio': '🏫',
+      'school': '🏫', 'class': '🏫', 'classroom': '🏫',
+      'escuela': '🏫', 'clase': '🏫',
+      'école': '🏫', 'ecole': '🏫', 'classe': '🏫', 'lycée': '🏫',
+      'schule': '🏫', 'unterricht': '🏫', 'klasse': '🏫',
+      'scuola': '🏫', 'lezione': '🏫',
+      '学校': '🏫', 'がっこう': '🏫', '授業': '🏫',
+      '학교': '🏫', '수업': '🏫',
+      '上课': '🏫',
+      
+      // --- UNIVERSIDADE / UNIVERSITY ---
+      'faculdade': '🎓', 'universidade': '🎓', 'campus': '🎓',
+      'university': '🎓', 'college': '🎓', 'uni': '🎓',
+      'universidad': '🎓', 'facultad': '🎓',
+      'université': '🎓', 'universite': '🎓', 'fac': '🎓',
+      'universität': '🎓', 'hochschule': '🎓',
+      'università': '🎓', 'universita': '🎓',
+      '大学': '🎓', 'だいがく': '🎓',
+      '대학': '🎓', '대학교': '🎓',
+      '上大学': '🎓',
+      
+      // --- PROVA / EXAM ---
+      'prova': '📝', 'exame': '📝', 'teste': '📝', 'simulado': '📝',
+      'exam': '📝', 'test': '📝', 'quiz': '📝', 'examination': '📝',
+      'examen': '📝', 'prueba': '📝', 'parcial': '📝', 'final': '📝',
+      'épreuve': '📝', 'contrôle': '📝', 'partiel': '📝',
+      'prüfung': '📝', 'pruefung': '📝', 'klausur': '📝',
+      'esame': '📝', 'verifica': '📝', 'compito': '📝',
+      '試験': '📝', 'しけん': '📝', 'テスト': '📝',
+      '시험': '📝', '테스트': '📝',
+      '考试': '📝', '测验': '📝',
+      
+      // --- APRESENTAÇÃO / PRESENTATION ---
+      'apresentacao': '📽️', 'apresentação': '📽️', 'slide': '📽️', 'slides': '📽️',
+      'presentation': '📽️', 'powerpoint': '📽️', 'keynote': '📽️', 'pitch': '📽️',
+      'presentacion': '📽️', 'presentación': '📽️', 'diapositivas': '📽️',
+      'présentation': '📽️', 'exposé': '📽️',
+      'prasentation': '📽️', 'präsentation': '📽️', 'vortrag': '📽️',
+      'presentazione': '📽️',
+      'プレゼン': '📽️', 'プレゼンテーション': '📽️', '発表': '📽️',
+      '발표': '📽️', '프레젠테이션': '📽️', 'ppt': '📽️',
+      '演示': '📽️', '汇报': '📽️',
+      
+      // --- DEADLINE / PRAZO ---
+      'deadline': '⏳', 'prazo': '⏳', 'entrega': '⏳', 'entregar': '⏳',
+      'due date': '⏳', 'submission': '⏳', 'due': '⏳',
+      'fecha limite': '⏳', 'fecha límite': '⏳', 'plazo': '⏳', 'vencimiento': '⏳',
+      'date limite': '⏳', 'échéance': '⏳', 'echeance': '⏳', 'delai': '⏳',
+      'frist': '⏳', 'abgabe': '⏳', 'termin': '⏳',
+      'scadenza': '⏳', 'consegna': '⏳',
+      '締め切り': '⏳', 'しめきり': '⏳', '期限': '⏳',
+      '마감': '⏳', '제출': '⏳', '기한': '⏳',
+      '截止日期': '⏳', '交稿': '⏳',
+      
+      // --- PROJETO / PROJECT ---
+      'projeto': '📋', 'projetos': '📋',
+      'project': '📋', 'projects': '📋',
+      'proyecto': '📋', 'proyectos': '📋',
+      'projet': '📋', 'projets': '📋',
+      'projekt': '📋', 'projekte': '📋',
+      'progetto': '📋', 'progetti': '📋',
+      'プロジェクト': '📋',
+      '프로젝트': '📋',
+      '项目': '📋', '工程': '📋',
+      
+      // --- CURSO / COURSE ---
+      'curso': '🎓', 'cursos': '🎓', 'aula': '🎓',
+      'course': '🎓', 'lesson': '🎓', 'training': '🎓', 'workshop': '🎓',
+      'taller': '🎓', 'capacitacion': '🎓',
+      'cours': '🎓', 'formation': '🎓', 'atelier': '🎓',
+      'kurs': '🎓', 'schulung': '🎓', 'weiterbildung': '🎓',
+      'corso': '🎓', 'formazione': '🎓',
+      'コース': '🎓', '講座': '🎓', '研修': '🎓',
+      '강좌': '🎓', '강의': '🎓', '워크샵': '🎓',
+      '课程': '🎓', '培训': '🎓', '讲座': '🎓',
+      
+      // --- EMAIL ---
+      'email': '📧', 'emails': '📧', 'responder email': '📧',
+      'mail': '📧', 'inbox': '📧', 'reply': '📧',
+      'correo': '📧', 'correo electronico': '📧', 'correo electrónico': '📧',
+      'courriel': '📧', 'messagerie': '📧', 'mél': '📧',
+      'nachricht': '📧',
+      'posta': '📧', 'posta elettronica': '📧',
+      'メール': '📧', 'Eメール': '📧',
+      '이메일': '📧', '메일': '📧',
+      '邮件': '📧', '电子邮件': '📧',
+      
+      // --- LIGAÇÃO / CALL ---
+      'ligacao': '📞', 'ligação': '📞', 'telefonema': '📞', 'ligar': '📞',
+      'phone call': '📞', 'call back': '📞', 'phone': '📞',
+      'llamada': '📞', 'llamar': '📞', 'telefonear': '📞',
+      'appel': '📞', 'coup de fil': '📞', 'téléphone': '📞',
+      'anruf': '📞', 'telefonat': '📞', 'anrufen': '📞',
+      'chiamata': '📞', 'telefonata': '📞', 'chiamare': '📞',
+      '電話': '📞', 'でんわ': '📞',
+      '전화': '📞', '통화': '📞',
+      '电话': '📞', '打电话': '📞',
+      
+      // --- ENTREVISTA / INTERVIEW ---
+      'entrevista': '🎤', 'entrevistas': '🎤',
+      'interview': '🎤', 'job interview': '🎤',
+      'entrevista de trabajo': '🎤', 'entrevista laboral': '🎤',
+      'entretien': '🎤', 'entretien dembauche': '🎤',
+      'vorstellungsgespräch': '🎤', 'bewerbungsgesprach': '🎤',
+      'colloquio': '🎤', 'colloquio di lavoro': '🎤',
+      '面接': '🎤', 'めんせつ': '🎤',
+      '면접': '🎤', '인터뷰': '🎤',
+      '面试': '🎤',
+      
+      // --- RELATÓRIO / REPORT ---
+      'relatorio': '📄', 'relatório': '📄', 'relatorios': '📄',
+      'report': '📄', 'reports': '📄', 'document': '📄',
+      'informe': '📄', 'reporte': '📄', 'documento': '📄',
+      'rapport': '📄', 'compte rendu': '📄',
+      'bericht': '📄', 'berichte': '📄', 'dokument': '📄',
+      'rapporto': '📄', 'relazione': '📄',
+      '報告書': '📄', 'レポート': '📄',
+      '보고서': '📄', '리포트': '📄',
+      '报告': '📄', '文档': '📄',
+      
+      // --- CONTRATO / CONTRACT ---
+      'contrato': '📃', 'contratos': '📃', 'assinar': '📃',
+      'contract': '📃', 'sign': '📃', 'agreement': '📃',
+      'firmar': '📃', 'acuerdo': '📃',
+      'contrat': '📃', 'signer': '📃', 'accord': '📃',
+      'vertrag': '📃', 'unterschreiben': '📃',
+      'contratto': '📃', 'firmare': '📃', 'accordo': '📃',
+      '契約': '📃', 'けいやく': '📃',
+      '계약': '📃', '계약서': '📃',
+      '合同': '📃', '签合同': '📃',
+      
+      // --- BRAINSTORM / IDEIAS ---
+      'brainstorm': '💡', 'ideias': '💡', 'ideação': '💡',
+      'brainstorming': '💡', 'ideas': '💡', 'ideation': '💡',
+      'lluvia de ideas': '💡',
+      'remue meninges': '💡', 'idées': '💡',
+      'ideenfindung': '💡', 'ideen': '💡',
+      'idee': '💡',
+      'ブレスト': '💡', 'アイデア': '💡',
+      '브레인스토밍': '💡', '아이디어': '💡',
+      '头脑风暴': '💡', '创意': '💡',
+      
+      // --- SEMINÁRIO / SEMINAR ---
+      'seminario': '🎓', 'seminário': '🎓', 'palestra': '🎓', 'webinar': '🎓',
+      'seminar': '🎓', 'lecture': '🎓', 'talk': '🎓',
+      'conferencia': '🎓', 'charla': '🎓', 'ponencia': '🎓',
+      'séminaire': '🎓', 'seminaire': '🎓', 'conférence': '🎓', 'webinaire': '🎓',
+      'convegno': '🎓', 'conferenza': '🎓',
+      'セミナー': '🎓', 'ウェビナー': '🎓', '講演': '🎓',
+      '세미나': '🎓', '웨비나': '🎓', '강연': '🎓',
+      '研讨会': '🎓', '网络研讨会': '🎓',
+      
+      // --- NOTA / GRADE ---
+      'nota': '📊', 'notas': '📊', 'boletim': '📊',
+      'grade': '📊', 'grades': '📊', 'report card': '📊', 'gpa': '📊',
+      'calificacion': '📊', 'calificación': '📊',
+      'note': '📊', 'bulletin': '📊', 'moyenne': '📊',
+      'noten': '📊', 'zeugnis': '📊',
+      'voto': '📊', 'voti': '📊', 'pagella': '📊',
+      '成績': '📊', 'せいせき': '📊', '通知表': '📊',
+      '성적': '📊', '성적표': '📊',
+      '成绩': '📊', '分数': '📊',
+      
+      // --- BIBLIOTECA / LIBRARY ---
+      'biblioteca': '📖', 'livros': '📖', 'leitura': '📖',
+      'library': '📖', 'books': '📖', 'reading': '📖',
+      'libros': '📖', 'lectura': '📖',
+      'bibliothèque': '📖', 'bibliotheque': '📖', 'livres': '📖',
+      'bibliothek': '📖', 'bücher': '📖', 'lesen': '📖',
+      'libri': '📖', 'lettura': '📖',
+      '図書館': '📖', 'としょかん': '📖', '読書': '📖',
+      '도서관': '📖', '독서': '📖',
+      '图书馆': '📖',
+      
+      // ============================================
       // EXISTING KEYWORDS (from before)
       // ============================================
       'aeroporto': '✈️', 'voo': '✈️', 'aviao': '✈️',
@@ -601,13 +824,10 @@ function getCategoryEmoji(category: string, title?: string): string {
       'churrasco': '🍖',
       'praia': '🏖️', 'piscina': '🏊',
       'academia': '💪', 'treino': '🏋️',
-      'medico': '🏥', 'dentista': '🦷',
-      'reuniao': '📝',
+      'medico': '🏥',
       'aniversario': '🎂', 'casamento': '💒',
-      'cinema': '🎬', 'show': '🎵',
+      'cinema': '🎬',
       'restaurante': '🍽️',
-      'escola': '🏫', 'faculdade': '🎓',
-      'trabalho': '💼',
       'spa': '💆', 'massagem': '💆',
       'yoga': '🧘', 'pilates': '🧘‍♀️',
       'futebol': '⚽', 'bola': '⚽', 'pelada': '⚽', 'golzinho': '⚽',
@@ -616,7 +836,7 @@ function getCategoryEmoji(category: string, title?: string): string {
       'corrida': '🏃', 'correr': '🏃',
       'caminhada': '🚶', 'caminhar': '🚶',
       'natacao': '🏊', 'nadar': '🏊', 'esporte': '🏃',
-      'shopping': '🛍️', 'banco': '🏦', 'viagem': '✈️',
+      'shopping': '🛍️', 'banco': '🏦',
     };
     
     for (const [keyword, emoji] of Object.entries(titleKeywords)) {
