@@ -39,9 +39,9 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   const steps = [
     {
       icon: <FoxIcon size={80} />,
-      title: "Kairo cuida do seu tempo",
+      title: "Horah cuida do seu tempo",
       description:
-        "Nunca mais esqueça um compromisso. Kairo te lembra no momento certo, do jeito certo.",
+        "Nunca mais esqueça um compromisso. Horah te lembra no momento certo, do jeito certo.",
     },
     {
       icon: <MessageCircle size={64} className="text-primary" />,
