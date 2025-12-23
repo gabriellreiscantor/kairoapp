@@ -1,15 +1,43 @@
 import { Bell, Phone, MessageSquare, Volume2 } from "lucide-react";
-import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import BackButton from "@/components/BackButton";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const NotificationSettingsPage = () => {
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [callEnabled, setCallEnabled] = useState(true);
-  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [criticalAlerts, setCriticalAlerts] = useState(true);
+  const { preferences, isLoading, updatePreference } = useNotificationPreferences();
+
+  const handleToggle = async (
+    key: keyof typeof preferences,
+    value: boolean
+  ) => {
+    const success = await updatePreference(key, value);
+    if (!success) {
+      toast.error("Erro ao salvar configuração");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
+          <BackButton />
+          <h1 className="text-xl font-bold text-foreground">Notificações</h1>
+        </header>
+        <div className="px-4 pb-8 space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,7 +62,10 @@ const NotificationSettingsPage = () => {
                   <p className="text-xs text-muted-foreground">Alertas no dispositivo</p>
                 </div>
               </div>
-              <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} />
+              <Switch 
+                checked={preferences.push_enabled} 
+                onCheckedChange={(v) => handleToggle("push_enabled", v)} 
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/10">
@@ -45,7 +76,10 @@ const NotificationSettingsPage = () => {
                   <p className="text-xs text-muted-foreground">Chamada simulada para alertas críticos</p>
                 </div>
               </div>
-              <Switch checked={callEnabled} onCheckedChange={setCallEnabled} />
+              <Switch 
+                checked={preferences.call_enabled} 
+                onCheckedChange={(v) => handleToggle("call_enabled", v)} 
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5">
@@ -56,7 +90,10 @@ const NotificationSettingsPage = () => {
                   <p className="text-xs text-muted-foreground">Lembretes via WhatsApp</p>
                 </div>
               </div>
-              <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
+              <Switch 
+                checked={preferences.whatsapp_enabled} 
+                onCheckedChange={(v) => handleToggle("whatsapp_enabled", v)} 
+              />
             </div>
           </div>
         </div>
@@ -72,7 +109,10 @@ const NotificationSettingsPage = () => {
                 <Volume2 className="w-5 h-5 text-muted-foreground" />
                 <span className="text-foreground">Som</span>
               </div>
-              <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+              <Switch 
+                checked={preferences.sound_enabled} 
+                onCheckedChange={(v) => handleToggle("sound_enabled", v)} 
+              />
             </div>
 
             <div className="flex items-center justify-between px-4 py-3.5">
@@ -82,7 +122,10 @@ const NotificationSettingsPage = () => {
                 </div>
                 <span className="text-foreground">Vibração</span>
               </div>
-              <Switch checked={vibrationEnabled} onCheckedChange={setVibrationEnabled} />
+              <Switch 
+                checked={preferences.vibration_enabled} 
+                onCheckedChange={(v) => handleToggle("vibration_enabled", v)} 
+              />
             </div>
           </div>
         </div>
@@ -100,7 +143,10 @@ const NotificationSettingsPage = () => {
                   Toca mesmo no modo silencioso
                 </p>
               </div>
-              <Switch checked={criticalAlerts} onCheckedChange={setCriticalAlerts} />
+              <Switch 
+                checked={preferences.critical_alerts_enabled} 
+                onCheckedChange={(v) => handleToggle("critical_alerts_enabled", v)} 
+              />
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 px-1">
