@@ -207,10 +207,9 @@ input, textarea, [contenteditable="true"] {
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Garantir que html/body também tenham overscroll desabilitado */
+  /* Root background color */
   html, body, #root {
-    overscroll-behavior: none;
-    background-color: #0a0a0c;
+    background-color: hsl(var(--background));
   }
   
   html::-webkit-scrollbar,

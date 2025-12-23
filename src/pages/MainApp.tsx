@@ -487,14 +487,12 @@ const MainApp = () => {
             events={events}
           />
         ) : (
-          <div className="h-full overflow-y-auto hide-scrollbar bg-background">
-            <DayListView
-              selectedDate={selectedDate}
-              onDateSelect={handleDateSelect}
-              onAddEvent={handleAddEvent}
-              events={events}
-            />
-          </div>
+          <DayListView
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onAddEvent={handleAddEvent}
+            events={events}
+          />
         )}
       </div>
 
