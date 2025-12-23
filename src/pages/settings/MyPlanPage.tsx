@@ -120,9 +120,9 @@ const MyPlanPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 py-4 safe-area-top flex items-center border-b border-border/10">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 py-4 safe-area-top flex items-center border-b border-border/10 relative">
         <BackButton />
-        <h1 className="flex-1 text-center text-lg font-semibold text-foreground -ml-10">Planos</h1>
+        <h1 className="absolute left-0 right-0 text-center text-lg font-semibold text-foreground pointer-events-none">Planos</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
