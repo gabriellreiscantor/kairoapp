@@ -12,9 +12,16 @@ const Index = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   
-  // Detectar tema do sistema
+  // Detectar tema considerando localStorage primeiro, depois sistema
   const [isDarkMode] = useState(() => {
     if (typeof window === 'undefined') return true;
+    
+    // Primeiro verificar localStorage (preferência do usuário no app)
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') return false;
+    if (savedTheme === 'dark') return true;
+    
+    // Fallback para preferência do sistema
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 

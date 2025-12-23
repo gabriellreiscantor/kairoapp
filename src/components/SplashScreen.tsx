@@ -11,9 +11,16 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [fadeOut, setFadeOut] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Detectar tema do sistema no momento do carregamento
+  // Detectar tema considerando localStorage primeiro, depois sistema
   const [isDarkMode] = useState(() => {
     if (typeof window === 'undefined') return true;
+    
+    // Primeiro verificar localStorage (preferência do usuário no app)
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') return false;
+    if (savedTheme === 'dark') return true;
+    
+    // Fallback para preferência do sistema
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
