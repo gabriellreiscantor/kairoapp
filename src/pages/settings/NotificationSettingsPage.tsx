@@ -1,12 +1,19 @@
-import { Bell, Phone, MessageSquare, Volume2 } from "lucide-react";
+import { Bell, Phone, MessageSquare, Volume2, Crown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import BackButton from "@/components/BackButton";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const NotificationSettingsPage = () => {
   const { preferences, isLoading, updatePreference } = useNotificationPreferences();
+  const { limits, loading: subscriptionLoading } = useSubscription();
+  const navigate = useNavigate();
+
+  const hasCriticalAlerts = limits?.has_critical_alerts ?? false;
 
   const handleToggle = async (
     key: keyof typeof preferences,
@@ -18,7 +25,7 @@ const NotificationSettingsPage = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
@@ -132,10 +139,18 @@ const NotificationSettingsPage = () => {
 
         {/* Critical Alerts */}
         <div>
-          <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Alertas Críticos
-          </h2>
-          <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <h2 className="text-xs text-muted-foreground uppercase tracking-wider">
+              Alertas Críticos
+            </h2>
+            {!hasCriticalAlerts && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-0">
+                <Crown className="w-2.5 h-2.5 mr-0.5" />
+                Premium
+              </Badge>
+            )}
+          </div>
+          <div className={`bg-kairo-surface-2 rounded-2xl overflow-hidden ${!hasCriticalAlerts ? 'opacity-60' : ''}`}>
             <div className="flex items-center justify-between px-4 py-3.5">
               <div className="flex-1 mr-3">
                 <p className="text-foreground">Ignorar Modo Silencioso</p>
@@ -145,13 +160,23 @@ const NotificationSettingsPage = () => {
               </div>
               <Switch 
                 checked={preferences.critical_alerts_enabled} 
-                onCheckedChange={(v) => handleToggle("critical_alerts_enabled", v)} 
+                onCheckedChange={(v) => handleToggle("critical_alerts_enabled", v)}
+                disabled={!hasCriticalAlerts}
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 px-1">
-            Quando ativado, o "Me Ligue" usa chamadas VoIP que ignoram o modo silencioso e "Não Perturbe" do iOS, garantindo que você não perca compromissos importantes.
-          </p>
+          {hasCriticalAlerts ? (
+            <p className="text-xs text-muted-foreground mt-2 px-1">
+              Quando ativado, o "Me Ligue" usa chamadas VoIP que ignoram o modo silencioso e "Não Perturbe" do iOS, garantindo que você não perca compromissos importantes.
+            </p>
+          ) : (
+            <button 
+              onClick={() => navigate('/settings/my-plan')}
+              className="w-full mt-3 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+            >
+              Fazer upgrade para desbloquear
+            </button>
+          )}
         </div>
       </div>
     </div>
