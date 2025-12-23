@@ -276,7 +276,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           </>
         ) : (
           <>
-            <CheckCircle className="w-4 h-4 text-green-500" />
+            <CheckCircle className="w-4 h-4 text-emerald-500" />
             <p className="text-sm text-muted-foreground">
               {type === 'updated' ? 'Evento Atualizado' : 'Evento Criado'}
             </p>
@@ -368,7 +368,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         {/* Notification time - hide for expired */}
         {!isExpired && (
           <div className="flex items-center gap-2 pl-6">
-            <Bell className="w-4 h-4 text-amber-500" />
+            <Bell className="w-4 h-4 text-sky-500" />
             <span className="text-sm text-muted-foreground">
               {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
             </span>

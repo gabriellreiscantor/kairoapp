@@ -35,14 +35,14 @@ const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
     return (
       <div
         ref={ref}
-        className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 max-w-[320px] animate-fade-in"
+        className="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-4 max-w-[320px] animate-fade-in"
       >
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-4 h-4 text-sky-500" />
           </div>
-          <span className="text-sm font-medium text-amber-500">
+          <span className="text-sm font-medium text-sky-500">
             Data no passado
           </span>
         </div>
@@ -72,7 +72,7 @@ const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
         </div>
 
         {/* Warning message */}
-        <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+        <p className="text-xs text-sky-600 dark:text-sky-400 leading-relaxed">
           Essa data e horário já passaram. Por favor, escolha uma data no futuro.
         </p>
       </div>
