@@ -11,33 +11,42 @@ interface SplashScreenProps {
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [fadeOut, setFadeOut] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { resolvedTheme } = useTheme();
+
+  // Usar dark como fallback se theme não estiver resolvido
+  const isDark = resolvedTheme === 'dark' || resolvedTheme === undefined;
+  const logoSrc = isDark ? horahLogoDark : horahLogoLight;
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Pré-carregar a imagem imediatamente
+    const img = new Image();
+    img.onload = () => setImageLoaded(true);
+    img.src = logoSrc;
+  }, [logoSrc]);
 
   useEffect(() => {
+    // Só inicia o timer quando a imagem estiver carregada
+    if (!imageLoaded) return;
+    
     const timer = setTimeout(() => {
       setFadeOut(true);
       setTimeout(onComplete, 500);
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, imageLoaded]);
 
-  // Fallback enquanto o tema não está resolvido
-  if (!mounted) {
+  // Fallback enquanto o tema não está resolvido ou imagem não carregou
+  if (!mounted || !imageLoaded) {
     return (
       <div className="fixed inset-0 bg-[#0a0a0c] flex items-center justify-center z-50">
         <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
       </div>
     );
   }
-
-  // Usar dark como fallback se theme não estiver resolvido
-  const isDark = resolvedTheme === 'dark' || resolvedTheme === undefined;
-  const logoSrc = isDark ? horahLogoDark : horahLogoLight;
 
   return (
     <div
