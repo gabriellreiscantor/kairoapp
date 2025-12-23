@@ -77,7 +77,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       style={{ background: gradientStyle }}
     >
       {imageLoaded ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center justify-center px-6">
           {/* Logo com glow */}
           <div className="relative animate-fade-in">
             {/* Glow effect */}
@@ -87,13 +87,13 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             <img 
               src={splashImage} 
               alt="Horah" 
-              className="relative w-80 h-80 rounded-[3rem] shadow-2xl"
+              className="relative w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-[2.5rem] shadow-2xl"
             />
           </div>
           
           {/* Título elegante */}
           <h1 
-            className={`mt-5 text-4xl font-semibold ${textColor} tracking-[0.15em] uppercase animate-fade-in`}
+            className={`mt-4 text-3xl sm:text-4xl font-semibold ${textColor} tracking-[0.12em] uppercase animate-fade-in text-center`}
             style={{ animationDelay: '150ms', animationFillMode: 'both' }}
           >
             Horah
@@ -101,28 +101,28 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           
           {/* Pontinhos animados */}
           <div 
-            className="flex gap-2 mt-10 animate-fade-in"
+            className="flex items-center gap-2 mt-6 animate-fade-in"
             style={{ animationDelay: '300ms', animationFillMode: 'both' }}
           >
             <div 
-              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
               style={{ animationDelay: '0ms' }}
             />
             <div 
-              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
               style={{ animationDelay: '150ms' }}
             />
             <div 
-              className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`}
+              className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`}
               style={{ animationDelay: '300ms' }}
             />
           </div>
         </div>
       ) : (
         <div className="flex gap-2">
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} />
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '150ms' }} />
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '300ms' }} />
+          <div className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`} />
+          <div className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '150ms' }} />
+          <div className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '300ms' }} />
         </div>
       )}
     </div>
