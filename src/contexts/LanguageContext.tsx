@@ -42,6 +42,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Editar',
     'common.search': 'Buscar',
     'common.loading': 'Carregando...',
+    'common.today': 'Hoje',
+    'common.tomorrow': 'Amanhã',
+    'common.yesterday': 'Ontem',
     
     // Settings
     'settings.title': 'Configurações',
@@ -121,6 +124,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Política de Privacidade',
     'about.faq': 'Perguntas Frequentes',
     'about.version': 'Versão',
+    
+    // Events
+    'event.created': 'Evento Criado',
+    'event.updated': 'Evento Atualizado',
+    'event.deleted': 'Evento Removido',
+    'event.completed': 'Evento Realizado',
+    'event.callMe': 'Me Ligue',
+    'event.allDay': 'Dia inteiro',
+    'event.pastDate': 'Data no passado',
+    'event.pastDateMessage': 'Essa data e horário já passaram. O evento foi criado, mas não será possível enviar lembretes.',
+    'event.tooClose': 'muito próximo',
+    'event.eventAdded': 'O Evento Foi Adicionado',
+    'event.reminder': 'antes',
+    'event.oneHourBefore': '1 hora antes',
+    
+    // Onboarding
+    'onboarding.welcome': 'Olá! Sou o Horah, seu assistente pessoal de agenda. 📅\n\nMe conte sobre um evento que você gostaria de agendar e eu cuido do resto!',
+    'onboarding.firstEventSuccess': 'Perfeito! 🎉 Seu primeiro evento foi criado com sucesso.\n\nAgora você pode continuar me contando sobre seus compromissos, e eu vou organizando tudo pra você!',
   },
   'en-US': {
     // Navigation
@@ -137,6 +158,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Edit',
     'common.search': 'Search',
     'common.loading': 'Loading...',
+    'common.today': 'Today',
+    'common.tomorrow': 'Tomorrow',
+    'common.yesterday': 'Yesterday',
     
     // Settings
     'settings.title': 'Settings',
@@ -216,6 +240,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Privacy Policy',
     'about.faq': 'Frequently Asked Questions',
     'about.version': 'Version',
+    
+    // Events
+    'event.created': 'Event Created',
+    'event.updated': 'Event Updated',
+    'event.deleted': 'Event Deleted',
+    'event.completed': 'Event Completed',
+    'event.callMe': 'Call Me',
+    'event.allDay': 'All day',
+    'event.pastDate': 'Past date',
+    'event.pastDateMessage': 'This date and time have already passed. The event was created, but reminders cannot be sent.',
+    'event.tooClose': 'too close',
+    'event.eventAdded': 'Event Added',
+    'event.reminder': 'before',
+    'event.oneHourBefore': '1 hour before',
+    
+    // Onboarding
+    'onboarding.welcome': 'Hi! I\'m Horah, your personal calendar assistant. 📅\n\nTell me about an event you\'d like to schedule and I\'ll take care of the rest!',
+    'onboarding.firstEventSuccess': 'Perfect! 🎉 Your first event was created successfully.\n\nNow you can keep telling me about your appointments, and I\'ll organize everything for you!',
   },
   'es-ES': {
     // Navigation
@@ -232,6 +274,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Editar',
     'common.search': 'Buscar',
     'common.loading': 'Cargando...',
+    'common.today': 'Hoy',
+    'common.tomorrow': 'Mañana',
+    'common.yesterday': 'Ayer',
     
     // Settings
     'settings.title': 'Configuración',
@@ -311,6 +356,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Política de Privacidad',
     'about.faq': 'Preguntas Frecuentes',
     'about.version': 'Versión',
+    
+    // Events
+    'event.created': 'Evento Creado',
+    'event.updated': 'Evento Actualizado',
+    'event.deleted': 'Evento Eliminado',
+    'event.completed': 'Evento Realizado',
+    'event.callMe': 'Llámame',
+    'event.allDay': 'Todo el día',
+    'event.pastDate': 'Fecha pasada',
+    'event.pastDateMessage': 'Esta fecha y hora ya pasaron. El evento fue creado, pero no será posible enviar recordatorios.',
+    'event.tooClose': 'muy próximo',
+    'event.eventAdded': 'Evento Agregado',
+    'event.reminder': 'antes',
+    'event.oneHourBefore': '1 hora antes',
+    
+    // Onboarding
+    'onboarding.welcome': '¡Hola! Soy Horah, tu asistente personal de agenda. 📅\n\nCuéntame sobre un evento que te gustaría agendar y yo me encargo del resto!',
+    'onboarding.firstEventSuccess': '¡Perfecto! 🎉 Tu primer evento fue creado con éxito.\n\nAhora puedes seguir contándome sobre tus compromisos, y yo organizaré todo para ti!',
   },
   'fr-FR': {
     'nav.chat': 'Chat',
@@ -324,6 +387,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Modifier',
     'common.search': 'Rechercher',
     'common.loading': 'Chargement...',
+    'common.today': 'Aujourd\'hui',
+    'common.tomorrow': 'Demain',
+    'common.yesterday': 'Hier',
     'settings.title': 'Paramètres',
     'settings.myPlan': 'Mon forfait',
     'settings.calendars': 'Calendriers',
@@ -361,8 +427,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': "Gérer l'abonnement et les paiements",
     'plan.restorePurchases': 'Restaurer les achats',
     'plan.manage': 'Gérer',
-    
-    // Appearance
     'appearance.light': 'Clair',
     'appearance.dark': 'Sombre',
     'chat.placeholder': 'Écrivez un message...',
@@ -391,6 +455,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Politique de confidentialité',
     'about.faq': 'Questions fréquentes',
     'about.version': 'Version',
+    // Events
+    'event.created': 'Événement Créé',
+    'event.updated': 'Événement Mis à jour',
+    'event.deleted': 'Événement Supprimé',
+    'event.completed': 'Événement Réalisé',
+    'event.callMe': 'Appelez-moi',
+    'event.allDay': 'Toute la journée',
+    'event.pastDate': 'Date passée',
+    'event.pastDateMessage': 'Cette date et heure sont déjà passées. L\'événement a été créé, mais il ne sera pas possible d\'envoyer des rappels.',
+    'event.tooClose': 'très proche',
+    'event.eventAdded': 'Événement Ajouté',
+    'event.reminder': 'avant',
+    'event.oneHourBefore': '1 heure avant',
+    // Onboarding
+    'onboarding.welcome': 'Salut ! Je suis Horah, votre assistant personnel d\'agenda. 📅\n\nDites-moi quel événement vous aimeriez planifier et je m\'occupe du reste !',
+    'onboarding.firstEventSuccess': 'Parfait ! 🎉 Votre premier événement a été créé avec succès.\n\nVous pouvez maintenant continuer à me parler de vos rendez-vous, et j\'organiserai tout pour vous !',
   },
   'de-DE': {
     'nav.chat': 'Chat',
@@ -404,6 +484,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Bearbeiten',
     'common.search': 'Suchen',
     'common.loading': 'Laden...',
+    'common.today': 'Heute',
+    'common.tomorrow': 'Morgen',
+    'common.yesterday': 'Gestern',
     'settings.title': 'Einstellungen',
     'settings.myPlan': 'Mein Plan',
     'settings.calendars': 'Kalender',
@@ -441,8 +524,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': 'Abonnement und Zahlungen verwalten',
     'plan.restorePurchases': 'Käufe wiederherstellen',
     'plan.manage': 'Verwalten',
-    
-    // Appearance
     'appearance.light': 'Hell',
     'appearance.dark': 'Dunkel',
     'chat.placeholder': 'Nachricht schreiben...',
@@ -471,6 +552,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Datenschutzrichtlinie',
     'about.faq': 'Häufig gestellte Fragen',
     'about.version': 'Version',
+    // Events
+    'event.created': 'Ereignis Erstellt',
+    'event.updated': 'Ereignis Aktualisiert',
+    'event.deleted': 'Ereignis Gelöscht',
+    'event.completed': 'Ereignis Abgeschlossen',
+    'event.callMe': 'Ruf mich an',
+    'event.allDay': 'Ganztägig',
+    'event.pastDate': 'Vergangenes Datum',
+    'event.pastDateMessage': 'Dieses Datum und diese Uhrzeit sind bereits vergangen. Das Ereignis wurde erstellt, aber es werden keine Erinnerungen gesendet.',
+    'event.tooClose': 'sehr nah',
+    'event.eventAdded': 'Ereignis Hinzugefügt',
+    'event.reminder': 'vorher',
+    'event.oneHourBefore': '1 Stunde vorher',
+    // Onboarding
+    'onboarding.welcome': 'Hallo! Ich bin Horah, dein persönlicher Kalenderassistent. 📅\n\nErzähl mir von einem Ereignis, das du planen möchtest, und ich kümmere mich um den Rest!',
+    'onboarding.firstEventSuccess': 'Perfekt! 🎉 Dein erstes Ereignis wurde erfolgreich erstellt.\n\nJetzt kannst du mir weiter von deinen Terminen erzählen, und ich organisiere alles für dich!',
   },
   'it-IT': {
     'nav.chat': 'Chat',
@@ -484,6 +581,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': 'Modifica',
     'common.search': 'Cerca',
     'common.loading': 'Caricamento...',
+    'common.today': 'Oggi',
+    'common.tomorrow': 'Domani',
+    'common.yesterday': 'Ieri',
     'settings.title': 'Impostazioni',
     'settings.myPlan': 'Il mio piano',
     'settings.calendars': 'Calendari',
@@ -521,8 +621,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': 'Gestisci abbonamento e pagamenti',
     'plan.restorePurchases': 'Ripristina acquisti',
     'plan.manage': 'Gestisci',
-    
-    // Appearance
     'appearance.light': 'Chiaro',
     'appearance.dark': 'Scuro',
     'chat.placeholder': 'Scrivi un messaggio...',
@@ -551,6 +649,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'Informativa sulla Privacy',
     'about.faq': 'Domande Frequenti',
     'about.version': 'Versione',
+    // Events
+    'event.created': 'Evento Creato',
+    'event.updated': 'Evento Aggiornato',
+    'event.deleted': 'Evento Eliminato',
+    'event.completed': 'Evento Completato',
+    'event.callMe': 'Chiamami',
+    'event.allDay': 'Tutto il giorno',
+    'event.pastDate': 'Data passata',
+    'event.pastDateMessage': 'Questa data e ora sono già passate. L\'evento è stato creato, ma non sarà possibile inviare promemoria.',
+    'event.tooClose': 'molto vicino',
+    'event.eventAdded': 'Evento Aggiunto',
+    'event.reminder': 'prima',
+    'event.oneHourBefore': '1 ora prima',
+    // Onboarding
+    'onboarding.welcome': 'Ciao! Sono Horah, il tuo assistente personale per l\'agenda. 📅\n\nRaccontami di un evento che vorresti programmare e io mi occuperò del resto!',
+    'onboarding.firstEventSuccess': 'Perfetto! 🎉 Il tuo primo evento è stato creato con successo.\n\nOra puoi continuare a parlarmi dei tuoi impegni, e organizzerò tutto per te!',
   },
   'ja-JP': {
     'nav.chat': 'チャット',
@@ -564,6 +678,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': '編集',
     'common.search': '検索',
     'common.loading': '読み込み中...',
+    'common.today': '今日',
+    'common.tomorrow': '明日',
+    'common.yesterday': '昨日',
     'settings.title': '設定',
     'settings.myPlan': 'マイプラン',
     'settings.calendars': 'カレンダー',
@@ -601,8 +718,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': 'サブスクリプションと支払いを管理',
     'plan.restorePurchases': '購入を復元',
     'plan.manage': '管理',
-    
-    // Appearance
     'appearance.light': 'ライト',
     'appearance.dark': 'ダーク',
     'chat.placeholder': 'メッセージを入力...',
@@ -631,6 +746,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': 'プライバシーポリシー',
     'about.faq': 'よくある質問',
     'about.version': 'バージョン',
+    // Events
+    'event.created': 'イベント作成済み',
+    'event.updated': 'イベント更新済み',
+    'event.deleted': 'イベント削除済み',
+    'event.completed': 'イベント完了',
+    'event.callMe': '電話してください',
+    'event.allDay': '終日',
+    'event.pastDate': '過去の日付',
+    'event.pastDateMessage': 'この日時はすでに過ぎています。イベントは作成されましたが、リマインダーを送信することはできません。',
+    'event.tooClose': '非常に近い',
+    'event.eventAdded': 'イベント追加済み',
+    'event.reminder': '前',
+    'event.oneHourBefore': '1時間前',
+    // Onboarding
+    'onboarding.welcome': 'こんにちは！Horahです、あなたの個人的なカレンダーアシスタントです。📅\n\n予定したいイベントについて教えてください、残りは私がやります！',
+    'onboarding.firstEventSuccess': '完璧！🎉 最初のイベントが正常に作成されました。\n\nこれからも予定について教えてください、すべて整理します！',
   },
   'ko-KR': {
     'nav.chat': '채팅',
@@ -644,6 +775,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': '편집',
     'common.search': '검색',
     'common.loading': '로딩 중...',
+    'common.today': '오늘',
+    'common.tomorrow': '내일',
+    'common.yesterday': '어제',
     'settings.title': '설정',
     'settings.myPlan': '내 플랜',
     'settings.calendars': '캘린더',
@@ -681,8 +815,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': '구독 및 결제 관리',
     'plan.restorePurchases': '구매 복원',
     'plan.manage': '관리',
-    
-    // Appearance
     'appearance.light': '라이트',
     'appearance.dark': '다크',
     'chat.placeholder': '메시지 입력...',
@@ -711,6 +843,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': '개인정보 처리방침',
     'about.faq': '자주 묻는 질문',
     'about.version': '버전',
+    // Events
+    'event.created': '이벤트 생성됨',
+    'event.updated': '이벤트 업데이트됨',
+    'event.deleted': '이벤트 삭제됨',
+    'event.completed': '이벤트 완료',
+    'event.callMe': '전화해 주세요',
+    'event.allDay': '종일',
+    'event.pastDate': '지난 날짜',
+    'event.pastDateMessage': '이 날짜와 시간은 이미 지났습니다. 이벤트가 생성되었지만 알림을 보낼 수 없습니다.',
+    'event.tooClose': '매우 가까움',
+    'event.eventAdded': '이벤트 추가됨',
+    'event.reminder': '전',
+    'event.oneHourBefore': '1시간 전',
+    // Onboarding
+    'onboarding.welcome': '안녕하세요! 저는 Horah, 당신의 개인 캘린더 어시스턴트입니다. 📅\n\n예약하고 싶은 이벤트에 대해 말해주세요, 나머지는 제가 처리할게요!',
+    'onboarding.firstEventSuccess': '완벽해요! 🎉 첫 번째 이벤트가 성공적으로 생성되었습니다.\n\n이제 계속해서 약속에 대해 말해주세요, 모든 것을 정리해 드릴게요!',
   },
   'zh-CN': {
     'nav.chat': '聊天',
@@ -724,6 +872,9 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'common.edit': '编辑',
     'common.search': '搜索',
     'common.loading': '加载中...',
+    'common.today': '今天',
+    'common.tomorrow': '明天',
+    'common.yesterday': '昨天',
     'settings.title': '设置',
     'settings.myPlan': '我的计划',
     'settings.calendars': '日历',
@@ -761,8 +912,6 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.manageSubscription': '管理订阅和付款',
     'plan.restorePurchases': '恢复购买',
     'plan.manage': '管理',
-    
-    // Appearance
     'appearance.light': '浅色',
     'appearance.dark': '深色',
     'chat.placeholder': '输入消息...',
@@ -791,6 +940,22 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'about.privacy': '隐私政策',
     'about.faq': '常见问题',
     'about.version': '版本',
+    // Events
+    'event.created': '活动已创建',
+    'event.updated': '活动已更新',
+    'event.deleted': '活动已删除',
+    'event.completed': '活动已完成',
+    'event.callMe': '打电话给我',
+    'event.allDay': '全天',
+    'event.pastDate': '过去的日期',
+    'event.pastDateMessage': '此日期和时间已过。活动已创建，但无法发送提醒。',
+    'event.tooClose': '非常接近',
+    'event.eventAdded': '活动已添加',
+    'event.reminder': '之前',
+    'event.oneHourBefore': '1小时前',
+    // Onboarding
+    'onboarding.welcome': '你好！我是Horah，你的个人日历助手。📅\n\n告诉我你想安排的活动，剩下的交给我！',
+    'onboarding.firstEventSuccess': '太棒了！🎉 你的第一个活动已成功创建。\n\n现在你可以继续告诉我你的约会，我会为你安排好一切！',
   },
 };
 
