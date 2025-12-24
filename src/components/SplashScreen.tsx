@@ -68,7 +68,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     const timer = setTimeout(() => {
       setFadeOut(true);
       setTimeout(onComplete, 400);
-    }, 1800);
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, [onComplete, showImage]);
