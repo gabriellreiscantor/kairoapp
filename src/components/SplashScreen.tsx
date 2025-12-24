@@ -10,6 +10,7 @@ interface SplashScreenProps {
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [fadeOut, setFadeOut] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [minDelayPassed, setMinDelayPassed] = useState(false);
   
   // Detectar tema considerando localStorage primeiro, depois sistema
   const [isDarkMode] = useState(() => {
@@ -29,6 +30,13 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     NativeSplash.hide().catch(() => {
       // Silently ignore - não está rodando em ambiente nativo
     });
+    
+    // Timer para garantir que o gradiente seja visível por pelo menos 500ms
+    const minDelayTimer = setTimeout(() => {
+      setMinDelayPassed(true);
+    }, 500);
+    
+    return () => clearTimeout(minDelayTimer);
   }, []);
 
   // Esconder splash inline do HTML e pré-carregar imagem
@@ -50,8 +58,11 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     return () => clearTimeout(fallbackTimer);
   }, [splashImage]);
 
+  // Só mostrar imagem quando ambos estiverem prontos
+  const showImage = imageLoaded && minDelayPassed;
+
   useEffect(() => {
-    if (!imageLoaded) return;
+    if (!showImage) return;
     
     const timer = setTimeout(() => {
       setFadeOut(true);
@@ -59,7 +70,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     }, 1800);
 
     return () => clearTimeout(timer);
-  }, [onComplete, imageLoaded]);
+  }, [onComplete, showImage]);
 
   // Cores de fundo que combinam com as imagens
   const bgColor = isDarkMode ? '#0a1628' : '#4ECDC4';
@@ -73,9 +84,9 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       className={`fixed inset-0 flex flex-col items-center justify-center z-50 transition-opacity duration-400 ${
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
-      style={{ background: imageLoaded ? bgColor : loadingGradient }}
+      style={{ background: loadingGradient }}
     >
-      {imageLoaded ? (
+      {showImage ? (
         <>
           <img 
             src={splashImage} 
@@ -100,7 +111,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         </>
       ) : (
         // Spinner circular branco
-        <div className="w-10 h-10 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
       )}
     </div>
   );
