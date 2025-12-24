@@ -25,16 +25,17 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   const splashImage = isDarkMode ? splashDark : splashLight;
 
-  // Esconder splash nativo do Capacitor quando React assumir
+  // Esconder splash nativo do Capacitor IMEDIATAMENTE para evitar tela branca
   useEffect(() => {
+    // Esconder o splash nativo o mais rápido possível
     NativeSplash.hide().catch(() => {
       // Silently ignore - não está rodando em ambiente nativo
     });
     
-    // Timer para garantir que o gradiente seja visível por pelo menos 500ms
+    // Delay mínimo reduzido para transição mais rápida
     const minDelayTimer = setTimeout(() => {
       setMinDelayPassed(true);
-    }, 500);
+    }, 300);
     
     return () => clearTimeout(minDelayTimer);
   }, []);
