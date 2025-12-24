@@ -432,31 +432,6 @@ const MainApp = () => {
             📞
           </button>
           
-          {/* Botão de Refresh para testar Splash */}
-          <button
-            onClick={async () => {
-              if (Capacitor.isNativePlatform()) {
-                try {
-                  await SplashScreen.show({
-                    autoHide: false,
-                    fadeInDuration: 0,
-                    fadeOutDuration: 0,
-                  });
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 500);
-                } catch (err) {
-                  console.error('[Refresh] SplashScreen error:', err);
-                  window.location.reload();
-                }
-              } else {
-                window.location.reload();
-              }
-            }}
-            className="fixed bottom-24 left-4 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-          >
-            <RefreshCw className="w-6 h-6" />
-          </button>
           
           <SettingsDrawer
             isOpen={isSettingsOpen}
