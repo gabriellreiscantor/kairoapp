@@ -22,7 +22,14 @@ const getGradientStyle = (isDark: boolean) => isDark
   : 'linear-gradient(180deg, #4ECDC4 0%, #f0f4f8 100%)';
 
 const Index = () => {
-  const [appState, setAppState] = useState<AppState>('splash');
+  // Verificar se já mostrou o splash nessa sessão
+  const hasSeenSplash = typeof window !== 'undefined' && sessionStorage.getItem('hasSeenSplash') === 'true';
+  
+  const [appState, setAppState] = useState<AppState>(() => {
+    // Se já viu o splash nessa sessão, pula direto pro loading
+    if (hasSeenSplash) return 'loading';
+    return 'splash';
+  });
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isDarkMode] = useState(getIsDarkMode);
@@ -31,6 +38,7 @@ const Index = () => {
   const loaderColor = isDarkMode ? 'text-white/60' : 'text-gray-500';
 
   const handleSplashComplete = () => {
+    sessionStorage.setItem('hasSeenSplash', 'true');
     setAppState('loading');
   };
 
