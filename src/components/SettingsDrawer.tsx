@@ -7,8 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import defaultAvatar from "@/assets/default-avatar.png";
-
 interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,6 +71,16 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
   const { t, language } = useLanguage();
   const { user, signOut } = useAuth();
   const { subscription, limits, usedEvents, loading: subscriptionLoading } = useSubscription();
+  const { theme } = useTheme();
+
+  const getThemeLabel = (currentTheme: string | undefined) => {
+    switch (currentTheme) {
+      case 'light': return 'Claro';
+      case 'dark': return 'Escuro';
+      case 'system':
+      default: return t('settings.system');
+    }
+  };
   
   const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -297,7 +307,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                   icon={<Sun className="w-4.5 h-4.5" />}
                   iconColor="bg-yellow-500/10 text-yellow-500"
                   label={t('settings.appearance')}
-                  value={t('settings.system')}
+                  value={getThemeLabel(theme)}
                   onClick={() => handleNavigate('/settings/appearance')}
                 />
                 <SettingItem 
