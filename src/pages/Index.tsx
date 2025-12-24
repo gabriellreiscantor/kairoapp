@@ -35,7 +35,7 @@ const Index = () => {
   const [isDarkMode] = useState(getIsDarkMode);
   
   const gradientStyle = getGradientStyle(isDarkMode);
-  const loaderColor = isDarkMode ? 'text-white/60' : 'text-gray-500';
+  const dotColor = isDarkMode ? 'bg-white/60' : 'bg-gray-600/60';
 
   const handleSplashComplete = () => {
     sessionStorage.setItem('hasSeenSplash', 'true');
@@ -62,13 +62,26 @@ const Index = () => {
     return <MainApp />;
   }
 
-  // Loading state - sempre mostra spinner com background consistente
+  // Loading state - pontinhos animados com background consistente
   return (
     <div 
       className="fixed inset-0 flex items-center justify-center"
       style={{ background: gradientStyle }}
     >
-      <Loader2 className={`w-8 h-8 ${loaderColor} animate-spin`} />
+      <div className="flex gap-2">
+        <div 
+          className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} 
+          style={{ animationDuration: '0.8s' }}
+        />
+        <div 
+          className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} 
+          style={{ animationDelay: '150ms', animationDuration: '0.8s' }}
+        />
+        <div 
+          className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} 
+          style={{ animationDelay: '300ms', animationDuration: '0.8s' }}
+        />
+      </div>
     </div>
   );
 };
