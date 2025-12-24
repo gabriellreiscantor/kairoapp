@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2, ChevronDown } from "lucide-react";
-import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
+import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2, ChevronDown, History } from "lucide-react";
+import { format, isToday, isYesterday, differenceInMinutes, startOfDay } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,6 +170,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  
+  // Show only today's messages by default, with option to load full history
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [editingEvent, setEditingEvent] = useState<{
     id: string;
     title: string;
@@ -311,7 +315,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     };
   };
 
-  // Load initial chat history on mount
+  // Load initial chat history on mount - only today's messages by default
   useEffect(() => {
     const loadHistory = async () => {
       if (!user) {
@@ -320,31 +324,38 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       }
 
       try {
-        // Fetch most recent 50 messages (DESC) then reverse for chronological display
+        // Calculate start of today (midnight in local timezone)
+        const todayStart = startOfDay(new Date());
+        
+        // Fetch only today's messages (for cleaner, faster chat)
         const { data, error } = await supabase
           .from('chat_messages')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
+          .gte('created_at', todayStart.toISOString())
+          .order('created_at', { ascending: true }); // Already chronological
         
         if (error) throw error;
 
-        // Reverse to get chronological order (oldest first for display)
-        const sortedData = data ? [...data].reverse() : [];
-
-        if (sortedData.length > 0) {
-          const loadedMessages: Message[] = sortedData.map(parseDbMessage);
+        if (data && data.length > 0) {
+          const loadedMessages: Message[] = data.map(parseDbMessage);
           // Deduplicate by id (safety check for duplicate key errors)
           const uniqueMessages = loadedMessages.filter((msg, index, self) => 
             index === self.findIndex(m => m.id === msg.id)
           );
           setMessages(uniqueMessages);
-          // Check if there might be more messages
-          setHasMoreMessages(data.length === 50);
-        } else {
-          setHasMoreMessages(false);
         }
+        
+        // Check if there are older messages (before today)
+        const { count } = await supabase
+          .from('chat_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .lt('created_at', todayStart.toISOString());
+        
+        setHasOlderMessages((count ?? 0) > 0);
+        setHasMoreMessages(false); // No infinite scroll until history is loaded
+        
       } catch (error) {
         console.error('Error loading chat history:', error);
       } finally {
@@ -421,9 +432,57 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     updateStaleReportCards();
   }, [user, isLoadingHistory, messages.length]);
 
-  // Load more older messages (pagination)
+  // Load full history when user clicks "View full history"
+  const handleLoadFullHistory = async () => {
+    if (!user || isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      const todayStart = startOfDay(new Date());
+      
+      // Load all messages before today (up to 200 for safety)
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', user.id)
+        .lt('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(200);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Reverse to get chronological order
+        const olderMessages = [...data].reverse().map(parseDbMessage);
+        
+        // Prepend older messages to current today's messages
+        setMessages(prev => [...olderMessages, ...prev]);
+        
+        // Check if there are even more messages
+        setHasMoreMessages(data.length === 200);
+      } else {
+        setHasMoreMessages(false);
+      }
+      
+      setShowFullHistory(true);
+      setHasOlderMessages(false);
+      
+      // Scroll to top to show loaded history
+      requestAnimationFrame(() => {
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      
+    } catch (error) {
+      console.error('Error loading full history:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+  
+  // Load more older messages (pagination) - only works after full history is loaded
   const loadMoreMessages = async () => {
-    if (!user || isLoadingMore || !hasMoreMessages || messages.length === 0) return;
+    if (!user || isLoadingMore || !hasMoreMessages || messages.length === 0 || !showFullHistory) return;
     
     const oldestMessage = messages[0];
     if (!oldestMessage) return;
@@ -471,21 +530,21 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  // Scroll listener for infinite pagination
+  // Scroll listener for infinite pagination (only when full history is loaded)
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     
     const handleScroll = () => {
-      // When within 100px of the top, load more messages
-      if (container.scrollTop < 100 && hasMoreMessages && !isLoadingMore && !isLoadingHistory) {
+      // When within 100px of the top, load more messages (only if full history mode)
+      if (container.scrollTop < 100 && hasMoreMessages && !isLoadingMore && !isLoadingHistory && showFullHistory) {
         loadMoreMessages();
       }
     };
     
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [hasMoreMessages, isLoadingMore, isLoadingHistory, messages]);
+  }, [hasMoreMessages, isLoadingMore, isLoadingHistory, messages, showFullHistory]);
 
   // Scroll button visibility - re-check when messages change
   useEffect(() => {
@@ -1363,10 +1422,22 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           </div>
         )}
         
-        {/* End of conversation indicator */}
-        {!hasMoreMessages && messages.length > 0 && !isLoadingHistory && (
+        {/* View Full History Button - shown when there are older messages */}
+        {!showFullHistory && hasOlderMessages && !isLoadingHistory && (
+          <button
+            onClick={handleLoadFullHistory}
+            disabled={isLoadingMore}
+            className="flex items-center justify-center gap-2 w-full py-3 mb-2 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+          >
+            <History className="w-4 h-4" />
+            <span>{t('chat.viewFullHistory')}</span>
+          </button>
+        )}
+        
+        {/* End of conversation indicator - only shown when full history is loaded */}
+        {showFullHistory && !hasMoreMessages && messages.length > 0 && !isLoadingHistory && (
           <p className="text-center text-[10px] text-muted-foreground py-4">
-            Início da conversa
+            {t('chat.startOfConversation')}
           </p>
         )}
 
