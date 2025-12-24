@@ -552,6 +552,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           isOnboarding: isInOnboarding,
           onboardingStep,
           timezone: userTimezone,
+          language: language,
         }),
       });
 
