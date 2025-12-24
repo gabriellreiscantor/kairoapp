@@ -132,6 +132,10 @@ Deno.serve(async (req) => {
           // Format time for display
           const timeDisplay = event.event_time?.slice(0, 5) || '';
 
+          // Track if VoIP was sent successfully
+          let voipSentSuccessfully = false;
+          let alreadyMarkedAsSent = false;
+
           // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
           if (criticalAlertsEnabled) {
             const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
@@ -146,13 +150,44 @@ Deno.serve(async (req) => {
             });
 
             if (voipError) {
-              console.log(`VoIP push failed for ${event.id}, falling back to regular push:`, voipError);
+              console.log(`VoIP push failed for ${event.id}, will try regular push as fallback:`, voipError);
+            } else {
+              voipSentSuccessfully = true;
+              console.log(`VoIP push sent successfully for ${event.id}, marking as sent IMMEDIATELY`);
+              
+              // IMMEDIATELY mark as sent after VoIP success to prevent duplicate calls
+              const { data: currentEvent } = await supabase
+                .from('events')
+                .select('call_alert_attempts')
+                .eq('id', event.id)
+                .maybeSingle();
+              
+              const currentAttempts = currentEvent?.call_alert_attempts || 0;
+              
+              const { error: updateError } = await supabase
+                .from('events')
+                .update({ 
+                  call_alert_sent_at: new Date().toISOString(),
+                  call_alert_attempts: currentAttempts + 1,
+                  call_alert_outcome: 'voip_sent'
+                })
+                .eq('id', event.id);
+
+              if (updateError) {
+                console.error(`Error updating event ${event.id} after VoIP:`, updateError);
+                errors.push(`Event ${event.id} update: ${updateError.message}`);
+              } else {
+                alreadyMarkedAsSent = true;
+                notificationsSent.push(event.id);
+                console.log(`Successfully marked event ${event.id} as sent after VoIP`);
+              }
             }
           } else {
             console.log(`User ${event.user_id} has critical_alerts_enabled=false, skipping VoIP (will use regular push)`);
           }
 
           // Also send regular push as fallback for Android and web (if push enabled)
+          // This runs regardless of VoIP success to support non-iOS devices
           if (pushEnabled && fcmToken) {
             const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
               body: {
@@ -170,38 +205,50 @@ Deno.serve(async (req) => {
             });
 
             if (pushError) {
-              console.error(`Error sending push for event ${event.id}:`, pushError);
-              errors.push(`Event ${event.id}: ${pushError.message}`);
-              continue;
+              console.error(`Error sending regular push for event ${event.id}:`, pushError);
+              // Don't continue here - VoIP might have worked
+              if (!voipSentSuccessfully) {
+                errors.push(`Event ${event.id}: ${pushError.message}`);
+              }
+            } else {
+              console.log(`Regular push sent for event ${event.id}`);
+            }
+
+            // Only mark as sent here if VoIP didn't already mark it
+            if (!alreadyMarkedAsSent && !pushError) {
+              const { data: currentEvent } = await supabase
+                .from('events')
+                .select('call_alert_attempts')
+                .eq('id', event.id)
+                .maybeSingle();
+              
+              const currentAttempts = currentEvent?.call_alert_attempts || 0;
+              
+              const { error: updateError } = await supabase
+                .from('events')
+                .update({ 
+                  call_alert_sent_at: new Date().toISOString(),
+                  call_alert_attempts: currentAttempts + 1,
+                  call_alert_outcome: 'push_sent'
+                })
+                .eq('id', event.id);
+
+              if (updateError) {
+                console.error(`Error updating event ${event.id} after push:`, updateError);
+                errors.push(`Event ${event.id} update: ${updateError.message}`);
+              } else {
+                notificationsSent.push(event.id);
+                console.log(`Successfully marked event ${event.id} as sent after regular push`);
+              }
             }
           } else {
             console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping regular push`);
-          }
-
-          // Mark event as notified and increment attempts
-          const { data: currentEvent } = await supabase
-            .from('events')
-            .select('call_alert_attempts')
-            .eq('id', event.id)
-            .maybeSingle();
-          
-          const currentAttempts = currentEvent?.call_alert_attempts || 0;
-          
-          const { error: updateError } = await supabase
-            .from('events')
-            .update({ 
-              call_alert_sent_at: new Date().toISOString(),
-              call_alert_attempts: currentAttempts + 1,
-              call_alert_outcome: 'sent'
-            })
-            .eq('id', event.id);
-
-          if (updateError) {
-            console.error(`Error updating event ${event.id}:`, updateError);
-            errors.push(`Event ${event.id} update: ${updateError.message}`);
-          } else {
-            notificationsSent.push(event.id);
-            console.log(`Successfully sent notification for event ${event.id}`);
+            
+            // If VoIP failed and no regular push, mark as failed
+            if (!voipSentSuccessfully && !alreadyMarkedAsSent) {
+              console.log(`No notification sent for event ${event.id} - no valid delivery method`);
+              errors.push(`Event ${event.id}: No valid delivery method (VoIP failed, push disabled)`);
+            }
           }
         }
       } catch (eventError) {
