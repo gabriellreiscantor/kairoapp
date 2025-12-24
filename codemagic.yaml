@@ -663,23 +663,37 @@ STORYBOARD_EOF
       - name: Add Splash Image to iOS Assets
         script: |
           echo "=== Adding Splash image to iOS Assets.xcassets ==="
+          echo "DEBUG: Current directory: $(pwd)"
+          echo "DEBUG: Listing src/assets:"
+          ls -la src/assets/ || echo "src/assets not found"
+          echo "DEBUG: Listing resources:"
+          ls -la resources/ || echo "resources not found"
           
           ASSETS_PATH="ios/App/App/Assets.xcassets"
           SPLASH_IMAGESET="$ASSETS_PATH/Splash.imageset"
           
+          echo "DEBUG: ASSETS_PATH=$ASSETS_PATH"
+          echo "DEBUG: SPLASH_IMAGESET=$SPLASH_IMAGESET"
+          
           # Create Splash.imageset directory
           mkdir -p "$SPLASH_IMAGESET"
+          echo "DEBUG: Created $SPLASH_IMAGESET"
           
           # Copy splash image (use the dark version since our background is dark)
           if [ -f "src/assets/horah-splash-dark.png" ]; then
             cp src/assets/horah-splash-dark.png "$SPLASH_IMAGESET/splash.png"
             echo "✅ Copied horah-splash-dark.png to Splash.imageset"
+            echo "DEBUG: File size:"
+            ls -la "$SPLASH_IMAGESET/splash.png"
           elif [ -f "resources/splash.png" ]; then
             cp resources/splash.png "$SPLASH_IMAGESET/splash.png"
             echo "✅ Copied resources/splash.png to Splash.imageset"
+            echo "DEBUG: File size:"
+            ls -la "$SPLASH_IMAGESET/splash.png"
           else
-            echo "⚠️ No splash image found, creating solid color fallback"
-            # The storyboard will just show the dark background color
+            echo "❌ ERROR: No splash image found!"
+            echo "DEBUG: Checking all available images:"
+            find . -name "*.png" -type f | head -20
           fi
           
           # Create Contents.json for the imageset (NO LEADING SPACES!)
@@ -739,33 +753,7 @@ JSON_EOF
           
           echo "✅ Splash image registered in Xcode project"
       
-      - name: Configure AppDelegate for Dark Background
-        script: |
-          echo "=== Configuring AppDelegate.swift for dark background ==="
-          
-          APPDELEGATE_PATH="ios/App/App/AppDelegate.swift"
-          
-          if [ ! -f "$APPDELEGATE_PATH" ]; then
-            echo "❌ AppDelegate.swift not found"
-            exit 1
-          fi
-          
-          # Check if backgroundColor is already set
-          if grep -q "backgroundColor" "$APPDELEGATE_PATH"; then
-            echo "✅ backgroundColor already configured in AppDelegate"
-          else
-            echo "Adding window.backgroundColor to AppDelegate..."
-            
-            # Insert backgroundColor setting after window creation
-            # We'll add it in the application(_:didFinishLaunchingWithOptions:) method
-            sed -i '' 's/func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: \[UIApplication.LaunchOptionsKey: Any\]?) -> Bool {/func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {\n        \/\/ Set dark background to prevent white flash\n        if let window = UIApplication.shared.windows.first {\n            window.backgroundColor = UIColor(red: 10\/255, green: 22\/255, blue: 40\/255, alpha: 1.0)\n        }/' "$APPDELEGATE_PATH"
-            
-            echo "✅ backgroundColor added to AppDelegate.swift"
-          fi
-          
-          echo ""
-          echo "AppDelegate.swift content:"
-          cat "$APPDELEGATE_PATH"
+      # REMOVED: "Configure AppDelegate for Dark Background" - backgroundColor is now set in the Firebase AppDelegate below
       
       - name: Add Camera and Photo Library Permissions to Info.plist
         script: |
@@ -853,6 +841,9 @@ JSON_EOF
               var window: UIWindow?
 
               func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+                  // 🔥 CRITICAL: Set dark background color FIRST to prevent white flash
+                  self.window?.backgroundColor = UIColor(red: 10.0/255.0, green: 22.0/255.0, blue: 40.0/255.0, alpha: 1.0)
+                  
                   FirebaseApp.configure()
                   
                   UNUserNotificationCenter.current().delegate = self
