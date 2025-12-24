@@ -43,6 +43,31 @@ function convertEventToUTC(
   }
 }
 
+// Multilingual alert messages
+const alertMessages: Record<string, { startsIn: string; at: string }> = {
+  'pt-BR': { startsIn: 'Começa em 15 minutos', at: 'às' },
+  'pt': { startsIn: 'Começa em 15 minutos', at: 'às' },
+  'en-US': { startsIn: 'Starts in 15 minutes', at: 'at' },
+  'en': { startsIn: 'Starts in 15 minutes', at: 'at' },
+  'es-ES': { startsIn: 'Comienza en 15 minutos', at: 'a las' },
+  'es': { startsIn: 'Comienza en 15 minutos', at: 'a las' },
+  'fr-FR': { startsIn: 'Commence dans 15 minutes', at: 'à' },
+  'fr': { startsIn: 'Commence dans 15 minutes', at: 'à' },
+  'de-DE': { startsIn: 'Beginnt in 15 Minuten', at: 'um' },
+  'de': { startsIn: 'Beginnt in 15 Minuten', at: 'um' },
+  'it-IT': { startsIn: 'Inizia tra 15 minuti', at: 'alle' },
+  'it': { startsIn: 'Inizia tra 15 minuti', at: 'alle' },
+};
+
+function getAlertMessages(language: string | null): { startsIn: string; at: string } {
+  if (!language) return alertMessages['pt-BR'];
+  if (alertMessages[language]) return alertMessages[language];
+  // Try base language (e.g., 'pt' from 'pt-BR')
+  const baseLanguage = language.split('-')[0];
+  if (alertMessages[baseLanguage]) return alertMessages[baseLanguage];
+  return alertMessages['pt-BR']; // Default fallback
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -83,11 +108,23 @@ Deno.serve(async (req) => {
     for (const event of events || []) {
       try {
         // Fetch user profile with notification preferences AND timezone
+        // Fetch user profile with notification preferences, timezone and language
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled, timezone')
+          .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled, timezone, font_preference')
           .eq('id', event.user_id)
           .maybeSingle();
+        
+        // Get user language from chat_messages or use default
+        const { data: lastMessage } = await supabase
+          .from('chat_messages')
+          .select('metadata')
+          .eq('user_id', event.user_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        const userLanguage = (lastMessage?.metadata as any)?.language || 'pt-BR';
 
         if (profileError) {
           console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
@@ -192,11 +229,15 @@ Deno.serve(async (req) => {
             // Mark as VoIP fallback if VoIP was attempted but failed
             const isVoipFallback = criticalAlertsEnabled && !voipSentSuccessfully;
             
+            // Get localized messages for the user
+            const messages = getAlertMessages(userLanguage);
+            const eventEmoji = event.emoji || '📅';
+            
             const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
               body: {
                 user_id: event.user_id,
-                title: '📞 Me Ligue - Horah',
-                body: `${event.title} às ${timeDisplay}`,
+                title: `${eventEmoji} ${event.title}`,
+                body: `${messages.startsIn} • ${messages.at} ${timeDisplay}`,
                 data: {
                   type: 'call-alert',
                   event_id: event.id,
