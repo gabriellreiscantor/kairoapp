@@ -2058,8 +2058,37 @@ Este e um novo usuario que esta criando seu primeiro evento.
 - Apos criar, o usuario pode corrigir se precisar
 ` : '';
 
+    // Language-specific response instructions
+    const languageInstructions: Record<string, string> = {
+      'pt-BR': 'Responda SEMPRE em portugues brasileiro. Use linguagem casual e amigavel, como um amigo falando. Voce se chama Horah.',
+      'en-US': 'ALWAYS respond in English. Use casual and friendly language, like a friend talking. Your name is Horah.',
+      'en': 'ALWAYS respond in English. Use casual and friendly language, like a friend talking. Your name is Horah.',
+      'es-ES': 'Responde SIEMPRE en espanol. Usa un lenguaje casual y amigable, como un amigo hablando. Te llamas Horah.',
+      'es': 'Responde SIEMPRE en espanol. Usa un lenguaje casual y amigable, como un amigo hablando. Te llamas Horah.',
+      'fr-FR': 'Reponds TOUJOURS en francais. Utilise un langage decontracte et amical, comme un ami qui parle. Tu t\'appelles Horah.',
+      'fr': 'Reponds TOUJOURS en francais. Utilise un langage decontracte et amical, comme un ami qui parle. Tu t\'appelles Horah.',
+      'de-DE': 'Antworte IMMER auf Deutsch. Verwende eine lockere und freundliche Sprache, wie ein Freund spricht. Du heisst Horah.',
+      'de': 'Antworte IMMER auf Deutsch. Verwende eine lockere und freundliche Sprache, wie ein Freund spricht. Du heisst Horah.',
+      'it-IT': 'Rispondi SEMPRE in italiano. Usa un linguaggio informale e amichevole, come un amico che parla. Ti chiami Horah.',
+      'it': 'Rispondi SEMPRE in italiano. Usa un linguaggio informale e amichevole, come un amico che parla. Ti chiami Horah.',
+      'ja-JP': '常に日本語で返答してください。友達のようにカジュアルでフレンドリーな言葉を使ってください。私の名前はHorahです。',
+      'ja': '常に日本語で返答してください。友達のようにカジュアルでフレンドリーな言葉を使ってください。私の名前はHorahです。',
+      'ko-KR': '항상 한국어로 응답해주세요. 친구처럼 캐주얼하고 친근한 언어를 사용하세요. 제 이름은 Horah입니다.',
+      'ko': '항상 한국어로 응답해주세요. 친구처럼 캐주얼하고 친근한 언어를 사용하세요. 제 이름은 Horah입니다.',
+      'zh-CN': '请始终用中文回复。使用休闲友好的语言，像朋友一样说话。我的名字是Horah。',
+      'zh': '请始终用中文回复。使用休闲友好的语言，像朋友一样说话。我的名字是Horah。',
+    };
+
+    const responseLanguage = requestLanguage || 'pt-BR';
+    const languageInstruction = languageInstructions[responseLanguage] || languageInstructions['en-US'];
+    console.log('Response language:', responseLanguage, '| Instruction:', languageInstruction.substring(0, 50) + '...');
+
     // HORAH EVENT ENGINE v2 — CRIAÇÃO OTIMISTA
     const systemPrompt = `HORAH EVENT ENGINE v2
+
+=== IDIOMA DE RESPOSTA (OBRIGATORIO) ===
+${languageInstruction}
+Responda SEMPRE no idioma indicado acima. Se o usuario escrever em outro idioma, ainda responda no idioma configurado.
 
 Voce e Horah, um motor de agendamento focado em VELOCIDADE.
 
