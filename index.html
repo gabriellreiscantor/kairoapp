@@ -41,9 +41,9 @@
         
         document.documentElement.classList.add(isDark ? 'dark' : 'light');
         
-        // Cores que combinam com os novos splash verticais
-        var bg = isDark ? '#0a1628' : '#4ECDC4';
-        document.body.style.background = bg;
+        // Gradiente desde o início - nunca mais cor sólida
+        var gradient = 'linear-gradient(180deg, #4ECDC4 0%, #0a1628 100%)';
+        document.body.style.background = gradient;
         
         var spinnerColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)';
         var spinnerTopColor = isDark ? 'white' : '#333';
