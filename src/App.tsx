@@ -37,12 +37,31 @@ const EULAPage = lazy(() => import("./pages/legal/EULAPage"));
 
 const queryClient = new QueryClient();
 
-// Loading fallback for lazy routes
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
+// Detectar tema para o PageLoader
+const getIsDarkMode = () => {
+  if (typeof window === 'undefined') return true;
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') return false;
+  if (savedTheme === 'dark') return true;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
+// Loading fallback for lazy routes - com gradiente consistente
+const PageLoader = () => {
+  const isDark = getIsDarkMode();
+  const gradientStyle = isDark 
+    ? 'linear-gradient(180deg, #4ECDC4 0%, #0a1628 100%)'
+    : 'linear-gradient(180deg, #4ECDC4 0%, #f0f4f8 100%)';
+  
+  return (
+    <div 
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ background: gradientStyle }}
+    >
+      <div className="w-8 h-8 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
