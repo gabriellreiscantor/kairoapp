@@ -66,11 +66,32 @@ const MainApp = () => {
   const { registerVoIPToken } = useCallKit();
 
   // Push notifications hook - registers FCM token on native platforms
+  // On iOS, regular push should NOT trigger CallScreen if VoIP is configured
+  const isIOSNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+  
   usePushNotifications({
     onNotificationReceived: (notification) => {
       console.log('[MainApp] Push received:', notification);
       // Handle call alert push notifications
       if (notification.data?.type === 'call-alert') {
+        // On iOS native, VoIP/CallKit should handle calls - ignore regular push for calls
+        if (isIOSNative) {
+          console.log('[MainApp] iOS native - ignoring regular push for call (VoIP should handle)');
+          // Only show fallback if explicitly marked as VoIP failure
+          if (notification.data?.is_voip_fallback === 'true') {
+            console.log('[MainApp] VoIP fallback flag detected, showing CallScreen');
+            showCall({
+              id: notification.data.eventId,
+              title: notification.data.eventTitle,
+              emoji: notification.data.eventEmoji || '📅',
+              time: notification.data.eventTime,
+              location: notification.data.eventLocation,
+            }, language);
+          }
+          return;
+        }
+        
+        // On Android/Web, show fake CallScreen
         showCall({
           id: notification.data.eventId,
           title: notification.data.eventTitle,
@@ -83,6 +104,23 @@ const MainApp = () => {
     onNotificationAction: (action) => {
       console.log('[MainApp] Push action:', action);
       if (action.notification.data?.type === 'call-alert') {
+        // On iOS native, VoIP/CallKit should handle calls - ignore regular push for calls
+        if (isIOSNative) {
+          console.log('[MainApp] iOS native - ignoring push action for call (VoIP should handle)');
+          // Only show fallback if explicitly marked as VoIP failure
+          if (action.notification.data?.is_voip_fallback === 'true') {
+            console.log('[MainApp] VoIP fallback flag detected, showing CallScreen');
+            showCall({
+              id: action.notification.data.eventId,
+              title: action.notification.data.eventTitle,
+              emoji: action.notification.data.eventEmoji || '📅',
+              time: action.notification.data.eventTime,
+              location: action.notification.data.eventLocation,
+            }, language);
+          }
+          return;
+        }
+        
         showCall({
           id: action.notification.data.eventId,
           title: action.notification.data.eventTitle,
@@ -93,6 +131,16 @@ const MainApp = () => {
       }
     }
   });
+  
+  // Force VoIP re-registration on app start for iOS
+  useEffect(() => {
+    if (isIOSNative && user) {
+      console.log('[MainApp] iOS native with user - forcing VoIP re-registration');
+      registerVoIPToken().then(result => {
+        console.log('[MainApp] VoIP registration result:', result);
+      });
+    }
+  }, [isIOSNative, user, registerVoIPToken]);
   
   const [activeView, setActiveView] = useState<ViewType>('chat');
   const [selectedDate, setSelectedDate] = useState(new Date());
