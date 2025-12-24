@@ -72,6 +72,16 @@
         border-radius: 50%;
         animation: initial-spin 1s linear infinite;
       }
+      /* Prevent white flash - #root always has background */
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: inherit;
+      }
+      html, body {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
     </style>
     
     <div id="initial-splash">
