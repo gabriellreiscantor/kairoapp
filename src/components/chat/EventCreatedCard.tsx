@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight, Trash2, Clock, FileText
 } from "lucide-react";
@@ -75,20 +75,36 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   }, [event.call_alert_sent_at, event.call_alert_attempts, event.call_alert_answered, event.call_alert_answered_at, event.call_alert_outcome]);
   
   // Check if event is expired (already happened) - only for non-recurring events
-  const isExpired = useMemo(() => {
-    // Recurring events never expire in this sense
-    if (event.repeat && event.repeat !== 'never') return false;
+  // Uses state + interval to update in real-time when event expires
+  const [isExpired, setIsExpired] = useState(false);
+  
+  useEffect(() => {
+    const checkExpired = () => {
+      // Recurring events never expire in this sense
+      if (event.repeat && event.repeat !== 'never') {
+        setIsExpired(false);
+        return;
+      }
+      
+      // Build the event datetime - parse explicitly to avoid timezone issues
+      const [year, month, day] = event.event_date.split('-').map(Number);
+      const eventDateTime = event.event_time 
+        ? (() => {
+            const [hours, minutes] = event.event_time.split(':').map(Number);
+            return new Date(year, month - 1, day, hours, minutes, 0, 0);
+          })()
+        : new Date(year, month - 1, day, 23, 59, 59, 0);
+      
+      setIsExpired(eventDateTime < new Date());
+    };
     
-    // Build the event datetime - parse explicitly to avoid timezone issues
-    const [year, month, day] = event.event_date.split('-').map(Number);
-    const eventDateTime = event.event_time 
-      ? (() => {
-          const [hours, minutes] = event.event_time.split(':').map(Number);
-          return new Date(year, month - 1, day, hours, minutes, 0, 0);
-        })()
-      : new Date(year, month - 1, day, 23, 59, 59, 0);
+    // Check immediately
+    checkExpired();
     
-    return eventDateTime < new Date();
+    // Re-check every minute to update when event expires
+    const interval = setInterval(checkExpired, 60000);
+    
+    return () => clearInterval(interval);
   }, [event.event_date, event.event_time, event.repeat]);
   
   // Fetch live call status data and subscribe to realtime updates
