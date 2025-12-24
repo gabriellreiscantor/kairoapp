@@ -42,11 +42,52 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const pendingTokenRef = useRef<string | null>(null);
   const preloadedTTSRef = useRef<string | null>(null); // Pre-loaded TTS audio base64
   const preloadingTTSRef = useRef<Promise<string | null> | null>(null); // TTS loading promise
+  const hasInitializedRef = useRef(false); // Prevent double initialization
+  const safetyTimeoutRef = useRef<number | null>(null); // Safety timeout to prevent stuck state
 
   // Sync currentEvent to ref
   useEffect(() => {
     currentEventRef.current = currentEvent;
   }, [currentEvent]);
+
+  // Force cleanup all state - called at start of new calls and on timeout
+  const forceCleanupAllState = useCallback(() => {
+    console.log('[CallKit] 🧹 Force cleaning up ALL state...');
+    
+    // Clear safety timeout
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+    
+    // Reset TTS state
+    isCallingTTSRef.current = false;
+    preloadedTTSRef.current = null;
+    preloadingTTSRef.current = null;
+    
+    // Stop any audio
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      } catch (e) {
+        console.log('[CallKit] Error stopping audio in force cleanup:', e);
+      }
+      audioRef.current = null;
+    }
+    
+    // Stop native TTS if playing
+    if (callKitPluginRef.current?.stopTTSAudio) {
+      callKitPluginRef.current.stopTTSAudio().catch((e: any) => {
+        console.log('[CallKit] Error stopping native TTS in force cleanup:', e);
+      });
+    }
+    
+    setIsPlaying(false);
+    setIsCallVisible(false);
+    setCurrentEvent(null);
+  }, []);
 
   // Save VoIP token to Supabase - returns success status
   const saveVoIPToken = useCallback(async (token: string): Promise<boolean> => {
@@ -140,13 +181,31 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         return;
       }
 
+      // Prevent double initialization
+      if (hasInitializedRef.current) {
+        console.log('[CallKit] Already initialized, skipping');
+        return;
+      }
+
       try {
         console.log('[CallKit] ====== STARTING CALLKIT INIT ON iOS ======');
         
         // Dynamic import to avoid errors on non-native platforms
         console.log('[CallKit] Importing capacitor-plugin-callkit-voip...');
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
+        
+        // Remove previous listeners before re-adding (safety)
+        if (callKitPluginRef.current) {
+          console.log('[CallKit] Removing previous listeners before init');
+          try {
+            await callKitPluginRef.current.removeAllListeners?.();
+          } catch (e) {
+            console.log('[CallKit] Error removing previous listeners:', e);
+          }
+        }
+        
         callKitPluginRef.current = CallKitVoip;
+        hasInitializedRef.current = true;
         
         console.log('[CallKit] Plugin imported successfully');
         console.log('[CallKit] CallKitVoip object:', CallKitVoip);
@@ -301,9 +360,52 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           console.log('[CallKit] ====== CALL STARTED ======');
           console.log('[CallKit] Start data:', JSON.stringify(data));
           
-          // Clear previous preloaded TTS
+          // FIRST: Force cleanup any previous call state to prevent bugs
+          console.log('[CallKit] Cleaning up previous call state...');
+          isCallingTTSRef.current = false;
           preloadedTTSRef.current = null;
           preloadingTTSRef.current = null;
+          
+          // Stop any playing audio from previous call
+          if (audioRef.current) {
+            try {
+              audioRef.current.pause();
+              audioRef.current.src = '';
+              audioRef.current.load();
+            } catch (e) {
+              console.log('[CallKit] Error cleaning up previous audio:', e);
+            }
+            audioRef.current = null;
+          }
+          
+          // Stop native TTS from previous call
+          if (callKitPluginRef.current?.stopTTSAudio) {
+            try {
+              await callKitPluginRef.current.stopTTSAudio();
+            } catch (e) {
+              console.log('[CallKit] Error stopping previous native TTS:', e);
+            }
+          }
+          
+          // Clear previous safety timeout
+          if (safetyTimeoutRef.current) {
+            clearTimeout(safetyTimeoutRef.current);
+            safetyTimeoutRef.current = null;
+          }
+          
+          // Set safety timeout - force cleanup after 60 seconds if call gets stuck
+          safetyTimeoutRef.current = window.setTimeout(() => {
+            console.log('[CallKit] ⚠️ SAFETY TIMEOUT - forcing cleanup after 60s');
+            forceCleanupAllState();
+            
+            // Also try to end the CallKit call
+            if (callKitPluginRef.current && currentEventRef.current) {
+              const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
+              endCallFn?.({ id: currentEventRef.current.id }).catch((e: any) => {
+                console.log('[CallKit] Error ending call in safety timeout:', e);
+              });
+            }
+          }, 60000);
           
           // Store the event data from push notification
           if (data.eventId) {
@@ -358,11 +460,27 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           console.log('[CallKit] ====== CALL ENDED ======');
           console.log('[CallKit] End data:', JSON.stringify(data));
           
+          // Clear safety timeout immediately
+          if (safetyTimeoutRef.current) {
+            clearTimeout(safetyTimeoutRef.current);
+            safetyTimeoutRef.current = null;
+          }
+          
           // Check if call was answered (TTS was playing means it was answered)
           const wasAnswered = isCallingTTSRef.current;
           
           // IMPORTANT: Stop TTS immediately when call ends
           isCallingTTSRef.current = false;
+          
+          // Stop native TTS playback
+          if (callKitPluginRef.current?.stopTTSAudio) {
+            try {
+              await callKitPluginRef.current.stopTTSAudio();
+              console.log('[CallKit] Native TTS stopped');
+            } catch (e) {
+              console.log('[CallKit] Error stopping native TTS:', e);
+            }
+          }
           
           // Stop audio completely - clear source first to stop all playback
           if (audioRef.current) {
@@ -406,7 +524,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             }
           }
           
-          cleanupCall();
+          // Use force cleanup to ensure everything is reset
+          forceCleanupAllState();
         });
         
         console.log('[CallKit] ====== CALLKIT INIT COMPLETE ======');
@@ -424,12 +543,21 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     initCallKit();
 
     return () => {
+      // Clear safety timeout on unmount
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+      
       if (callKitPluginRef.current) {
         console.log('[CallKit] Cleanup: Removing all listeners');
         callKitPluginRef.current.removeAllListeners?.();
       }
+      
+      // Reset initialization flag on unmount
+      hasInitializedRef.current = false;
     };
-  }, [saveVoIPToken, attemptVoIPRegistration]);
+  }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
   // Listen for auth state changes to register VoIP token when user logs in
   useEffect(() => {
@@ -506,10 +634,29 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
 
   // Cleanup call state
   const cleanupCall = useCallback(() => {
+    console.log('[CallKit] cleanupCall called');
+    
+    // Clear safety timeout
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+    
+    // Clear preloaded TTS
+    preloadedTTSRef.current = null;
+    preloadingTTSRef.current = null;
+    
     if (audioRef.current) {
-      audioRef.current.pause();
+      try {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      } catch (e) {
+        console.log('[CallKit] Error cleaning audio in cleanupCall:', e);
+      }
       audioRef.current = null;
     }
+    
     isCallingTTSRef.current = false;
     setIsPlaying(false);
     setIsCallVisible(false);
@@ -623,19 +770,51 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         // Try to play via native Swift AVAudioPlayer (works during CallKit call)
         if (isIOSNative() && callKitPluginRef.current?.playTTSAudio) {
           console.log('[CallKit] Playing TTS via native Swift AVAudioPlayer');
+          console.log('[CallKit] playTTSAudio available:', !!callKitPluginRef.current?.playTTSAudio);
+          console.log('[CallKit] preloadedTTS was available:', !!preloadedTTSRef.current);
           
-          try {
-            const result = await callKitPluginRef.current.playTTSAudio({ audio: base64Audio });
-            console.log('[CallKit] Native TTS playback result:', JSON.stringify(result));
-            
-            if (result?.playing) {
-              console.log('[CallKit] ✅ Native TTS is playing!');
-              // Let it play until timeout, native player handles loops
-              return;
+          // Try with retries
+          let retries = 0;
+          const maxRetries = 2;
+          
+          const tryNativePlayback = async (): Promise<boolean> => {
+            try {
+              console.log(`[CallKit] Native TTS attempt ${retries + 1}/${maxRetries + 1}`);
+              const result = await callKitPluginRef.current.playTTSAudio({ audio: base64Audio });
+              console.log('[CallKit] Native TTS playback result:', JSON.stringify(result));
+              
+              if (result?.playing) {
+                console.log('[CallKit] ✅ Native TTS is playing!');
+                return true;
+              } else {
+                console.warn('[CallKit] ⚠️ Native TTS did NOT start playing');
+                if (retries < maxRetries) {
+                  retries++;
+                  console.log(`[CallKit] Retrying in 500ms...`);
+                  await new Promise(r => setTimeout(r, 500));
+                  return tryNativePlayback();
+                }
+                return false;
+              }
+            } catch (e) {
+              console.error('[CallKit] Native TTS error:', e);
+              if (retries < maxRetries) {
+                retries++;
+                console.log(`[CallKit] Retrying after error in 500ms...`);
+                await new Promise(r => setTimeout(r, 500));
+                return tryNativePlayback();
+              }
+              return false;
             }
-          } catch (nativeError) {
-            console.error('[CallKit] Native TTS failed, trying web fallback:', nativeError);
+          };
+          
+          const playbackStarted = await tryNativePlayback();
+          if (playbackStarted) {
+            // Let it play until timeout, native player handles loops
+            return;
           }
+          
+          console.warn('[CallKit] All native TTS attempts failed, trying web fallback...');
         }
         
         // FALLBACK: Web Audio API (may not work during CallKit call)
