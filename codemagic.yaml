@@ -599,7 +599,7 @@ workflows:
           # The key is to replace the default white LaunchScreen with a dark background
           # LaunchScreen.storyboard uses XML format
           
-          LAUNCHSCREEN_PATH="ios/App/App/LaunchScreen.storyboard"
+          LAUNCHSCREEN_PATH="ios/App/App/Base.lproj/LaunchScreen.storyboard"
           
           if [ ! -f "$LAUNCHSCREEN_PATH" ]; then
             echo "❌ LaunchScreen.storyboard not found at $LAUNCHSCREEN_PATH"
