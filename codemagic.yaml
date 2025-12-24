@@ -592,165 +592,6 @@ workflows:
           
           echo "✅ Audio files configuration complete"
       
-      - name: Configure LaunchScreen to Eliminate White Flash
-        script: |
-          echo "=== Configuring LaunchScreen.storyboard to eliminate white flash ==="
-          
-          # The key is to replace the default white LaunchScreen with a dark background
-          # LaunchScreen.storyboard uses XML format
-          
-          LAUNCHSCREEN_PATH="ios/App/App/Base.lproj/LaunchScreen.storyboard"
-          
-          if [ ! -f "$LAUNCHSCREEN_PATH" ]; then
-            echo "❌ LaunchScreen.storyboard not found at $LAUNCHSCREEN_PATH"
-            ls -la ios/App/App/
-            exit 1
-          fi
-          
-          echo "Original LaunchScreen.storyboard:"
-          cat "$LAUNCHSCREEN_PATH"
-          
-          # Create new LaunchScreen.storyboard with dark background (#0a1628)
-          # RGB values: R=10/255=0.039, G=22/255=0.086, B=40/255=0.157
-          printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
-            '<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">' \
-            '    <device id="retina6_12" orientation="portrait" appearance="dark"/>' \
-            '    <dependencies>' \
-            '        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>' \
-            '        <capability name="Safe area layout guides" minToolsVersion="9.0"/>' \
-            '        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>' \
-            '    </dependencies>' \
-            '    <scenes>' \
-            '        <scene sceneID="EHf-IW-A2E">' \
-            '            <objects>' \
-            '                <viewController id="01J-lp-oVM" sceneMemberID="viewController">' \
-            '                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">' \
-            '                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
-            '                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>' \
-            '                        <subviews>' \
-            '                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">' \
-            '                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
-            '                            </imageView>' \
-            '                        </subviews>' \
-            '                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>' \
-            '                        <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>' \
-            '                        <constraints>' \
-            '                            <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>' \
-            '                            <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>' \
-            '                            <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>' \
-            '                            <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>' \
-            '                        </constraints>' \
-            '                    </view>' \
-            '                </viewController>' \
-            '                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>' \
-            '            </objects>' \
-            '            <point key="canvasLocation" x="53" y="375"/>' \
-            '        </scene>' \
-            '    </scenes>' \
-            '    <resources>' \
-            '        <image name="Splash" width="2732" height="2732"/>' \
-            '    </resources>' \
-            '</document>' > "$LAUNCHSCREEN_PATH"
-          
-          echo ""
-          echo "✅ LaunchScreen.storyboard updated with dark background (#0a1628)"
-          echo ""
-          echo "New LaunchScreen.storyboard:"
-          cat "$LAUNCHSCREEN_PATH"
-      
-      - name: Add Splash Image to iOS Assets
-        script: |
-          echo "=== Adding Splash image to iOS Assets.xcassets ==="
-          echo "DEBUG: Current directory: $(pwd)"
-          echo "DEBUG: Listing src/assets:"
-          ls -la src/assets/ || echo "src/assets not found"
-          echo "DEBUG: Listing resources:"
-          ls -la resources/ || echo "resources not found"
-          
-          ASSETS_PATH="ios/App/App/Assets.xcassets"
-          SPLASH_IMAGESET="$ASSETS_PATH/Splash.imageset"
-          
-          echo "DEBUG: ASSETS_PATH=$ASSETS_PATH"
-          echo "DEBUG: SPLASH_IMAGESET=$SPLASH_IMAGESET"
-          
-          # Create Splash.imageset directory
-          mkdir -p "$SPLASH_IMAGESET"
-          echo "DEBUG: Created $SPLASH_IMAGESET"
-          
-          # Copy splash image (use the dark version since our background is dark)
-          if [ -f "src/assets/horah-splash-dark.png" ]; then
-            cp src/assets/horah-splash-dark.png "$SPLASH_IMAGESET/splash.png"
-            echo "✅ Copied horah-splash-dark.png to Splash.imageset"
-            echo "DEBUG: File size:"
-            ls -la "$SPLASH_IMAGESET/splash.png"
-          elif [ -f "resources/splash.png" ]; then
-            cp resources/splash.png "$SPLASH_IMAGESET/splash.png"
-            echo "✅ Copied resources/splash.png to Splash.imageset"
-            echo "DEBUG: File size:"
-            ls -la "$SPLASH_IMAGESET/splash.png"
-          else
-            echo "❌ ERROR: No splash image found!"
-            echo "DEBUG: Checking all available images:"
-            find . -name "*.png" -type f | head -20
-          fi
-          
-          # Create Contents.json for the imageset
-          printf '%s\n' '{' \
-            '  "images" : [' \
-            '    {' \
-            '      "filename" : "splash.png",' \
-            '      "idiom" : "universal",' \
-            '      "scale" : "1x"' \
-            '    },' \
-            '    {' \
-            '      "filename" : "splash.png",' \
-            '      "idiom" : "universal",' \
-            '      "scale" : "2x"' \
-            '    },' \
-            '    {' \
-            '      "filename" : "splash.png",' \
-            '      "idiom" : "universal",' \
-            '      "scale" : "3x"' \
-            '    }' \
-            '  ],' \
-            '  "info" : {' \
-            '    "author" : "xcode",' \
-            '    "version" : 1' \
-            '  }' \
-            '}' > "$SPLASH_IMAGESET/Contents.json"
-          
-          echo "✅ Splash.imageset configured in Assets.xcassets"
-          ls -la "$SPLASH_IMAGESET"
-      
-      - name: Register Splash Image in Xcode Project
-        script: |
-          echo "=== Registering Splash.imageset in Xcode project ==="
-          
-          ruby <<RUBY
-          require 'xcodeproj'
-          
-          project_path = 'ios/App/App.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-          
-          # Find the Assets.xcassets group
-          app_group = project.main_group['App']
-          assets_ref = app_group.files.find { |f| f.path == 'Assets.xcassets' }
-          
-          if assets_ref
-            puts "✅ Assets.xcassets is already referenced in project"
-          else
-            puts "⚠️ Adding Assets.xcassets reference to project"
-            assets_ref = app_group.new_reference('Assets.xcassets')
-          end
-          
-          project.save
-          puts "✅ Xcode project saved"
-          RUBY
-          
-          echo "✅ Splash image registered in Xcode project"
-      
-      # REMOVED: "Configure AppDelegate for Dark Background" - backgroundColor is now set in the Firebase AppDelegate below
-      
       - name: Add Camera and Photo Library Permissions to Info.plist
         script: |
           # Force dark mode and set background color in Info.plist
@@ -967,6 +808,169 @@ workflows:
       
       - name: Generate App Icons and Splash Screens
         script: npx capacitor-assets generate --ios
+      
+      # ==============================================================
+      # IMPORTANTE: Os steps abaixo SOBRESCREVEM o LaunchScreen padrão
+      # que foi gerado pelo capacitor-assets generate acima.
+      # Isso garante que nosso splash customizado (polvo) seja usado.
+      # ==============================================================
+      
+      - name: Configure LaunchScreen to Eliminate White Flash (AFTER capacitor-assets)
+        script: |
+          echo "=== Configuring LaunchScreen.storyboard to eliminate white flash ==="
+          echo "=== This runs AFTER capacitor-assets generate to OVERRIDE defaults ==="
+          
+          LAUNCHSCREEN_PATH="ios/App/App/Base.lproj/LaunchScreen.storyboard"
+          
+          if [ ! -f "$LAUNCHSCREEN_PATH" ]; then
+            echo "❌ LaunchScreen.storyboard not found at $LAUNCHSCREEN_PATH"
+            ls -la ios/App/App/
+            exit 1
+          fi
+          
+          echo "Original LaunchScreen.storyboard (from capacitor-assets):"
+          cat "$LAUNCHSCREEN_PATH"
+          
+          # Create new LaunchScreen.storyboard with dark background (#0a1628)
+          # RGB values: R=10/255=0.039, G=22/255=0.086, B=40/255=0.157
+          printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">' \
+            '    <device id="retina6_12" orientation="portrait" appearance="dark"/>' \
+            '    <dependencies>' \
+            '        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>' \
+            '        <capability name="Safe area layout guides" minToolsVersion="9.0"/>' \
+            '        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>' \
+            '    </dependencies>' \
+            '    <scenes>' \
+            '        <scene sceneID="EHf-IW-A2E">' \
+            '            <objects>' \
+            '                <viewController id="01J-lp-oVM" sceneMemberID="viewController">' \
+            '                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">' \
+            '                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
+            '                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>' \
+            '                        <subviews>' \
+            '                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">' \
+            '                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
+            '                            </imageView>' \
+            '                        </subviews>' \
+            '                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>' \
+            '                        <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>' \
+            '                        <constraints>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>' \
+            '                        </constraints>' \
+            '                    </view>' \
+            '                </viewController>' \
+            '                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>' \
+            '            </objects>' \
+            '            <point key="canvasLocation" x="53" y="375"/>' \
+            '        </scene>' \
+            '    </scenes>' \
+            '    <resources>' \
+            '        <image name="Splash" width="2732" height="2732"/>' \
+            '    </resources>' \
+            '</document>' > "$LAUNCHSCREEN_PATH"
+          
+          echo ""
+          echo "✅ LaunchScreen.storyboard OVERWRITTEN with dark background (#0a1628) + Splash image"
+          echo ""
+          echo "New LaunchScreen.storyboard:"
+          cat "$LAUNCHSCREEN_PATH"
+      
+      - name: Add Custom Splash Image to iOS Assets (AFTER capacitor-assets)
+        script: |
+          echo "=== Adding Custom Splash image to iOS Assets.xcassets ==="
+          echo "=== This OVERRIDES the default splash from capacitor-assets ==="
+          echo "DEBUG: Current directory: $(pwd)"
+          echo "DEBUG: Listing src/assets:"
+          ls -la src/assets/ || echo "src/assets not found"
+          echo "DEBUG: Listing resources:"
+          ls -la resources/ || echo "resources not found"
+          
+          ASSETS_PATH="ios/App/App/Assets.xcassets"
+          SPLASH_IMAGESET="$ASSETS_PATH/Splash.imageset"
+          
+          echo "DEBUG: ASSETS_PATH=$ASSETS_PATH"
+          echo "DEBUG: SPLASH_IMAGESET=$SPLASH_IMAGESET"
+          
+          # Remove existing Splash.imageset (from capacitor-assets) and recreate
+          rm -rf "$SPLASH_IMAGESET"
+          mkdir -p "$SPLASH_IMAGESET"
+          echo "DEBUG: Created fresh $SPLASH_IMAGESET"
+          
+          # Copy splash image (use the dark version since our background is dark)
+          if [ -f "src/assets/horah-splash-dark.png" ]; then
+            cp src/assets/horah-splash-dark.png "$SPLASH_IMAGESET/splash.png"
+            echo "✅ Copied horah-splash-dark.png to Splash.imageset (polvo!)"
+            echo "DEBUG: File size:"
+            ls -la "$SPLASH_IMAGESET/splash.png"
+          elif [ -f "resources/splash.png" ]; then
+            cp resources/splash.png "$SPLASH_IMAGESET/splash.png"
+            echo "✅ Copied resources/splash.png to Splash.imageset"
+            echo "DEBUG: File size:"
+            ls -la "$SPLASH_IMAGESET/splash.png"
+          else
+            echo "❌ ERROR: No splash image found!"
+            echo "DEBUG: Checking all available images:"
+            find . -name "*.png" -type f | head -20
+          fi
+          
+          # Create Contents.json for the imageset
+          printf '%s\n' '{' \
+            '  "images" : [' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "1x"' \
+            '    },' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "2x"' \
+            '    },' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "3x"' \
+            '    }' \
+            '  ],' \
+            '  "info" : {' \
+            '    "author" : "xcode",' \
+            '    "version" : 1' \
+            '  }' \
+            '}' > "$SPLASH_IMAGESET/Contents.json"
+          
+          echo "✅ Custom Splash.imageset configured in Assets.xcassets"
+          ls -la "$SPLASH_IMAGESET"
+      
+      - name: Register Splash Image in Xcode Project
+        script: |
+          echo "=== Registering Splash.imageset in Xcode project ==="
+          
+          ruby <<RUBY
+          require 'xcodeproj'
+          
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          # Find the Assets.xcassets group
+          app_group = project.main_group['App']
+          assets_ref = app_group.files.find { |f| f.path == 'Assets.xcassets' }
+          
+          if assets_ref
+            puts "✅ Assets.xcassets is already referenced in project"
+          else
+            puts "⚠️ Adding Assets.xcassets reference to project"
+            assets_ref = app_group.new_reference('Assets.xcassets')
+          end
+          
+          project.save
+          puts "✅ Xcode project saved with custom splash"
+          RUBY
+          
+          echo "✅ Custom splash image registered in Xcode project"
       
       - name: Install CocoaPods
         script: |
