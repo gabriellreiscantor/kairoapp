@@ -592,8 +592,133 @@ workflows:
           
           echo "✅ Audio files configuration complete"
       
+      - name: Configure LaunchScreen to Eliminate White Flash
+        script: |
+          echo "=== Configuring LaunchScreen.storyboard to eliminate white flash ==="
+          
+          # The key is to replace the default white LaunchScreen with a dark background
+          # LaunchScreen.storyboard uses XML format
+          
+          LAUNCHSCREEN_PATH="ios/App/App/LaunchScreen.storyboard"
+          
+          if [ ! -f "$LAUNCHSCREEN_PATH" ]; then
+            echo "❌ LaunchScreen.storyboard not found at $LAUNCHSCREEN_PATH"
+            ls -la ios/App/App/
+            exit 1
+          fi
+          
+          echo "Original LaunchScreen.storyboard:"
+          cat "$LAUNCHSCREEN_PATH"
+          
+          # Create new LaunchScreen.storyboard with dark background (#0a1628)
+          # RGB values: R=10/255=0.039, G=22/255=0.086, B=40/255=0.157
+          cat > "$LAUNCHSCREEN_PATH" << 'STORYBOARD_EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+              <device id="retina6_12" orientation="portrait" appearance="dark"/>
+              <dependencies>
+                  <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
+                  <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+                  <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+              </dependencies>
+              <scenes>
+                  <!--View Controller-->
+                  <scene sceneID="EHf-IW-A2E">
+                      <objects>
+                          <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                              <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                                  <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                  <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                  <subviews>
+                                      <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">
+                                          <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                      </imageView>
+                                  </subviews>
+                                  <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                                  <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                  <constraints>
+                                      <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>
+                                      <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>
+                                      <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>
+                                      <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>
+                                  </constraints>
+                              </view>
+                          </viewController>
+                          <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                      </objects>
+                      <point key="canvasLocation" x="53" y="375"/>
+                  </scene>
+              </scenes>
+              <resources>
+                  <image name="Splash" width="2732" height="2732"/>
+              </resources>
+          </document>
+          STORYBOARD_EOF
+          
+          echo ""
+          echo "✅ LaunchScreen.storyboard updated with dark background (#0a1628)"
+          echo ""
+          echo "New LaunchScreen.storyboard:"
+          cat "$LAUNCHSCREEN_PATH"
+      
+      - name: Add Splash Image to iOS Assets
+        script: |
+          echo "=== Adding Splash image to iOS Assets.xcassets ==="
+          
+          ASSETS_PATH="ios/App/App/Assets.xcassets"
+          SPLASH_IMAGESET="$ASSETS_PATH/Splash.imageset"
+          
+          # Create Splash.imageset directory
+          mkdir -p "$SPLASH_IMAGESET"
+          
+          # Copy splash image (use the dark version since our background is dark)
+          if [ -f "src/assets/horah-splash-dark.png" ]; then
+            cp src/assets/horah-splash-dark.png "$SPLASH_IMAGESET/splash.png"
+            echo "✅ Copied horah-splash-dark.png to Splash.imageset"
+          elif [ -f "resources/splash.png" ]; then
+            cp resources/splash.png "$SPLASH_IMAGESET/splash.png"
+            echo "✅ Copied resources/splash.png to Splash.imageset"
+          else
+            echo "⚠️ No splash image found, creating solid color fallback"
+            # The storyboard will just show the dark background color
+          fi
+          
+          # Create Contents.json for the imageset
+          cat > "$SPLASH_IMAGESET/Contents.json" << 'JSON_EOF'
+          {
+            "images" : [
+              {
+                "filename" : "splash.png",
+                "idiom" : "universal",
+                "scale" : "1x"
+              },
+              {
+                "filename" : "splash.png",
+                "idiom" : "universal",
+                "scale" : "2x"
+              },
+              {
+                "filename" : "splash.png",
+                "idiom" : "universal",
+                "scale" : "3x"
+              }
+            ],
+            "info" : {
+              "author" : "xcode",
+              "version" : 1
+            }
+          }
+          JSON_EOF
+          
+          echo "✅ Splash.imageset configured in Assets.xcassets"
+          ls -la "$SPLASH_IMAGESET"
+      
       - name: Add Camera and Photo Library Permissions to Info.plist
         script: |
+          # Force dark mode and set background color in Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIUserInterfaceStyle string 'Dark'" ios/App/App/Info.plist || /usr/libexec/PlistBuddy -c "Set :UIUserInterfaceStyle 'Dark'" ios/App/App/Info.plist
+          echo "✅ UIUserInterfaceStyle set to Dark"
+          
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'This app needs camera access to capture images'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'This app needs photo library access to select images'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'This app needs permission to save photos'" ios/App/App/Info.plist || true
