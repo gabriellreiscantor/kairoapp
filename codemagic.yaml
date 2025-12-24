@@ -612,47 +612,45 @@ workflows:
           
           # Create new LaunchScreen.storyboard with dark background (#0a1628)
           # RGB values: R=10/255=0.039, G=22/255=0.086, B=40/255=0.157
-          cat > "$LAUNCHSCREEN_PATH" << 'STORYBOARD_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-    <device id="retina6_12" orientation="portrait" appearance="dark"/>
-    <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
-        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
-    </dependencies>
-    <scenes>
-        <scene sceneID="EHf-IW-A2E">
-            <objects>
-                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                            </imageView>
-                        </subviews>
-                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                        <constraints>
-                            <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>
-                            <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>
-                            <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>
-                            <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>
-                        </constraints>
-                    </view>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="53" y="375"/>
-        </scene>
-    </scenes>
-    <resources>
-        <image name="Splash" width="2732" height="2732"/>
-    </resources>
-</document>
-STORYBOARD_EOF
+          printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">' \
+            '    <device id="retina6_12" orientation="portrait" appearance="dark"/>' \
+            '    <dependencies>' \
+            '        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>' \
+            '        <capability name="Safe area layout guides" minToolsVersion="9.0"/>' \
+            '        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>' \
+            '    </dependencies>' \
+            '    <scenes>' \
+            '        <scene sceneID="EHf-IW-A2E">' \
+            '            <objects>' \
+            '                <viewController id="01J-lp-oVM" sceneMemberID="viewController">' \
+            '                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">' \
+            '                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
+            '                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>' \
+            '                        <subviews>' \
+            '                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">' \
+            '                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>' \
+            '                            </imageView>' \
+            '                        </subviews>' \
+            '                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>' \
+            '                        <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>' \
+            '                        <constraints>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>' \
+            '                            <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>' \
+            '                        </constraints>' \
+            '                    </view>' \
+            '                </viewController>' \
+            '                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>' \
+            '            </objects>' \
+            '            <point key="canvasLocation" x="53" y="375"/>' \
+            '        </scene>' \
+            '    </scenes>' \
+            '    <resources>' \
+            '        <image name="Splash" width="2732" height="2732"/>' \
+            '    </resources>' \
+            '</document>' > "$LAUNCHSCREEN_PATH"
           
           echo ""
           echo "✅ LaunchScreen.storyboard updated with dark background (#0a1628)"
@@ -696,32 +694,30 @@ STORYBOARD_EOF
             find . -name "*.png" -type f | head -20
           fi
           
-          # Create Contents.json for the imageset (NO LEADING SPACES!)
-          cat > "$SPLASH_IMAGESET/Contents.json" << 'JSON_EOF'
-{
-  "images" : [
-    {
-      "filename" : "splash.png",
-      "idiom" : "universal",
-      "scale" : "1x"
-    },
-    {
-      "filename" : "splash.png",
-      "idiom" : "universal",
-      "scale" : "2x"
-    },
-    {
-      "filename" : "splash.png",
-      "idiom" : "universal",
-      "scale" : "3x"
-    }
-  ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
-  }
-}
-JSON_EOF
+          # Create Contents.json for the imageset
+          printf '%s\n' '{' \
+            '  "images" : [' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "1x"' \
+            '    },' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "2x"' \
+            '    },' \
+            '    {' \
+            '      "filename" : "splash.png",' \
+            '      "idiom" : "universal",' \
+            '      "scale" : "3x"' \
+            '    }' \
+            '  ],' \
+            '  "info" : {' \
+            '    "author" : "xcode",' \
+            '    "version" : 1' \
+            '  }' \
+            '}' > "$SPLASH_IMAGESET/Contents.json"
           
           echo "✅ Splash.imageset configured in Assets.xcassets"
           ls -la "$SPLASH_IMAGESET"
