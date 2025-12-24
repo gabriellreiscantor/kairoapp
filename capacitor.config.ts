@@ -17,11 +17,11 @@ const config: CapacitorConfig = {
     scrollEnabled: true,
   },
   
-  // Configuração do Splash Screen nativo
+  // Configuração do Splash Screen nativo - esconder imediatamente para evitar tela branca
   plugins: {
     SplashScreen: {
-      launchShowDuration: 3000,
-      launchAutoHide: false,
+      launchShowDuration: 0, // Esconder imediatamente
+      launchAutoHide: true, // Auto-esconder
       backgroundColor: '#0a1628',
       showSpinner: false,
       splashFullScreen: true,
