@@ -111,6 +111,9 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
   const [swipingAlertIndex, setSwipingAlertIndex] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const touchStartX = useRef(0);
+  
+  // Track if initial data has been loaded to prevent re-initialization on re-renders (e.g., theme change)
+  const initialDataLoadedRef = useRef(false);
 
   // Calculate if event is expired (already happened) - only for non-recurring events
   const isExpired = useMemo(() => {
@@ -132,9 +135,9 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
     return eventDateTime < new Date();
   }, [event, isReactivating]);
 
-  // Initialize form with event data
+  // Initialize form with event data - ONLY ONCE when modal opens
   useEffect(() => {
-    if (event && isOpen) {
+    if (event && isOpen && !initialDataLoadedRef.current) {
       setTitle(event.title || "");
       setLocation(event.location || "");
       // Parse date explicitly to avoid timezone issues
@@ -155,8 +158,18 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
       setAlerts(event.alerts && Array.isArray(event.alerts) ? event.alerts : [{ time: "1hour" }]);
       setScreenView('main');
       setIsReactivating(false);
+      
+      // Mark as loaded to prevent re-initialization on re-renders (e.g., theme change)
+      initialDataLoadedRef.current = true;
     }
   }, [event, isOpen]);
+
+  // Reset the loaded flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      initialDataLoadedRef.current = false;
+    }
+  }, [isOpen]);
 
   // Calculate available alert options based on event date/time
   const availableAlertOptions = useMemo(() => {

@@ -189,6 +189,9 @@ Deno.serve(async (req) => {
           // Also send regular push as fallback for Android and web (if push enabled)
           // This runs regardless of VoIP success to support non-iOS devices
           if (pushEnabled && fcmToken) {
+            // Mark as VoIP fallback if VoIP was attempted but failed
+            const isVoipFallback = criticalAlertsEnabled && !voipSentSuccessfully;
+            
             const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
               body: {
                 user_id: event.user_id,
@@ -200,6 +203,8 @@ Deno.serve(async (req) => {
                   event_title: event.title,
                   event_time: event.event_time,
                   event_location: event.location || '',
+                  // Flag to indicate VoIP failed and this is a fallback
+                  is_voip_fallback: isVoipFallback ? 'true' : 'false',
                 },
               },
             });
