@@ -60,12 +60,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   'zh-CN': '中文',
 };
 
-const PLAN_NAMES: Record<string, string> = {
-  free: 'Grátis',
-  plus: 'Plus',
-  super: 'Super',
-};
-
 const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
@@ -73,10 +67,19 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
   const { subscription, limits, usedEvents, loading: subscriptionLoading } = useSubscription();
   const { theme } = useTheme();
 
+  const getPlanLabel = (plan: string) => {
+    switch (plan) {
+      case 'free': return t('plan.free');
+      case 'plus': return t('plan.plus');
+      case 'super': return t('plan.super');
+      default: return plan;
+    }
+  };
+
   const getThemeLabel = (currentTheme: string | undefined) => {
     switch (currentTheme) {
-      case 'light': return 'Claro';
-      case 'dark': return 'Escuro';
+      case 'light': return t('appearance.light');
+      case 'dark': return t('appearance.dark');
       case 'system':
       default: return t('settings.system');
     }
@@ -212,7 +215,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     <Crown className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-left">
-                    <p className="text-white font-bold text-lg drop-shadow-md">{PLAN_NAMES[currentPlan]}</p>
+                    <p className="text-white font-bold text-lg drop-shadow-md">{getPlanLabel(currentPlan)}</p>
                     <p className="text-white/80 text-xs">{t('plan.eventsScheduled')}</p>
                   </div>
                 </div>
@@ -226,7 +229,7 @@ const SettingsDrawer = ({ isOpen, onClose }: SettingsDrawerProps) => {
                     handleNavigate('/settings/plan');
                   }}
                 >
-                  {currentPlan === 'free' ? t('plan.upgradeNow') : 'Gerenciar'}
+                  {currentPlan === 'free' ? t('plan.upgradeNow') : t('plan.manage')}
                 </button>
               </div>
               

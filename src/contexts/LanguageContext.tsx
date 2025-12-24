@@ -84,6 +84,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'Política de Privacidade',
     'plan.manageSubscription': 'Gerenciar assinatura e pagamentos',
     'plan.restorePurchases': 'Restaurar compras',
+    'plan.manage': 'Gerenciar',
+    
+    // Appearance
+    'appearance.light': 'Claro',
+    'appearance.dark': 'Escuro',
     
     // Chat
     'chat.placeholder': 'Escreva uma mensagem...',
@@ -174,6 +179,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'Privacy Policy',
     'plan.manageSubscription': 'Manage subscription and payments',
     'plan.restorePurchases': 'Restore purchases',
+    'plan.manage': 'Manage',
+    
+    // Appearance
+    'appearance.light': 'Light',
+    'appearance.dark': 'Dark',
     
     // Chat
     'chat.placeholder': 'Write a message...',
@@ -264,6 +274,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'Política de Privacidad',
     'plan.manageSubscription': 'Gestionar suscripción y pagos',
     'plan.restorePurchases': 'Restaurar compras',
+    'plan.manage': 'Gestionar',
+    
+    // Appearance
+    'appearance.light': 'Claro',
+    'appearance.dark': 'Oscuro',
     
     // Chat
     'chat.placeholder': 'Escribe un mensaje...',
@@ -343,8 +358,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.faq': 'Questions et Réponses',
     'plan.terms': 'Conditions d\'utilisation',
     'plan.privacy': 'Politique de confidentialité',
-    'plan.manageSubscription': 'Gérer l\'abonnement et les paiements',
+    'plan.manageSubscription': "Gérer l'abonnement et les paiements",
     'plan.restorePurchases': 'Restaurer les achats',
+    'plan.manage': 'Gérer',
+    
+    // Appearance
+    'appearance.light': 'Clair',
+    'appearance.dark': 'Sombre',
     'chat.placeholder': 'Écrivez un message...',
     'chat.greeting': 'Salut ! Qu\'est-ce qu\'on programme aujourd\'hui ?',
     'chat.today': 'Aujourd\'hui',
@@ -420,6 +440,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'Datenschutzrichtlinie',
     'plan.manageSubscription': 'Abonnement und Zahlungen verwalten',
     'plan.restorePurchases': 'Käufe wiederherstellen',
+    'plan.manage': 'Verwalten',
+    
+    // Appearance
+    'appearance.light': 'Hell',
+    'appearance.dark': 'Dunkel',
     'chat.placeholder': 'Nachricht schreiben...',
     'chat.greeting': 'Hallo! Was sollen wir heute planen?',
     'chat.today': 'Heute',
@@ -495,6 +520,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'Informativa sulla Privacy',
     'plan.manageSubscription': 'Gestisci abbonamento e pagamenti',
     'plan.restorePurchases': 'Ripristina acquisti',
+    'plan.manage': 'Gestisci',
+    
+    // Appearance
+    'appearance.light': 'Chiaro',
+    'appearance.dark': 'Scuro',
     'chat.placeholder': 'Scrivi un messaggio...',
     'chat.greeting': 'Ciao! Cosa programmiamo oggi?',
     'chat.today': 'Oggi',
@@ -570,6 +600,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': 'プライバシーポリシー',
     'plan.manageSubscription': 'サブスクリプションと支払いを管理',
     'plan.restorePurchases': '購入を復元',
+    'plan.manage': '管理',
+    
+    // Appearance
+    'appearance.light': 'ライト',
+    'appearance.dark': 'ダーク',
     'chat.placeholder': 'メッセージを入力...',
     'chat.greeting': 'こんにちは！今日は何を予定しますか？',
     'chat.today': '今日',
@@ -645,6 +680,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': '개인정보 처리방침',
     'plan.manageSubscription': '구독 및 결제 관리',
     'plan.restorePurchases': '구매 복원',
+    'plan.manage': '관리',
+    
+    // Appearance
+    'appearance.light': '라이트',
+    'appearance.dark': '다크',
     'chat.placeholder': '메시지 입력...',
     'chat.greeting': '안녕하세요! 오늘 뭘 예약할까요?',
     'chat.today': '오늘',
@@ -720,6 +760,11 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'plan.privacy': '隐私政策',
     'plan.manageSubscription': '管理订阅和付款',
     'plan.restorePurchases': '恢复购买',
+    'plan.manage': '管理',
+    
+    // Appearance
+    'appearance.light': '浅色',
+    'appearance.dark': '深色',
     'chat.placeholder': '输入消息...',
     'chat.greeting': '你好！今天我们安排什么？',
     'chat.today': '今天',
@@ -774,8 +819,8 @@ const detectDeviceLanguage = (): LanguageCode => {
     return matchingLang;
   }
   
-  // Default to Portuguese (Brazil)
-  return 'pt-BR';
+  // Default to English if device language is not supported
+  return 'en-US';
 };
 
 interface LanguageProviderProps {
@@ -802,8 +847,8 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
       return langTranslations[key];
     }
     
-    // Fallback to Portuguese
-    const fallback = translations['pt-BR'][key];
+    // Fallback to English
+    const fallback = translations['en-US'][key];
     if (fallback) {
       return fallback;
     }
