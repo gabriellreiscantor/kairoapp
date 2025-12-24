@@ -7,23 +7,28 @@ import { Loader2 } from "lucide-react";
 
 type AppState = 'splash' | 'loading' | 'app';
 
+// Detectar tema uma vez no início
+const getIsDarkMode = () => {
+  if (typeof window === 'undefined') return true;
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') return false;
+  if (savedTheme === 'dark') return true;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
+// Gradiente consistente com o splash nativo
+const getGradientStyle = (isDark: boolean) => isDark 
+  ? 'linear-gradient(180deg, #4ECDC4 0%, #0a1628 100%)'
+  : 'linear-gradient(180deg, #4ECDC4 0%, #f0f4f8 100%)';
+
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('splash');
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [isDarkMode] = useState(getIsDarkMode);
   
-  // Detectar tema considerando localStorage primeiro, depois sistema
-  const [isDarkMode] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    
-    // Primeiro verificar localStorage (preferência do usuário no app)
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') return false;
-    if (savedTheme === 'dark') return true;
-    
-    // Fallback para preferência do sistema
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  const gradientStyle = getGradientStyle(isDarkMode);
+  const loaderColor = isDarkMode ? 'text-white/60' : 'text-gray-500';
 
   const handleSplashComplete = () => {
     setAppState('loading');
@@ -39,35 +44,20 @@ const Index = () => {
     }
   }, [appState, isLoading, user, navigate]);
 
+  // Splash screen - componente próprio
   if (appState === 'splash') {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  // Gradientes consistentes com o splash
-  const gradientStyle = isDarkMode 
-    ? 'linear-gradient(160deg, hsl(240 10% 4%) 0%, hsl(220 40% 10%) 40%, hsl(220 35% 18%) 70%, hsl(240 10% 4%) 100%)'
-    : 'linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 40%, hsl(214 60% 95%) 70%, hsl(0 0% 100%) 100%)';
-
-  const loaderColor = isDarkMode ? 'text-white/50' : 'text-gray-400';
-
-  if (appState === 'loading') {
-    return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: gradientStyle }}
-      >
-        <Loader2 className={`w-8 h-8 ${loaderColor} animate-spin`} />
-      </div>
-    );
-  }
-
+  // App carregado - MainApp
   if (appState === 'app' && user) {
     return <MainApp />;
   }
 
+  // Loading state - sempre mostra spinner com background consistente
   return (
     <div 
-      className="min-h-screen flex items-center justify-center"
+      className="fixed inset-0 flex items-center justify-center"
       style={{ background: gradientStyle }}
     >
       <Loader2 className={`w-8 h-8 ${loaderColor} animate-spin`} />
