@@ -45,18 +45,33 @@ function convertEventToUTC(
 
 // Multilingual alert messages
 const alertMessages: Record<string, { startsIn: string; at: string }> = {
+  // Portuguese
   'pt-BR': { startsIn: 'Começa em 15 minutos', at: 'às' },
   'pt': { startsIn: 'Começa em 15 minutos', at: 'às' },
+  // English
   'en-US': { startsIn: 'Starts in 15 minutes', at: 'at' },
   'en': { startsIn: 'Starts in 15 minutes', at: 'at' },
+  // Spanish
   'es-ES': { startsIn: 'Comienza en 15 minutos', at: 'a las' },
   'es': { startsIn: 'Comienza en 15 minutos', at: 'a las' },
+  // French
   'fr-FR': { startsIn: 'Commence dans 15 minutes', at: 'à' },
   'fr': { startsIn: 'Commence dans 15 minutes', at: 'à' },
+  // German
   'de-DE': { startsIn: 'Beginnt in 15 Minuten', at: 'um' },
   'de': { startsIn: 'Beginnt in 15 Minuten', at: 'um' },
+  // Italian
   'it-IT': { startsIn: 'Inizia tra 15 minuti', at: 'alle' },
   'it': { startsIn: 'Inizia tra 15 minuti', at: 'alle' },
+  // Japanese - oriental languages don't use "at" preposition
+  'ja-JP': { startsIn: '15分後に始まります', at: '' },
+  'ja': { startsIn: '15分後に始まります', at: '' },
+  // Korean
+  'ko-KR': { startsIn: '15분 후 시작', at: '' },
+  'ko': { startsIn: '15분 후 시작', at: '' },
+  // Chinese (Simplified)
+  'zh-CN': { startsIn: '15分钟后开始', at: '' },
+  'zh': { startsIn: '15分钟后开始', at: '' },
 };
 
 function getAlertMessages(language: string | null): { startsIn: string; at: string } {
@@ -233,11 +248,17 @@ Deno.serve(async (req) => {
             const messages = getAlertMessages(userLanguage);
             const eventEmoji = event.emoji || '📅';
             
+            // Oriental languages don't use "at" preposition - format differently
+            const isOrientalLang = ['ja', 'ko', 'zh'].some(l => userLanguage.startsWith(l));
+            const notificationBody = isOrientalLang 
+              ? `${messages.startsIn} • ${timeDisplay}`
+              : `${messages.startsIn} • ${messages.at} ${timeDisplay}`;
+            
             const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
               body: {
                 user_id: event.user_id,
                 title: `${eventEmoji} ${event.title}`,
-                body: `${messages.startsIn} • ${messages.at} ${timeDisplay}`,
+                body: notificationBody,
                 data: {
                   type: 'call-alert',
                   event_id: event.id,
