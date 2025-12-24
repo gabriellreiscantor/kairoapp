@@ -65,12 +65,15 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const bgColor = isDarkMode ? '#0a1628' : '#4ECDC4';
   const dotColor = isDarkMode ? 'bg-white/60' : 'bg-white/80';
 
+  // Gradiente para o estado de loading inicial
+  const loadingGradient = 'linear-gradient(180deg, #4ECDC4 0%, #0a1628 100%)';
+
   return (
     <div
       className={`fixed inset-0 flex flex-col items-center justify-center z-50 transition-opacity duration-400 ${
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
-      style={{ backgroundColor: bgColor }}
+      style={{ background: imageLoaded ? bgColor : loadingGradient }}
     >
       {imageLoaded ? (
         <>
@@ -96,11 +99,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           </div>
         </>
       ) : (
-        <div className="flex gap-2">
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} />
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '150ms' }} />
-          <div className={`w-2 h-2 rounded-full ${dotColor} animate-bounce`} style={{ animationDelay: '300ms' }} />
-        </div>
+        // Spinner circular branco
+        <div className="w-10 h-10 border-3 border-white/30 border-t-white rounded-full animate-spin" />
       )}
     </div>
   );
