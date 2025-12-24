@@ -613,47 +613,46 @@ workflows:
           # Create new LaunchScreen.storyboard with dark background (#0a1628)
           # RGB values: R=10/255=0.039, G=22/255=0.086, B=40/255=0.157
           cat > "$LAUNCHSCREEN_PATH" << 'STORYBOARD_EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-              <device id="retina6_12" orientation="portrait" appearance="dark"/>
-              <dependencies>
-                  <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
-                  <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-                  <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
-              </dependencies>
-              <scenes>
-                  <!--View Controller-->
-                  <scene sceneID="EHf-IW-A2E">
-                      <objects>
-                          <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                              <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
-                                  <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                                  <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                  <subviews>
-                                      <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">
-                                          <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                                      </imageView>
-                                  </subviews>
-                                  <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                                  <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                  <constraints>
-                                      <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>
-                                      <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>
-                                      <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>
-                                      <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>
-                                  </constraints>
-                              </view>
-                          </viewController>
-                          <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
-                      </objects>
-                      <point key="canvasLocation" x="53" y="375"/>
-                  </scene>
-              </scenes>
-              <resources>
-                  <image name="Splash" width="2732" height="2732"/>
-              </resources>
-          </document>
-          STORYBOARD_EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="dark"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21679"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="splash-image">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" red="0.039215686274509803" green="0.086274509803921567" blue="0.156862745098039" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="splash-image" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>
+                            <constraint firstItem="splash-image" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>
+                            <constraint firstItem="splash-image" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>
+                            <constraint firstItem="splash-image" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="Splash" width="2732" height="2732"/>
+    </resources>
+</document>
+STORYBOARD_EOF
           
           echo ""
           echo "✅ LaunchScreen.storyboard updated with dark background (#0a1628)"
@@ -683,35 +682,90 @@ workflows:
             # The storyboard will just show the dark background color
           fi
           
-          # Create Contents.json for the imageset
+          # Create Contents.json for the imageset (NO LEADING SPACES!)
           cat > "$SPLASH_IMAGESET/Contents.json" << 'JSON_EOF'
-          {
-            "images" : [
-              {
-                "filename" : "splash.png",
-                "idiom" : "universal",
-                "scale" : "1x"
-              },
-              {
-                "filename" : "splash.png",
-                "idiom" : "universal",
-                "scale" : "2x"
-              },
-              {
-                "filename" : "splash.png",
-                "idiom" : "universal",
-                "scale" : "3x"
-              }
-            ],
-            "info" : {
-              "author" : "xcode",
-              "version" : 1
-            }
-          }
-          JSON_EOF
+{
+  "images" : [
+    {
+      "filename" : "splash.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "splash.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "splash.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+JSON_EOF
           
           echo "✅ Splash.imageset configured in Assets.xcassets"
           ls -la "$SPLASH_IMAGESET"
+      
+      - name: Register Splash Image in Xcode Project
+        script: |
+          echo "=== Registering Splash.imageset in Xcode project ==="
+          
+          ruby <<RUBY
+          require 'xcodeproj'
+          
+          project_path = 'ios/App/App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          # Find the Assets.xcassets group
+          app_group = project.main_group['App']
+          assets_ref = app_group.files.find { |f| f.path == 'Assets.xcassets' }
+          
+          if assets_ref
+            puts "✅ Assets.xcassets is already referenced in project"
+          else
+            puts "⚠️ Adding Assets.xcassets reference to project"
+            assets_ref = app_group.new_reference('Assets.xcassets')
+          end
+          
+          project.save
+          puts "✅ Xcode project saved"
+          RUBY
+          
+          echo "✅ Splash image registered in Xcode project"
+      
+      - name: Configure AppDelegate for Dark Background
+        script: |
+          echo "=== Configuring AppDelegate.swift for dark background ==="
+          
+          APPDELEGATE_PATH="ios/App/App/AppDelegate.swift"
+          
+          if [ ! -f "$APPDELEGATE_PATH" ]; then
+            echo "❌ AppDelegate.swift not found"
+            exit 1
+          fi
+          
+          # Check if backgroundColor is already set
+          if grep -q "backgroundColor" "$APPDELEGATE_PATH"; then
+            echo "✅ backgroundColor already configured in AppDelegate"
+          else
+            echo "Adding window.backgroundColor to AppDelegate..."
+            
+            # Insert backgroundColor setting after window creation
+            # We'll add it in the application(_:didFinishLaunchingWithOptions:) method
+            sed -i '' 's/func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: \[UIApplication.LaunchOptionsKey: Any\]?) -> Bool {/func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {\n        \/\/ Set dark background to prevent white flash\n        if let window = UIApplication.shared.windows.first {\n            window.backgroundColor = UIColor(red: 10\/255, green: 22\/255, blue: 40\/255, alpha: 1.0)\n        }/' "$APPDELEGATE_PATH"
+            
+            echo "✅ backgroundColor added to AppDelegate.swift"
+          fi
+          
+          echo ""
+          echo "AppDelegate.swift content:"
+          cat "$APPDELEGATE_PATH"
       
       - name: Add Camera and Photo Library Permissions to Info.plist
         script: |
