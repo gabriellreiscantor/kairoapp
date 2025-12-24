@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, RefreshCw } from "lucide-react";
+import { SplashScreen } from '@capacitor/splash-screen';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -381,6 +382,32 @@ const MainApp = () => {
             className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
           >
             📞
+          </button>
+          
+          {/* Botão de Refresh para testar Splash */}
+          <button
+            onClick={async () => {
+              if (Capacitor.isNativePlatform()) {
+                try {
+                  await SplashScreen.show({
+                    autoHide: false,
+                    fadeInDuration: 0,
+                    fadeOutDuration: 0,
+                  });
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 500);
+                } catch (err) {
+                  console.error('[Refresh] SplashScreen error:', err);
+                  window.location.reload();
+                }
+              } else {
+                window.location.reload();
+              }
+            }}
+            className="fixed bottom-24 left-4 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <RefreshCw className="w-6 h-6" />
           </button>
           
           <SettingsDrawer
