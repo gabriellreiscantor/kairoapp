@@ -72,62 +72,23 @@ const MainApp = () => {
   usePushNotifications({
     onNotificationReceived: (notification) => {
       console.log('[MainApp] Push received:', notification);
-      // Handle call alert push notifications
-      if (notification.data?.type === 'call-alert') {
-        // On iOS native, VoIP/CallKit should handle calls - ignore regular push for calls
-        if (isIOSNative) {
-          console.log('[MainApp] iOS native - ignoring regular push for call (VoIP should handle)');
-          // Only show fallback if explicitly marked as VoIP failure
-          if (notification.data?.is_voip_fallback === 'true') {
-            console.log('[MainApp] VoIP fallback flag detected, showing CallScreen');
-            showCall({
-              id: notification.data.eventId,
-              title: notification.data.eventTitle,
-              emoji: notification.data.eventEmoji || '📅',
-              time: notification.data.eventTime,
-              location: notification.data.eventLocation,
-            }, language);
-          }
-          return;
-        }
-        
-        // On Android/Web, show fake CallScreen
-        showCall({
-          id: notification.data.eventId,
-          title: notification.data.eventTitle,
-          emoji: notification.data.eventEmoji || '📅',
-          time: notification.data.eventTime,
-          location: notification.data.eventLocation,
-        }, language);
+      // Event reminder notifications - just log, no action needed when app is in foreground
+      if (notification.data?.type === 'event-reminder') {
+        console.log('[MainApp] Event reminder received for:', notification.data.event_title);
       }
     },
     onNotificationAction: (action) => {
       console.log('[MainApp] Push action:', action);
-      if (action.notification.data?.type === 'call-alert') {
-        // On iOS native, VoIP/CallKit should handle calls - ignore regular push for calls
-        if (isIOSNative) {
-          console.log('[MainApp] iOS native - ignoring push action for call (VoIP should handle)');
-          // Only show fallback if explicitly marked as VoIP failure
-          if (action.notification.data?.is_voip_fallback === 'true') {
-            console.log('[MainApp] VoIP fallback flag detected, showing CallScreen');
-            showCall({
-              id: action.notification.data.eventId,
-              title: action.notification.data.eventTitle,
-              emoji: action.notification.data.eventEmoji || '📅',
-              time: action.notification.data.eventTime,
-              location: action.notification.data.eventLocation,
-            }, language);
-          }
-          return;
-        }
-        
-        showCall({
-          id: action.notification.data.eventId,
-          title: action.notification.data.eventTitle,
-          emoji: action.notification.data.eventEmoji || '📅',
-          time: action.notification.data.eventTime,
-          location: action.notification.data.eventLocation,
-        }, language);
+      // When user taps on event reminder notification, just open the app (go to list view)
+      if (action.notification.data?.type === 'event-reminder') {
+        const eventTitle = action.notification.data.event_title;
+        console.log('[MainApp] User tapped on event reminder:', eventTitle);
+        // Switch to list view when user taps on notification
+        setActiveView('list');
+        toast({
+          title: `📅 ${eventTitle}`,
+          description: action.notification.data.event_time ? `às ${action.notification.data.event_time}` : 'Evento',
+        });
       }
     }
   });
