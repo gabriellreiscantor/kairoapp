@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel, getAvailableAlertOptions, getBestValidAlert } from "@/lib/event-constants";
+import { EVENT_COLORS, REPEAT_OPTIONS, ALERT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel, getAvailableAlertOptions, getBestValidAlert, getAlertMinutes } from "@/lib/event-constants";
 
 interface EventData {
   id: string;
@@ -223,6 +223,24 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
 
     setIsSaving(true);
     try {
+      // Calculate call_alert_scheduled_at based on the first alert time
+      // This synchronizes the Me Ligue time with the alert configuration
+      let callAlertScheduledAt: string | null = null;
+      if (!isAllDay && eventTime && alerts.length > 0) {
+        const alertMinutes = getAlertMinutes(alerts[0].time);
+        const [hours, minutes] = eventTime.split(':').map(Number);
+        const year = eventDate.getFullYear();
+        const month = eventDate.getMonth();
+        const day = eventDate.getDate();
+        const eventDateTime = new Date(year, month, day, hours, minutes, 0, 0);
+        const callTime = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
+        
+        // Only set if call time is in the future
+        if (callTime > new Date()) {
+          callAlertScheduledAt = callTime.toISOString();
+        }
+      }
+
       const { error } = await supabase
         .from('events')
         .update({
@@ -239,6 +257,10 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
           color,
           alerts: JSON.parse(JSON.stringify(alerts)),
           updated_at: new Date().toISOString(),
+          // Sync call_alert_scheduled_at with alert time
+          call_alert_scheduled_at: callAlertScheduledAt,
+          // Reset call tracking when event is modified
+          call_alert_sent_at: null,
         })
         .eq('id', event.id);
 
