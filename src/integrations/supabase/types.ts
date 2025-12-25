@@ -98,6 +98,8 @@ export type Database = {
           is_all_day: boolean | null
           location: string | null
           notification_enabled: boolean | null
+          notification_scheduled_at: string | null
+          notification_sent_at: string | null
           priority: string | null
           repeat: string | null
           status: string | null
@@ -126,6 +128,8 @@ export type Database = {
           is_all_day?: boolean | null
           location?: string | null
           notification_enabled?: boolean | null
+          notification_scheduled_at?: string | null
+          notification_sent_at?: string | null
           priority?: string | null
           repeat?: string | null
           status?: string | null
@@ -154,6 +158,8 @@ export type Database = {
           is_all_day?: boolean | null
           location?: string | null
           notification_enabled?: boolean | null
+          notification_scheduled_at?: string | null
+          notification_sent_at?: string | null
           priority?: string | null
           repeat?: string | null
           status?: string | null
