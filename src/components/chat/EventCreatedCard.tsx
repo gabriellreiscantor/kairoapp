@@ -21,6 +21,7 @@ interface EventCreatedCardProps {
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
     call_alert_sent_at?: string;
+    call_alert_scheduled_at?: string; // Added for showing actual scheduled call time
     call_alert_attempts?: number;
     call_alert_answered?: boolean;
     call_alert_answered_at?: string;
@@ -62,6 +63,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
     call_alert_sent_at?: string;
+    call_alert_scheduled_at?: string; // Added for showing actual scheduled call time
     call_alert_attempts?: number;
     call_alert_answered?: boolean;
     call_alert_answered_at?: string;
@@ -122,7 +124,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const fetchLiveData = async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, call_alert_enabled, call_alert_sent_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
+        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, call_alert_enabled, call_alert_sent_at, call_alert_scheduled_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
         .eq('id', event.id)
         .maybeSingle();
       
@@ -151,6 +153,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         notification_enabled: data.notification_enabled ?? undefined,
         call_alert_enabled: data.call_alert_enabled ?? undefined,
         call_alert_sent_at: data.call_alert_sent_at ?? undefined,
+        call_alert_scheduled_at: data.call_alert_scheduled_at ?? undefined,
         call_alert_attempts: data.call_alert_attempts ?? undefined,
         call_alert_answered: data.call_alert_answered ?? undefined,
         call_alert_answered_at: data.call_alert_answered_at ?? undefined,
@@ -189,6 +192,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             notification_enabled: newData.notification_enabled ?? undefined,
             call_alert_enabled: newData.call_alert_enabled ?? undefined,
             call_alert_sent_at: newData.call_alert_sent_at ?? undefined,
+            call_alert_scheduled_at: newData.call_alert_scheduled_at ?? undefined,
             call_alert_attempts: newData.call_alert_attempts ?? undefined,
             call_alert_answered: newData.call_alert_answered ?? undefined,
             call_alert_answered_at: newData.call_alert_answered_at ?? undefined,
@@ -443,8 +447,36 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   // Use live data if available, fallback to original event prop
   const displayEvent = liveEventData || event;
 
-  // Get the time the call will be made (dynamic based on remaining time)
-  const callAlertInfo = getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
+  // Get call alert info - prefer actual scheduled time from database over dynamic calculation
+  const getActualCallAlertInfo = () => {
+    // If we have a scheduled time from the database, use that
+    if (displayEvent.call_alert_scheduled_at) {
+      const scheduledDate = parseISO(displayEvent.call_alert_scheduled_at);
+      const callTime = format(scheduledDate, 'HH:mm');
+      
+      // Calculate minutes before for the label
+      if (displayEvent.event_time) {
+        const [year, month, day] = displayEvent.event_date.split('-').map(Number);
+        const [hours, minutes] = displayEvent.event_time.split(':').map(Number);
+        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        const diffMs = eventDateTime.getTime() - scheduledDate.getTime();
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        
+        const label = diffMinutes < 60 
+          ? `${diffMinutes} min antes` 
+          : `${Math.floor(diffMinutes / 60)} hora${Math.floor(diffMinutes / 60) > 1 ? 's' : ''} antes`;
+        
+        return { time: callTime, label, minutesBefore: diffMinutes };
+      }
+      
+      return { time: callTime, label: 'agendado', minutesBefore: 0 };
+    }
+    
+    // Fallback to dynamic calculation
+    return getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
+  };
+  
+  const callAlertInfo = getActualCallAlertInfo();
   const canEnableCallAlert = callAlertInfo !== null;
 
   // É dia inteiro APENAS se: is_all_day é true OU não tem hora

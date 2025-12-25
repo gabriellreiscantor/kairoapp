@@ -1632,6 +1632,47 @@ function getBestAlertTimeForEvent(eventDate: string | undefined, eventTime: stri
   return '1hour'; // More than 2 hours: default to 1 hour before
 }
 
+// Calculate call_alert_scheduled_at for Me Ligue feature
+// This is the UTC timestamp when the VoIP call should be triggered
+function calculateCallAlertScheduledAt(
+  eventDate: string, 
+  eventTime: string | null | undefined, 
+  timezone: string
+): string | null {
+  if (!eventTime) return null; // All-day events don't have call alerts
+  
+  const now = new Date();
+  
+  // Parse event date/time
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const [hours, minutes] = eventTime.split(':').map(Number);
+  const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  
+  const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
+  
+  // If event already passed or too close, no call alert
+  if (diffMinutes <= 2) return null;
+  
+  // Calculate best alert minutes based on remaining time
+  let alertMinutes: number;
+  if (diffMinutes <= 5) alertMinutes = 2;
+  else if (diffMinutes <= 15) alertMinutes = 5;
+  else if (diffMinutes <= 30) alertMinutes = 15;
+  else if (diffMinutes <= 60) alertMinutes = 30;
+  else if (diffMinutes <= 120) alertMinutes = 60;
+  else alertMinutes = 60; // Default: 1 hour before
+  
+  // Calculate the scheduled call time
+  const callTime = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
+  
+  // If scheduled time already passed, return null
+  if (callTime <= now) return null;
+  
+  console.log(`[calculateCallAlertScheduledAt] Event: ${eventDate} ${eventTime}, Alert: ${alertMinutes}min before = ${callTime.toISOString()}`);
+  
+  return callTime.toISOString();
+}
+
 // Execute action in database - THIS IS THE BACKEND LOGIC
 async function executeAction(
   supabase: any, 
@@ -1702,6 +1743,13 @@ async function executeAction(
         // Calculate intelligent alert time based on time until event
         const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
         
+        // Calculate call_alert_scheduled_at for Me Ligue feature
+        // This ensures the cron job can find events to send VoIP calls
+        const userTzFinal = timezone || 'America/Sao_Paulo';
+        const callAlertScheduledAt = calculateCallAlertScheduledAt(eventDate, action.hora, userTzFinal);
+        
+        console.log(`[criar_evento] call_alert_scheduled_at: ${callAlertScheduledAt}`);
+        
         const { data, error } = await supabase
           .from('events')
           .insert({
@@ -1718,7 +1766,9 @@ async function executeAction(
             emoji: getCategoryEmoji(action.categoria || 'geral', action.titulo),
             status: 'pending',
             notification_enabled: true,
-            alerts: [{ time: bestAlertTime }] // Intelligent alert time
+            alerts: [{ time: bestAlertTime }], // Intelligent alert time
+            // Pre-calculate call_alert_scheduled_at so cron job can find it
+            call_alert_scheduled_at: callAlertScheduledAt
           })
           .select()
           .single();
