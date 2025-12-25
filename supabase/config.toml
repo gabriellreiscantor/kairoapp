@@ -43,3 +43,7 @@ verify_jwt = false
 [functions.send-weather-forecasts]
 enabled = true
 verify_jwt = false
+
+[functions.remote-log]
+enabled = true
+verify_jwt = false
