@@ -491,7 +491,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             <Switch 
               checked={isExpired || !canEnableCallAlert ? false : callAlertEnabled} 
               onCheckedChange={(checked) => handleToggleCallAlert({stopPropagation: () => {}} as React.MouseEvent, checked)}
-              disabled={!event.id || isUpdating || isExpired || !canEnableCallAlert}
+              disabled={!event.id || isUpdating || isExpired || !canEnableCallAlert || callAlertEnabled}
               className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-green-500" 
             />
           </div>
