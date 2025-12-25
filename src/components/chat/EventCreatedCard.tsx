@@ -292,7 +292,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       setShowCallAlertTooltip(true);
       setTimeout(() => setShowCallAlertTooltip(false), 3000);
       
-      // Schedule the call alert notification
+      // Schedule the call alert notification (local fallback)
       await scheduleCallAlert({
         id: event.id,
         title: event.title,
@@ -306,12 +306,55 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
     
     try {
-      // Reset call_alert_sent_at when enabling so new notification can be sent
-      const updateData: { call_alert_enabled: boolean; call_alert_sent_at?: null } = { 
+      // Get current user for VoIP
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Calculate when the call should happen
+      let callScheduledAt: Date | null = null;
+      let shouldCallImmediately = false;
+      
+      if (checked && event.event_time) {
+        const [year, month, day] = event.event_date.split('-').map(Number);
+        const [hours, minutes] = event.event_time.split(':').map(Number);
+        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        
+        const now = new Date();
+        const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
+        
+        // Calculate alert minutes using same logic as getBestCallAlertMinutes
+        let alertMinutes = 60; // default
+        if (diffMinutes <= 2) alertMinutes = 0; // Too close
+        else if (diffMinutes <= 5) alertMinutes = 2;
+        else if (diffMinutes <= 15) alertMinutes = 5;
+        else if (diffMinutes <= 30) alertMinutes = 15;
+        else if (diffMinutes <= 60) alertMinutes = 30;
+        else if (diffMinutes <= 120) alertMinutes = 60;
+        
+        // Calculate scheduled time
+        callScheduledAt = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
+        
+        // If scheduled time is within 3 minutes from now or already passed, call immediately
+        const minutesUntilCall = Math.floor((callScheduledAt.getTime() - now.getTime()) / (1000 * 60));
+        if (minutesUntilCall <= 3 && diffMinutes > 2) {
+          shouldCallImmediately = true;
+          console.log('[EventCreatedCard] Event is close, will trigger VoIP immediately');
+        }
+      }
+      
+      // Reset call_alert_sent_at and set scheduled time when enabling
+      const updateData: { 
+        call_alert_enabled: boolean; 
+        call_alert_sent_at?: null;
+        call_alert_scheduled_at?: string | null;
+      } = { 
         call_alert_enabled: checked 
       };
+      
       if (checked) {
         updateData.call_alert_sent_at = null;
+        updateData.call_alert_scheduled_at = callScheduledAt?.toISOString() || null;
+      } else {
+        updateData.call_alert_scheduled_at = null;
       }
       
       const { error } = await supabase
@@ -323,9 +366,34 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         console.error('Error updating call alert:', error);
         setCallAlertEnabled(!checked); // Revert on error
         setShowCallAlertTooltip(false);
-        // Revert notification scheduling
         if (checked) {
           await cancelCallAlert(event.id);
+        }
+        return;
+      }
+      
+      // If event is close and user is authenticated, trigger VoIP immediately
+      if (checked && shouldCallImmediately && user?.id) {
+        console.log('[EventCreatedCard] Triggering immediate VoIP call');
+        try {
+          const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
+            body: {
+              user_id: user.id,
+              event_id: event.id,
+              event_title: event.title,
+              event_time: event.event_time,
+              event_location: event.location,
+              event_emoji: event.emoji || '📅',
+            },
+          });
+          
+          if (voipError) {
+            console.error('[EventCreatedCard] VoIP error:', voipError);
+          } else {
+            console.log('[EventCreatedCard] VoIP call triggered successfully');
+          }
+        } catch (voipErr) {
+          console.error('[EventCreatedCard] Error triggering VoIP:', voipErr);
         }
       }
     } catch (err) {

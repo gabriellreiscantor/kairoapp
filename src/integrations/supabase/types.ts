@@ -49,6 +49,7 @@ export type Database = {
           call_alert_attempts: number | null
           call_alert_enabled: boolean | null
           call_alert_outcome: string | null
+          call_alert_scheduled_at: string | null
           call_alert_sent_at: string | null
           category: string | null
           color: string | null
@@ -76,6 +77,7 @@ export type Database = {
           call_alert_attempts?: number | null
           call_alert_enabled?: boolean | null
           call_alert_outcome?: string | null
+          call_alert_scheduled_at?: string | null
           call_alert_sent_at?: string | null
           category?: string | null
           color?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           call_alert_attempts?: number | null
           call_alert_enabled?: boolean | null
           call_alert_outcome?: string | null
+          call_alert_scheduled_at?: string | null
           call_alert_sent_at?: string | null
           category?: string | null
           color?: string | null
