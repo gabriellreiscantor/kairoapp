@@ -33,6 +33,40 @@ interface WeatherForecastModalProps {
   onOpenSettings?: () => void;
 }
 
+// Weather code to gradient mapping (same as WeatherForecastCard)
+const getWeatherGradient = (code: number): string => {
+  // Céu limpo / Ensolarado - tons quentes amarelo/laranja/rosa
+  if (code === 0) {
+    return 'linear-gradient(135deg, #f6d365 0%, #fda085 50%, #f5576c 100%)';
+  }
+  // Nublado - cinza azulado
+  if (code >= 1 && code <= 3) {
+    return 'linear-gradient(135deg, #89a8b8 0%, #667085 50%, #4a5568 100%)';
+  }
+  // Nevoeiro - cinza suave
+  if (code >= 45 && code <= 48) {
+    return 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 50%, #6b7280 100%)';
+  }
+  // Garoa / Chuva leve - azul/roxo
+  if (code >= 51 && code <= 55) {
+    return 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%)';
+  }
+  // Chuva - azul escuro
+  if (code >= 56 && code <= 82) {
+    return 'linear-gradient(135deg, #1e3a5f 0%, #3b5998 50%, #4f46e5 100%)';
+  }
+  // Neve - azul gelo/ciano
+  if (code >= 71 && code <= 77) {
+    return 'linear-gradient(135deg, #e0f2fe 0%, #7dd3fc 50%, #38bdf8 100%)';
+  }
+  // Tempestade - roxo escuro dramático
+  if (code >= 95 && code <= 99) {
+    return 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)';
+  }
+  // Default (ensolarado)
+  return 'linear-gradient(135deg, #f6d365 0%, #fda085 50%, #f5576c 100%)';
+};
+
 // Weather code to icon mapping (WMO codes)
 const getWeatherIcon = (code: number, size: string = "w-6 h-6") => {
   if (code === 0) return <Sun className={`${size} text-yellow-400`} />;
@@ -194,9 +228,8 @@ const WeatherForecastModal: React.FC<WeatherForecastModalProps> = ({
 
   const tips = generateTips(weather, language);
 
-  const gradientStyle = isDark 
-    ? 'linear-gradient(135deg, #4c1d95 0%, #312e81 50%, #1e1b4b 100%)'
-    : 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)';
+  // Use dynamic gradient based on weather code (same as card)
+  const gradientStyle = getWeatherGradient(weather.weatherCode);
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>

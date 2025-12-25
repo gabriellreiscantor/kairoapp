@@ -177,6 +177,48 @@ const SmartTasksPage = () => {
     }
   };
 
+  const handleUpdateLocation = async () => {
+    if (!user) return;
+    
+    setIsCapturingLocation(true);
+    try {
+      const hasPermission = await requestLocationPermission();
+      
+      if (!hasPermission) {
+        toast.error('Permissão de localização negada.');
+        return;
+      }
+      
+      const address = await getCurrentAddress();
+      
+      if (address) {
+        const cityName = address.address.split(',')[0]?.trim() || 'Sua cidade';
+        
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            user_latitude: address.lat,
+            user_longitude: address.lon,
+            user_city: cityName
+          })
+          .eq('id', user.id);
+        
+        if (error) throw error;
+        
+        setUserCity(cityName);
+        toast.success(`Localização atualizada: ${cityName}`);
+        await refreshProfile();
+      } else {
+        toast.error('Não foi possível obter sua localização');
+      }
+    } catch (error) {
+      console.error('Error updating location:', error);
+      toast.error('Erro ao atualizar localização');
+    } finally {
+      setIsCapturingLocation(false);
+    }
+  };
+
   const handleWeatherHourChange = (hour: number) => {
     setWeatherHour(hour);
     updatePreference('weather_forecast_hour', hour);
@@ -322,10 +364,19 @@ const SmartTasksPage = () => {
                     </select>
                   </div>
                   {userCity && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-3.5 h-3.5" />
+                    <button
+                      onClick={handleUpdateLocation}
+                      disabled={isCapturingLocation}
+                      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {isCapturingLocation ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <MapPin className="w-3.5 h-3.5" />
+                      )}
                       <span>{userCity}</span>
-                    </div>
+                      <span className="text-primary underline">Atualizar</span>
+                    </button>
                   )}
                 </div>
               )}
