@@ -1535,6 +1535,79 @@ function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boo
   return isPast;
 }
 
+// Determine correct date for event based on current time
+// If no explicit date given and time hasn't passed yet, use TODAY
+// If time has passed (or is too close), use TOMORROW
+function determineDateForTime(
+  timeString: string | null | undefined,
+  providedDate: string | null | undefined,
+  userTimezone: string
+): string {
+  console.log(`[determineDateForTime] Input: time=${timeString}, providedDate=${providedDate}, timezone=${userTimezone}`);
+  
+  // Calculate "now" in user's timezone
+  const now = new Date();
+  
+  // Get today's date in user's timezone (YYYY-MM-DD format)
+  const todayISO = now.toLocaleDateString('en-CA', { timeZone: userTimezone });
+  
+  // Get tomorrow's date
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowISO = tomorrow.toLocaleDateString('en-CA', { timeZone: userTimezone });
+  
+  console.log(`[determineDateForTime] Today: ${todayISO}, Tomorrow: ${tomorrowISO}`);
+  
+  // If already has explicit date (not 'hoje' or 'amanha'), validate and use it
+  if (providedDate && providedDate !== 'hoje' && providedDate !== 'amanha' && providedDate !== 'today' && providedDate !== 'tomorrow') {
+    // Check if it's a valid date format (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(providedDate)) {
+      console.log(`[determineDateForTime] Using explicit date: ${providedDate}`);
+      return providedDate;
+    }
+  }
+  
+  // If explicitly said 'amanha' or 'tomorrow', use tomorrow
+  if (providedDate === 'amanha' || providedDate === 'tomorrow') {
+    console.log(`[determineDateForTime] Explicit tomorrow requested: ${tomorrowISO}`);
+    return tomorrowISO;
+  }
+  
+  // If no time specified, it's an all-day event → TODAY
+  if (!timeString) {
+    console.log(`[determineDateForTime] No time specified, using today: ${todayISO}`);
+    return todayISO;
+  }
+  
+  // Parse the time string (HH:MM or HH:MM:SS)
+  const timeParts = timeString.split(':');
+  const eventHours = parseInt(timeParts[0], 10);
+  const eventMinutes = parseInt(timeParts[1] || '0', 10);
+  
+  // Get current time in user's timezone
+  const nowInUserTz = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+  const currentHours = nowInUserTz.getHours();
+  const currentMinutes = nowInUserTz.getMinutes();
+  
+  // Convert to total minutes for easy comparison
+  const eventTotalMinutes = eventHours * 60 + eventMinutes;
+  const nowTotalMinutes = currentHours * 60 + currentMinutes;
+  
+  console.log(`[determineDateForTime] Event time: ${eventHours}:${String(eventMinutes).padStart(2, '0')} (${eventTotalMinutes} min)`);
+  console.log(`[determineDateForTime] Current time: ${currentHours}:${String(currentMinutes).padStart(2, '0')} (${nowTotalMinutes} min)`);
+  
+  // If event time is still ahead (with 2 minute buffer), it's TODAY
+  // The buffer allows for slight delays in processing
+  if (eventTotalMinutes > nowTotalMinutes - 2) {
+    console.log(`[determineDateForTime] Time hasn't passed, using TODAY: ${todayISO}`);
+    return todayISO;
+  }
+  
+  // Time has passed, so it must be TOMORROW
+  console.log(`[determineDateForTime] Time has passed, using TOMORROW: ${tomorrowISO}`);
+  return tomorrowISO;
+}
+
 // Calculate best alert time based on time until event
 function getBestAlertTimeForEvent(eventDate: string | undefined, eventTime: string | undefined | null, timezone?: string): string {
   if (!eventDate) return '1hour'; // Fallback if no date
@@ -1573,12 +1646,21 @@ async function executeAction(
   try {
     switch (action.acao) {
       case 'criar_evento': {
-        if (!action.titulo || !action.data) {
-          return { success: false, error: 'Título e data são obrigatórios' };
+        if (!action.titulo) {
+          return { success: false, error: 'Título é obrigatório' };
         }
 
+        // Determine the correct date - DON'T trust AI's date decision
+        // Calculate programmatically based on current time
+        const userTz = timezone || 'America/Sao_Paulo';
+        const correctedDate = determineDateForTime(action.hora, action.data, userTz);
+        console.log(`[criar_evento] AI date: ${action.data} → Corrected date: ${correctedDate}`);
+        
+        // Use corrected date for validation and insertion
+        const eventDate = correctedDate;
+
         // Check if date is in the past
-        if (isDateInPast(action.data, action.hora, timezone)) {
+        if (isDateInPast(eventDate, action.hora, timezone)) {
           console.log('Event date is in the past - blocking creation');
           return { 
             success: false, 
@@ -1586,7 +1668,7 @@ async function executeAction(
             error: 'Data/hora no passado',
             attemptedEvent: {
               titulo: action.titulo,
-              data: action.data,
+              data: eventDate,
               hora: action.hora,
               local: action.local
             }
@@ -1618,7 +1700,7 @@ async function executeAction(
         const isAllDay = !action.hora;
         
         // Calculate intelligent alert time based on time until event
-        const bestAlertTime = getBestAlertTimeForEvent(action.data, action.hora, timezone);
+        const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
         
         const { data, error } = await supabase
           .from('events')
@@ -1626,7 +1708,7 @@ async function executeAction(
             user_id: userId,
             title: action.titulo,
             description: action.descricao || null,
-            event_date: action.data,
+            event_date: eventDate, // Use corrected date, not AI's date
             event_time: action.hora || null,
             location: action.local || null,
             duration_minutes: action.duracao_minutos || null, // null se não explícito
