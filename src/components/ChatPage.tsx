@@ -1427,9 +1427,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           <button
             onClick={handleLoadFullHistory}
             disabled={isLoadingMore}
-            className="flex items-center justify-center gap-2 w-full py-3 mb-2 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 mb-3 text-xs 
+                       bg-primary/10 text-primary/70 hover:text-primary hover:bg-primary/15
+                       rounded-full transition-all duration-200 disabled:opacity-50"
           >
-            <History className="w-4 h-4" />
+            <History className="w-3.5 h-3.5" />
             <span>{t('chat.viewFullHistory')}</span>
           </button>
         )}
