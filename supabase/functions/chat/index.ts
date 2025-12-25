@@ -1535,6 +1535,30 @@ function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boo
   return isPast;
 }
 
+// Calculate best alert time based on time until event
+function getBestAlertTimeForEvent(eventDate: string | undefined, eventTime: string | undefined | null, timezone?: string): string {
+  if (!eventDate) return '1hour'; // Fallback if no date
+  if (!eventTime) return '30min'; // All-day events: 30 minutes before (effectively at event date start)
+  
+  const now = new Date();
+  
+  // Parse event date/time in user's timezone
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const [hours, minutes] = eventTime.split(':').map(Number);
+  const eventDateTime = new Date(year, month - 1, day, hours, minutes);
+  
+  const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
+  
+  // Return best alert based on time remaining
+  if (diffMinutes <= 0) return 'exact'; // Already passed or now
+  if (diffMinutes <= 5) return 'exact'; // Less than 5 min: alert at exact time
+  if (diffMinutes <= 15) return '5min'; // 5-15 min: alert 5 min before
+  if (diffMinutes <= 30) return '15min'; // 15-30 min: alert 15 min before
+  if (diffMinutes <= 60) return '30min'; // 30-60 min: alert 30 min before
+  if (diffMinutes <= 120) return '1hour'; // 1-2 hours: alert 1 hour before
+  return '1hour'; // More than 2 hours: default to 1 hour before
+}
+
 // Execute action in database - THIS IS THE BACKEND LOGIC
 async function executeAction(
   supabase: any, 
@@ -1593,6 +1617,9 @@ async function executeAction(
         // Ter hora sem duração NÃO é dia inteiro - é evento com horário sem duração explícita
         const isAllDay = !action.hora;
         
+        // Calculate intelligent alert time based on time until event
+        const bestAlertTime = getBestAlertTimeForEvent(action.data, action.hora, timezone);
+        
         const { data, error } = await supabase
           .from('events')
           .insert({
@@ -1608,7 +1635,8 @@ async function executeAction(
             category: action.categoria || 'geral',
             emoji: getCategoryEmoji(action.categoria || 'geral', action.titulo),
             status: 'pending',
-            notification_enabled: true
+            notification_enabled: true,
+            alerts: [{ time: bestAlertTime }] // Intelligent alert time
           })
           .select()
           .single();

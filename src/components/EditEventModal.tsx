@@ -155,7 +155,22 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
       setIsAllDay(event.is_all_day ?? false);
       setRepeat(event.repeat || "never");
       setColor(event.color || "primary");
-      setAlerts(event.alerts && Array.isArray(event.alerts) ? event.alerts : [{ time: "1hour" }]);
+      
+      // Use intelligent alert fallback if no alerts are set
+      if (event.alerts && Array.isArray(event.alerts) && event.alerts.length > 0) {
+        setAlerts(event.alerts);
+      } else {
+        // Calculate best alert based on time until event
+        const eventDateObj = event.event_date ? (() => {
+          const [year, month, day] = event.event_date.split('-').map(Number);
+          return new Date(year, month - 1, day, 0, 0, 0, 0);
+        })() : new Date();
+        const availableOptions = getAvailableAlertOptions(eventDateObj, event.event_time, event.is_all_day ?? false);
+        // Pick the largest available alert time (most advance notice)
+        const bestAlert = availableOptions.length > 0 ? availableOptions[availableOptions.length - 1].value : 'exact';
+        setAlerts([{ time: bestAlert }]);
+      }
+      
       setScreenView('main');
       setIsReactivating(false);
       
@@ -287,7 +302,9 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
 
   const addAlert = () => {
     if (alerts.length < 10) {
-      setAlerts([...alerts, { time: "1hour" }]);
+      // Add alert with best available time
+      const bestAlert = availableAlertOptions.length > 0 ? availableAlertOptions[availableAlertOptions.length - 1].value : '1hour';
+      setAlerts([...alerts, { time: bestAlert }]);
     }
   };
 
