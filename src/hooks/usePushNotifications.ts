@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications';
 import { supabase } from '@/integrations/supabase/client';
+import { remoteLog } from '@/lib/remoteLogger';
 
 interface UsePushNotificationsOptions {
   onNotificationReceived?: (notification: PushNotificationSchema) => void;
@@ -16,7 +17,7 @@ export const usePushNotifications = (options: UsePushNotificationsOptions = {}) 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('[Push] No user logged in, skipping token save');
+        remoteLog.warn('push', 'token_save_skipped', { reason: 'no_user' });
         return;
       }
 
@@ -29,50 +30,52 @@ export const usePushNotifications = (options: UsePushNotificationsOptions = {}) 
         .eq('id', user.id);
 
       if (error) {
-        console.error('[Push] Error saving FCM token:', error);
+        remoteLog.error('push', 'token_save_error', { error: error.message });
       } else {
-        console.log('[Push] FCM token saved successfully');
+        remoteLog.info('push', 'token_saved', { tokenPreview: token.substring(0, 20) + '...' });
       }
     } catch (err) {
-      console.error('[Push] Exception saving FCM token:', err);
+      remoteLog.error('push', 'token_save_exception', { error: String(err) });
     }
   }, []);
 
   const registerPushNotifications = useCallback(async () => {
     if (!Capacitor.isNativePlatform()) {
-      console.log('[Push] Not a native platform, skipping registration');
+      remoteLog.debug('push', 'registration_skipped', { reason: 'not_native' });
       return false;
     }
 
     if (isRegistered.current) {
-      console.log('[Push] Already registered');
+      remoteLog.debug('push', 'registration_skipped', { reason: 'already_registered' });
       return true;
     }
 
     try {
+      remoteLog.info('push', 'registration_started');
+      
       // Check current permission status
       let permStatus = await PushNotifications.checkPermissions();
-      console.log('[Push] Current permission status:', permStatus.receive);
+      remoteLog.info('push', 'permission_status', { status: permStatus.receive });
 
       // Request permission if not granted
       if (permStatus.receive === 'prompt') {
         permStatus = await PushNotifications.requestPermissions();
-        console.log('[Push] Permission after request:', permStatus.receive);
+        remoteLog.info('push', 'permission_requested', { result: permStatus.receive });
       }
 
       if (permStatus.receive !== 'granted') {
-        console.log('[Push] Permission not granted');
+        remoteLog.warn('push', 'permission_denied');
         return false;
       }
 
       // Register with FCM/APNs
       await PushNotifications.register();
-      console.log('[Push] Registration initiated');
+      remoteLog.info('push', 'registration_initiated');
 
       isRegistered.current = true;
       return true;
     } catch (err) {
-      console.error('[Push] Registration error:', err);
+      remoteLog.error('push', 'registration_error', { error: String(err) });
       return false;
     }
   }, []);
@@ -82,24 +85,32 @@ export const usePushNotifications = (options: UsePushNotificationsOptions = {}) 
 
     // Listener for registration success
     const registrationListener = PushNotifications.addListener('registration', async (token: Token) => {
-      console.log('[Push] Registration success, token:', token.value?.substring(0, 20) + '...');
+      remoteLog.info('push', 'token_received', { tokenPreview: token.value?.substring(0, 20) + '...' });
       await saveFCMToken(token.value);
     });
 
     // Listener for registration errors
     const errorListener = PushNotifications.addListener('registrationError', (error) => {
-      console.error('[Push] Registration error:', error);
+      remoteLog.error('push', 'registration_listener_error', { error: JSON.stringify(error) });
     });
 
     // Listener for push notifications received (app in foreground)
     const notificationListener = PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
-      console.log('[Push] Notification received:', notification);
+      remoteLog.info('push', 'notification_received', { 
+        title: notification.title,
+        body: notification.body?.substring(0, 50),
+        id: notification.id,
+      });
       onNotificationReceived?.(notification);
     });
 
     // Listener for notification actions (user tapped notification)
     const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action: ActionPerformed) => {
-      console.log('[Push] Notification action performed:', action);
+      remoteLog.info('push', 'notification_tapped', { 
+        actionId: action.actionId,
+        notificationId: action.notification.id,
+        title: action.notification.title,
+      });
       onNotificationAction?.(action);
     });
 

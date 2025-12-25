@@ -1,9 +1,9 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { CallKitProvider } from "@/contexts/CallKitContext";
 import FontInitializer from "@/components/FontInitializer";
 import IOSWebViewConfigurator from "@/components/IOSWebViewConfigurator";
 import OfflineOverlay from "./components/OfflineOverlay";
+import { remoteLog } from "@/lib/remoteLogger";
 
 // Eager load - critical path
 import Index from "./pages/Index";
@@ -63,6 +64,71 @@ const PageLoader = () => {
   );
 };
 
+// Navigation logger component - tracks route changes
+const NavigationLogger = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    remoteLog.info('navigation', 'route_changed', { 
+      path: location.pathname,
+      search: location.search,
+    });
+  }, [location]);
+  
+  return null;
+};
+
+// Global error handlers component
+const GlobalErrorHandlers = () => {
+  useEffect(() => {
+    // Log app started
+    remoteLog.info('app_lifecycle', 'app_started', {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+    });
+
+    // Handle visibility changes (foreground/background)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        remoteLog.info('app_lifecycle', 'app_background');
+      } else {
+        remoteLog.info('app_lifecycle', 'app_foreground');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Global error handler
+    const handleError = (event: ErrorEvent) => {
+      remoteLog.error('error', 'unhandled_error', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack?.substring(0, 500),
+      });
+    };
+    window.addEventListener('error', handleError);
+
+    // Unhandled promise rejection handler
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      remoteLog.error('error', 'unhandled_promise_rejection', {
+        reason: String(event.reason),
+        stack: event.reason?.stack?.substring(0, 500),
+      });
+    };
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
@@ -73,11 +139,13 @@ const App = () => (
             {/* Initialize font preference and iOS WebView config */}
             <FontInitializer />
             <IOSWebViewConfigurator />
+            <GlobalErrorHandlers />
             <TooltipProvider>
               <Toaster />
               <Sonner />
               <OfflineOverlay />
               <BrowserRouter>
+                <NavigationLogger />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
