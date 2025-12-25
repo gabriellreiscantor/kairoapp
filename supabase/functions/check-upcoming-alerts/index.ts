@@ -278,13 +278,11 @@ Deno.serve(async (req) => {
               title: `${eventEmoji} ${event.title}`,
               body: notificationBody,
               data: {
-                type: 'call-alert',
+                type: 'event-reminder',
                 event_id: event.id,
                 event_title: event.title,
                 event_time: event.event_time,
                 event_location: event.location || '',
-                // Flag to indicate VoIP failed and this is a fallback
-                is_voip_fallback: isVoipFallback ? 'true' : 'false',
               },
             },
           });
