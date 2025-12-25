@@ -61,7 +61,8 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
   const [repeat, setRepeat] = useState("never");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [callAlertEnabled, setCallAlertEnabled] = useState(false);
-  const [alerts, setAlerts] = useState<Alert[]>([{ time: "1hour" }]);
+  // Start with empty alerts - will be set intelligently when date/time are chosen
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [notes, setNotes] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("📅");
   const [color, setColor] = useState("primary");
@@ -84,17 +85,25 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
   }, [isOpen]);
 
   // Update alerts when available options change (e.g., user changes time)
+  // Also initialize alerts if empty
   useEffect(() => {
+    if (alerts.length === 0 && availableAlertOptions.length > 0) {
+      // Initialize with best available alert (largest time buffer)
+      const bestAlert = availableAlertOptions[availableAlertOptions.length - 1].value;
+      setAlerts([{ time: bestAlert }]);
+      return;
+    }
+    
     const updatedAlerts = alerts.map(alert => ({
       time: getBestValidAlert(alert.time, availableAlertOptions)
     }));
     
     // Only update if there are actual changes
-    const hasChanges = updatedAlerts.some((alert, idx) => alert.time !== alerts[idx].time);
+    const hasChanges = updatedAlerts.some((alert, idx) => alert.time !== alerts[idx]?.time);
     if (hasChanges) {
       setAlerts(updatedAlerts);
     }
-  }, [availableAlertOptions]);
+  }, [availableAlertOptions, alerts.length]);
 
   // Handle location search with debounce - MUST be before conditional return
   useEffect(() => {
@@ -139,7 +148,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
     setRepeat("never");
     setNotificationEnabled(true);
     setCallAlertEnabled(false);
-    setAlerts([{ time: "1hour" }]);
+    setAlerts([]); // Will be set intelligently when modal opens again
     setNotes("");
     setSelectedEmoji("📅");
     setColor("primary");
@@ -148,7 +157,9 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
   const addAlert = () => {
     if (alerts.length < 10) {
-      setAlerts([...alerts, { time: "1hour" }]);
+      // Add alert with best available time
+      const bestAlert = availableAlertOptions.length > 0 ? availableAlertOptions[availableAlertOptions.length - 1].value : '1hour';
+      setAlerts([...alerts, { time: bestAlert }]);
     }
   };
 
