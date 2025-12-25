@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserTimezone } from "@/lib/date-utils";
 import { remoteLog } from "@/lib/remoteLogger";
+import { Geolocation } from "@capacitor/geolocation";
 
 interface Profile {
   id: string;
@@ -82,6 +83,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           });
       }
+      
+      // Auto-update location if weather forecast is enabled (for travelers)
+      if (data.weather_forecast_enabled) {
+        updateLocationSilently(userId, data.user_city);
+      }
+    }
+  };
+
+  // Silently update user location if weather forecast is enabled
+  const updateLocationSilently = async (userId: string, currentCity: string | null) => {
+    try {
+      // Check permission status first
+      const permStatus = await Geolocation.checkPermissions();
+      if (permStatus.location !== 'granted') {
+        remoteLog.debug('geolocation', 'auto_update_skipped', { reason: 'no_permission' });
+        return;
+      }
+
+      // Get current position
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: false,
+        timeout: 10000,
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Reverse geocode to get city name
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      );
+
+      if (!response.ok) return;
+
+      const geocodeData = await response.json();
+      const newCity = geocodeData.address?.city || 
+                      geocodeData.address?.town || 
+                      geocodeData.address?.village || 
+                      geocodeData.address?.municipality ||
+                      geocodeData.name;
+
+      // Only update if city changed
+      if (newCity && newCity !== currentCity) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            user_latitude: latitude,
+            user_longitude: longitude,
+            user_city: newCity,
+          })
+          .eq('id', userId);
+
+        if (!error) {
+          remoteLog.info('geolocation', 'auto_update_success', { 
+            oldCity: currentCity, 
+            newCity 
+          });
+          console.log(`Location auto-updated: ${currentCity} → ${newCity}`);
+        }
+      }
+    } catch (error) {
+      // Silently fail - don't interrupt the user experience
+      remoteLog.debug('geolocation', 'auto_update_failed', { 
+        error: error instanceof Error ? error.message : 'unknown' 
+      });
     }
   };
 
