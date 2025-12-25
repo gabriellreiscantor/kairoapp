@@ -116,14 +116,18 @@ workflows:
               }
               
               // Configure audio session for TTS playback during call
+              // CRITICAL: Use .spokenAudio mode consistently (same as playTTSAudio)
+              // Do NOT use .voiceChat as it conflicts with TTS playback
               private func configureAudioSession() {
                   do {
                       let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                      // Use same config as playTTSAudio for consistency
+                      try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothA2DP, .duckOthers])
                       try session.setActive(true)
-                      print("[CallKit] Audio session configured for TTS playback")
+                      try session.overrideOutputAudioPort(.speaker)  // Force speaker for maximum volume
+                      print("[CallKit] ✅ Audio session configured with .spokenAudio mode for TTS")
                   } catch {
-                      print("[CallKit] Failed to configure audio session: \(error)")
+                      print("[CallKit] ❌ Failed to configure audio session: \(error)")
                   }
               }
               
