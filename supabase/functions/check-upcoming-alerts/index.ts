@@ -101,9 +101,8 @@ Deno.serve(async (req) => {
     console.log(`Server time (UTC): ${now.toISOString()}`);
     console.log(`Checking for events with call_alert_scheduled_at <= ${targetTimeMaxUTC.toISOString()} (UTC)`);
 
-    // Query events with call_alert_enabled that haven't been notified yet
-    // Now uses call_alert_scheduled_at for precise timing
-    const { data: events, error: eventsError } = await supabase
+    // Query 1: Events with call_alert_scheduled_at set (normal flow)
+    const { data: eventsWithSchedule, error: eventsError1 } = await supabase
       .from('events')
       .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at')
       .eq('call_alert_enabled', true)
@@ -112,12 +111,77 @@ Deno.serve(async (req) => {
       .not('call_alert_scheduled_at', 'is', null)
       .lte('call_alert_scheduled_at', targetTimeMaxUTC.toISOString());
 
-    if (eventsError) {
-      console.error('Error fetching events:', eventsError);
-      throw eventsError;
+    if (eventsError1) {
+      console.error('Error fetching events with schedule:', eventsError1);
+      throw eventsError1;
     }
 
-    console.log(`Found ${events?.length || 0} events ready for call alerts`);
+    // Query 2: Events WITHOUT call_alert_scheduled_at (fallback - legacy events or toggle on frontend)
+    // These need dynamic calculation based on event time
+    const { data: eventsWithoutSchedule, error: eventsError2 } = await supabase
+      .from('events')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at')
+      .eq('call_alert_enabled', true)
+      .is('call_alert_sent_at', null)
+      .not('event_time', 'is', null)
+      .is('call_alert_scheduled_at', null);
+
+    if (eventsError2) {
+      console.error('Error fetching events without schedule:', eventsError2);
+      throw eventsError2;
+    }
+
+    // Filter fallback events: calculate their scheduled time and check if within window
+    const fallbackEvents: typeof eventsWithSchedule = [];
+    
+    for (const event of eventsWithoutSchedule || []) {
+      // Get user timezone for this event
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('timezone')
+        .eq('id', event.user_id)
+        .maybeSingle();
+      
+      const userTimezone = profile?.timezone || 'America/Sao_Paulo';
+      
+      // Calculate when the call should happen
+      const eventUTC = convertEventToUTC(event.event_date, event.event_time!, userTimezone);
+      const diffMinutes = Math.floor((eventUTC.getTime() - now.getTime()) / (1000 * 60));
+      
+      // Calculate alert minutes (same logic as frontend)
+      let alertMinutes: number;
+      if (diffMinutes <= 2) continue; // Too close, skip
+      else if (diffMinutes <= 5) alertMinutes = 2;
+      else if (diffMinutes <= 15) alertMinutes = 5;
+      else if (diffMinutes <= 30) alertMinutes = 15;
+      else if (diffMinutes <= 60) alertMinutes = 30;
+      else if (diffMinutes <= 120) alertMinutes = 60;
+      else alertMinutes = 60;
+      
+      const calculatedScheduledAt = new Date(eventUTC.getTime() - alertMinutes * 60 * 1000);
+      
+      // Check if this calculated time is within our window
+      if (calculatedScheduledAt <= targetTimeMaxUTC && calculatedScheduledAt >= now) {
+        console.log(`[fallback] Event "${event.title}" calculated call at ${calculatedScheduledAt.toISOString()} (${alertMinutes}min before event)`);
+        
+        // Update the event with the calculated scheduled time for future runs
+        await supabase
+          .from('events')
+          .update({ call_alert_scheduled_at: calculatedScheduledAt.toISOString() })
+          .eq('id', event.id);
+        
+        // Add to processing list
+        fallbackEvents.push({
+          ...event,
+          call_alert_scheduled_at: calculatedScheduledAt.toISOString()
+        });
+      }
+    }
+
+    // Combine both lists
+    const events = [...(eventsWithSchedule || []), ...fallbackEvents];
+
+    console.log(`Found ${events?.length || 0} events ready for call alerts (${eventsWithSchedule?.length || 0} scheduled + ${fallbackEvents.length} fallback)`)
 
     const notificationsSent: string[] = [];
     const errors: string[] = [];
