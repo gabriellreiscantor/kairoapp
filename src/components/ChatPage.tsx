@@ -27,6 +27,7 @@ import WeatherForecastCard from "@/components/chat/WeatherForecastCard";
 import WeatherForecastModal from "@/components/chat/WeatherForecastModal";
 import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
+import CallNotificationCard from "@/components/chat/CallNotificationCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -82,6 +83,13 @@ interface Message {
     daysRemaining: number;
   };
   weatherData?: any; // For showing weather forecast card
+  callNotificationData?: { // For showing call notification card
+    eventId: string;
+    eventTitle: string;
+    eventTime: string;
+    callSentAt: string;
+    answered?: boolean;
+  };
 }
 
 interface ExecutedAction {
@@ -312,6 +320,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       weeklyReportData: m.metadata?.weeklyReportData,
       weeklyReportNotReady: m.metadata?.weeklyReportNotReady,
       weatherData: m.metadata?.weatherData,
+      callNotificationData: m.metadata?.callNotificationData,
     };
   };
 
@@ -1613,6 +1622,19 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         <WeatherForecastCard 
                           weather={message.weatherData} 
                           onClick={() => setSelectedWeatherForecast(message.weatherData)}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Call Notification Card */}
+                    {message.callNotificationData && (
+                      <div className="pl-9 animate-fade-in">
+                        <CallNotificationCard
+                          eventId={message.callNotificationData.eventId}
+                          eventTitle={message.callNotificationData.eventTitle}
+                          eventTime={message.callNotificationData.eventTime}
+                          callSentAt={message.callNotificationData.callSentAt}
+                          answered={message.callNotificationData.answered}
                         />
                       </div>
                     )}
