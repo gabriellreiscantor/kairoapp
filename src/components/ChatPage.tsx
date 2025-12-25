@@ -1427,7 +1427,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           <button
             onClick={handleLoadFullHistory}
             disabled={isLoadingMore}
-            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 mb-3 text-xs 
+            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 mt-8 mb-6 text-xs 
                        bg-primary/10 text-primary/70 hover:text-primary hover:bg-primary/15
                        rounded-full transition-all duration-200 disabled:opacity-50"
           >
