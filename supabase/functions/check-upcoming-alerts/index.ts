@@ -215,11 +215,12 @@ Deno.serve(async (req) => {
                 .maybeSingle();
               
               const currentAttempts = currentEvent?.call_alert_attempts || 0;
+              const callSentAt = new Date().toISOString();
               
               const { error: updateError } = await supabase
                 .from('events')
                 .update({ 
-                  call_alert_sent_at: new Date().toISOString(),
+                  call_alert_sent_at: callSentAt,
                   call_alert_attempts: currentAttempts + 1,
                   call_alert_outcome: 'voip_sent'
                 })
@@ -232,6 +233,33 @@ Deno.serve(async (req) => {
                 alreadyMarkedAsSent = true;
                 notificationsSent.push(event.id);
                 console.log(`Successfully marked event ${event.id} as sent after VoIP`);
+                
+                // Insert chat message to notify user about the call
+                const callNotificationData = {
+                  eventId: event.id,
+                  eventTitle: event.title,
+                  eventTime: event.event_time,
+                  callSentAt,
+                  answered: false
+                };
+                
+                const { error: chatError } = await supabase
+                  .from('chat_messages')
+                  .insert({
+                    user_id: event.user_id,
+                    role: 'assistant',
+                    content: `📞 Te liguei para lembrar do evento "${event.title}"!`,
+                    metadata: {
+                      type: 'call_notification',
+                      callNotificationData
+                    }
+                  });
+                
+                if (chatError) {
+                  console.error(`Error inserting chat message for event ${event.id}:`, chatError);
+                } else {
+                  console.log(`Chat message inserted for call notification of event ${event.id}`);
+                }
               }
             }
           } else {
@@ -290,11 +318,12 @@ Deno.serve(async (req) => {
                 .maybeSingle();
               
               const currentAttempts = currentEvent?.call_alert_attempts || 0;
+              const callSentAt = new Date().toISOString();
               
               const { error: updateError } = await supabase
                 .from('events')
                 .update({ 
-                  call_alert_sent_at: new Date().toISOString(),
+                  call_alert_sent_at: callSentAt,
                   call_alert_attempts: currentAttempts + 1,
                   call_alert_outcome: 'push_sent'
                 })
@@ -306,6 +335,33 @@ Deno.serve(async (req) => {
               } else {
                 notificationsSent.push(event.id);
                 console.log(`Successfully marked event ${event.id} as sent after regular push`);
+                
+                // Insert chat message to notify user about the push notification
+                const callNotificationData = {
+                  eventId: event.id,
+                  eventTitle: event.title,
+                  eventTime: event.event_time,
+                  callSentAt,
+                  answered: false
+                };
+                
+                const { error: chatError } = await supabase
+                  .from('chat_messages')
+                  .insert({
+                    user_id: event.user_id,
+                    role: 'assistant',
+                    content: `📞 Te enviei uma notificação para lembrar do evento "${event.title}"!`,
+                    metadata: {
+                      type: 'call_notification',
+                      callNotificationData
+                    }
+                  });
+                
+                if (chatError) {
+                  console.error(`Error inserting chat message for event ${event.id}:`, chatError);
+                } else {
+                  console.log(`Chat message inserted for push notification of event ${event.id}`);
+                }
               }
             }
           } else {
