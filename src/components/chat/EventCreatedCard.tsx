@@ -49,48 +49,55 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [isDeleted, setIsDeleted] = useState(false);
   const [isCheckingDeleted, setIsCheckingDeleted] = useState(false);
   
-  // Live call status data from database
-  const [liveCallData, setLiveCallData] = useState({
-    call_alert_sent_at: event.call_alert_sent_at,
-    call_alert_attempts: event.call_alert_attempts,
-    call_alert_answered: event.call_alert_answered,
-    call_alert_answered_at: event.call_alert_answered_at,
-    call_alert_outcome: event.call_alert_outcome,
-  });
+  // Live event data from database - all fields, not just call_alert
+  const [liveEventData, setLiveEventData] = useState<{
+    id?: string;
+    title: string;
+    description?: string;
+    event_date: string;
+    event_time?: string;
+    duration_minutes?: number;
+    location?: string;
+    category?: string;
+    notification_enabled?: boolean;
+    call_alert_enabled?: boolean;
+    call_alert_sent_at?: string;
+    call_alert_attempts?: number;
+    call_alert_answered?: boolean;
+    call_alert_answered_at?: string;
+    call_alert_outcome?: string;
+    emoji?: string;
+    color?: string;
+    is_all_day?: boolean;
+    repeat?: string;
+  } | null>(null);
 
-  // Sync callAlertEnabled when event prop changes
+  // Sync callAlertEnabled when event prop changes OR live data changes
   useEffect(() => {
-    setCallAlertEnabled(event?.call_alert_enabled || false);
-  }, [event?.call_alert_enabled]);
-
-  // Sync liveCallData when event prop changes
-  useEffect(() => {
-    setLiveCallData({
-      call_alert_sent_at: event.call_alert_sent_at,
-      call_alert_attempts: event.call_alert_attempts,
-      call_alert_answered: event.call_alert_answered,
-      call_alert_answered_at: event.call_alert_answered_at,
-      call_alert_outcome: event.call_alert_outcome,
-    });
-  }, [event.call_alert_sent_at, event.call_alert_attempts, event.call_alert_answered, event.call_alert_answered_at, event.call_alert_outcome]);
+    const enabled = liveEventData?.call_alert_enabled ?? event?.call_alert_enabled ?? false;
+    setCallAlertEnabled(enabled);
+  }, [event?.call_alert_enabled, liveEventData?.call_alert_enabled]);
   
   // Check if event is expired (already happened) - only for non-recurring events
   // Uses state + interval to update in real-time when event expires
   const [isExpired, setIsExpired] = useState(false);
   
   useEffect(() => {
+    // Use live data if available, fallback to event prop
+    const currentEvent = liveEventData || event;
+    
     const checkExpired = () => {
       // Recurring events never expire in this sense
-      if (event.repeat && event.repeat !== 'never') {
+      if (currentEvent.repeat && currentEvent.repeat !== 'never') {
         setIsExpired(false);
         return;
       }
       
       // Build the event datetime - parse explicitly to avoid timezone issues
-      const [year, month, day] = event.event_date.split('-').map(Number);
-      const eventDateTime = event.event_time 
+      const [year, month, day] = currentEvent.event_date.split('-').map(Number);
+      const eventDateTime = currentEvent.event_time 
         ? (() => {
-            const [hours, minutes] = event.event_time.split(':').map(Number);
+            const [hours, minutes] = currentEvent.event_time.split(':').map(Number);
             return new Date(year, month - 1, day, hours, minutes, 0, 0);
           })()
         : new Date(year, month - 1, day, 23, 59, 59, 0);
@@ -105,17 +112,17 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const interval = setInterval(checkExpired, 60000);
     
     return () => clearInterval(interval);
-  }, [event.event_date, event.event_time, event.repeat]);
+  }, [event.event_date, event.event_time, event.repeat, liveEventData]);
   
-  // Fetch live call status data and subscribe to realtime updates
+  // Fetch live event data and subscribe to realtime updates
   useEffect(() => {
     if (!event.id) return;
     
-    // Fetch latest call status data
+    // Fetch latest event data (all fields)
     const fetchLiveData = async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, call_alert_sent_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome')
+        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, call_alert_enabled, call_alert_sent_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
         .eq('id', event.id)
         .maybeSingle();
       
@@ -132,12 +139,26 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         return;
       }
       
-      setLiveCallData({
-        call_alert_sent_at: data.call_alert_sent_at,
-        call_alert_attempts: data.call_alert_attempts,
-        call_alert_answered: data.call_alert_answered,
-        call_alert_answered_at: data.call_alert_answered_at,
-        call_alert_outcome: data.call_alert_outcome,
+      setLiveEventData({
+        id: data.id,
+        title: data.title,
+        description: data.description ?? undefined,
+        event_date: data.event_date,
+        event_time: data.event_time ?? undefined,
+        duration_minutes: data.duration_minutes ?? undefined,
+        location: data.location ?? undefined,
+        category: data.category ?? undefined,
+        notification_enabled: data.notification_enabled ?? undefined,
+        call_alert_enabled: data.call_alert_enabled ?? undefined,
+        call_alert_sent_at: data.call_alert_sent_at ?? undefined,
+        call_alert_attempts: data.call_alert_attempts ?? undefined,
+        call_alert_answered: data.call_alert_answered ?? undefined,
+        call_alert_answered_at: data.call_alert_answered_at ?? undefined,
+        call_alert_outcome: data.call_alert_outcome ?? undefined,
+        emoji: data.emoji ?? undefined,
+        color: data.color ?? undefined,
+        is_all_day: data.is_all_day ?? undefined,
+        repeat: data.repeat ?? undefined,
       });
     };
     
@@ -156,12 +177,26 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         },
         (payload) => {
           const newData = payload.new as any;
-          setLiveCallData({
-            call_alert_sent_at: newData.call_alert_sent_at,
-            call_alert_attempts: newData.call_alert_attempts,
-            call_alert_answered: newData.call_alert_answered,
-            call_alert_answered_at: newData.call_alert_answered_at,
-            call_alert_outcome: newData.call_alert_outcome,
+          setLiveEventData({
+            id: newData.id,
+            title: newData.title,
+            description: newData.description ?? undefined,
+            event_date: newData.event_date,
+            event_time: newData.event_time ?? undefined,
+            duration_minutes: newData.duration_minutes ?? undefined,
+            location: newData.location ?? undefined,
+            category: newData.category ?? undefined,
+            notification_enabled: newData.notification_enabled ?? undefined,
+            call_alert_enabled: newData.call_alert_enabled ?? undefined,
+            call_alert_sent_at: newData.call_alert_sent_at ?? undefined,
+            call_alert_attempts: newData.call_alert_attempts ?? undefined,
+            call_alert_answered: newData.call_alert_answered ?? undefined,
+            call_alert_answered_at: newData.call_alert_answered_at ?? undefined,
+            call_alert_outcome: newData.call_alert_outcome ?? undefined,
+            emoji: newData.emoji ?? undefined,
+            color: newData.color ?? undefined,
+            is_all_day: newData.is_all_day ?? undefined,
+            repeat: newData.repeat ?? undefined,
           });
         }
       )
@@ -405,16 +440,19 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
+  // Use live data if available, fallback to original event prop
+  const displayEvent = liveEventData || event;
+
   // Get the time the call will be made (dynamic based on remaining time)
-  const callAlertInfo = getCallAlertTime(event.event_date, event.event_time);
+  const callAlertInfo = getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
   const canEnableCallAlert = callAlertInfo !== null;
 
   // É dia inteiro APENAS se: is_all_day é true OU não tem hora
   // Ter hora sem duração = mostrar só o horário de início (não o intervalo)
-  const isAllDay = event.is_all_day === true || !event.event_time;
-  const hasDuration = event.duration_minutes && event.duration_minutes > 0;
-  const eventEmoji = event.emoji || '📅';
-  const eventColor = event.color || 'primary';
+  const isAllDay = displayEvent.is_all_day === true || !displayEvent.event_time;
+  const hasDuration = displayEvent.duration_minutes && displayEvent.duration_minutes > 0;
+  const eventEmoji = displayEvent.emoji || '📅';
+  const eventColor = displayEvent.color || 'primary';
 
   // Get color class for the dot
   const colorClass = getColorClassName(eventColor);
@@ -511,7 +549,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           <span className={`text-xl flex-shrink-0 ${isExpired ? 'opacity-60' : ''}`}>{eventEmoji}</span>
           
           {/* Title */}
-          <span className={`text-base font-semibold flex-1 truncate ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{event.title}</span>
+          <span className={`text-base font-semibold flex-1 truncate ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{displayEvent.title}</span>
           
           {/* Arrow indicator */}
           {event.id && onEdit && (
@@ -521,16 +559,16 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         
         {/* Date and time / All day badge */}
         <div className={`flex items-center justify-between text-sm pl-6 ${isExpired ? 'text-muted-foreground/60' : ''}`}>
-          <span className={`capitalize ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{formatDate(event.event_date, event.event_time)}</span>
+          <span className={`capitalize ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{formatDate(displayEvent.event_date, displayEvent.event_time)}</span>
         {isAllDay ? (
             <span className="text-muted-foreground text-sm whitespace-nowrap">☀️ Dia inteiro</span>
           ) : hasDuration ? (
             <span className="text-muted-foreground font-medium">
-              {formatTime(event.event_time)} - {calculateEndTime(event.event_time!, event.duration_minutes!)}
+              {formatTime(displayEvent.event_time)} - {calculateEndTime(displayEvent.event_time!, displayEvent.duration_minutes!)}
             </span>
           ) : (
             <span className="text-muted-foreground font-medium">
-              {formatTime(event.event_time)}
+              {formatTime(displayEvent.event_time)}
             </span>
           )}
         </div>
@@ -565,29 +603,29 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           </div>
           
           {/* Call status indicator - show when call was sent (using live data) */}
-          {liveCallData.call_alert_sent_at && (
+          {displayEvent.call_alert_sent_at && (
             <div className="mt-2 flex items-center gap-2 text-xs">
-              {liveCallData.call_alert_answered ? (
+              {displayEvent.call_alert_answered ? (
                 <>
                   <span className="inline-flex items-center gap-1 text-emerald-500">
                     <Phone className="w-3 h-3" />
                     ✅ Atendida
                   </span>
-                  {liveCallData.call_alert_answered_at && (
+                  {displayEvent.call_alert_answered_at && (
                     <span className="text-muted-foreground">
-                      às {format(parseISO(liveCallData.call_alert_answered_at), 'HH:mm')}
+                      às {format(parseISO(displayEvent.call_alert_answered_at), 'HH:mm')}
                     </span>
                   )}
                 </>
-              ) : liveCallData.call_alert_outcome === 'missed' ? (
+              ) : displayEvent.call_alert_outcome === 'missed' ? (
                 <span className="inline-flex items-center gap-1 text-amber-500">
                   <Phone className="w-3 h-3" />
-                  📞 Ligamos {liveCallData.call_alert_attempts && liveCallData.call_alert_attempts > 1 ? `${liveCallData.call_alert_attempts}x` : ''} - não atendida
+                  📞 Ligamos {displayEvent.call_alert_attempts && displayEvent.call_alert_attempts > 1 ? `${displayEvent.call_alert_attempts}x` : ''} - não atendida
                 </span>
-              ) : liveCallData.call_alert_outcome === 'sent' ? (
+              ) : displayEvent.call_alert_outcome === 'sent' ? (
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
                   <Phone className="w-3 h-3" />
-                  📞 Ligação enviada às {format(parseISO(liveCallData.call_alert_sent_at), 'HH:mm')}
+                  📞 Ligação enviada às {format(parseISO(displayEvent.call_alert_sent_at), 'HH:mm')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-muted-foreground/60">
@@ -627,26 +665,26 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           <div className="flex items-center gap-2 pl-6">
             <Bell className="w-4 h-4 text-sky-500" />
             <span className="text-sm text-muted-foreground">
-              {event.event_time ? `${formatTime(event.event_time)}, no dia` : "09:00, no dia"}
+              {displayEvent.event_time ? `${formatTime(displayEvent.event_time)}, no dia` : "09:00, no dia"}
             </span>
           </div>
         )}
         
         {/* Notes/Description - with italic styling */}
-        {event.description && (
+        {displayEvent.description && (
           <div className="flex items-start gap-2 pl-6 mt-2">
             <FileText className="w-3 h-3 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
             <p className={`text-xs leading-relaxed italic ${isExpired ? 'text-muted-foreground/50' : 'text-muted-foreground/70'}`}>
-              {event.description}
+              {displayEvent.description}
             </p>
           </div>
         )}
         
         {/* Location */}
-        {event.location && (
+        {displayEvent.location && (
           <div className="flex items-center gap-2 pl-6">
             <MapPin className={`w-4 h-4 ${isExpired ? 'text-muted-foreground/50' : 'text-red-500'}`} />
-            <span className={`text-sm ${isExpired ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>{event.location}</span>
+            <span className={`text-sm ${isExpired ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>{displayEvent.location}</span>
           </div>
         )}
       </div>
