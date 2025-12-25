@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { remoteLog } from '@/lib/remoteLogger';
 
 interface UseAudioRecorderReturn {
   isRecording: boolean;
@@ -12,11 +13,14 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number>(0);
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       chunksRef.current = [];
+
+      remoteLog.info('audio', 'recording_permission_request');
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -47,7 +51,8 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         throw new Error('Nenhum formato de áudio suportado');
       }
 
-      console.log('Recording with MIME type:', selectedMimeType);
+      remoteLog.info('audio', 'recording_started', { mimeType: selectedMimeType });
+      recordingStartTimeRef.current = Date.now();
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: selectedMimeType,
@@ -65,7 +70,9 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       setIsRecording(true);
     } catch (err) {
       console.error('Error starting recording:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao iniciar gravação');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao iniciar gravação';
+      remoteLog.error('audio', 'recording_start_error', { error: errorMessage });
+      setError(errorMessage);
       throw err;
     }
   }, []);
@@ -78,10 +85,17 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       }
 
       const mediaRecorder = mediaRecorderRef.current;
+      const duration = Date.now() - recordingStartTimeRef.current;
 
       mediaRecorder.onstop = async () => {
         const mimeType = mediaRecorder.mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type: mimeType });
+        
+        remoteLog.info('audio', 'recording_stopped', { 
+          durationMs: duration,
+          blobSize: blob.size,
+          mimeType,
+        });
         
         // Stop all tracks
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
@@ -92,10 +106,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
           const base64 = reader.result as string;
           // Remove data URL prefix
           const base64Data = base64.split(',')[1];
+          remoteLog.info('audio', 'recording_converted', { base64Length: base64Data?.length });
           resolve(base64Data);
         };
         reader.onerror = () => {
-          console.error('Error reading audio blob');
+          remoteLog.error('audio', 'recording_conversion_error');
           resolve(null);
         };
         reader.readAsDataURL(blob);
