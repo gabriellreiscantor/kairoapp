@@ -3,6 +3,30 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Remote logging for debugging Me Ligue calls
+const sendRemoteLog = async (
+  eventType: string, 
+  data?: Record<string, any>,
+  userId?: string
+) => {
+  try {
+    await supabase.functions.invoke('remote-log', {
+      body: {
+        user_id: userId,
+        event_type: eventType,
+        data: {
+          ...data,
+          platform: Capacitor.getPlatform(),
+          isNative: Capacitor.isNativePlatform(),
+        },
+        timestamp: new Date().toISOString(),
+      }
+    });
+  } catch (e) {
+    console.log('[RemoteLog] Failed to send:', eventType, e);
+  }
+};
+
 interface CallKitEvent {
   id: string;
   title: string;
@@ -273,6 +297,20 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           console.log('[CallKit] Answer data:', JSON.stringify(data));
           console.log('[CallKit] Data keys:', Object.keys(data || {}));
           
+          // Get user ID for remote logging
+          const { data: { user } } = await supabase.auth.getUser();
+          const userId = user?.id;
+          
+          // REMOTE LOG: Call answered
+          sendRemoteLog('call_answered', {
+            eventId: data?.eventId,
+            eventTitle: data?.eventTitle,
+            eventTime: data?.eventTime,
+            hasEventData: !!data?.eventId,
+            preloadedTTSAvailable: !!preloadedTTSRef.current,
+            preloadingTTSPending: !!preloadingTTSRef.current,
+          }, userId);
+          
           // Configure audio session to keep call active during TTS
           try {
             if ((CallKitVoip as any).configureAudioSession) {
@@ -360,6 +398,18 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           console.log('[CallKit] ====== CALL STARTED ======');
           console.log('[CallKit] Start data:', JSON.stringify(data));
           
+          // Get user ID for remote logging
+          const { data: { user } } = await supabase.auth.getUser();
+          const userId = user?.id;
+          
+          // REMOTE LOG: Call started
+          sendRemoteLog('call_started', {
+            eventId: data?.eventId,
+            eventTitle: data?.eventTitle,
+            eventTime: data?.eventTime,
+            hasEventData: !!data?.eventId,
+          }, userId);
+          
           // FIRST: Force cleanup any previous call state to prevent bugs
           console.log('[CallKit] Cleaning up previous call state...');
           isCallingTTSRef.current = false;
@@ -424,6 +474,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             const language = currentLanguageRef.current;
             
             preloadingTTSRef.current = (async () => {
+              // REMOTE LOG: TTS preload started
+              sendRemoteLog('tts_preload_start', { 
+                eventId: eventData.id, 
+                eventTitle: eventData.title 
+              }, userId);
+              
               try {
                 const { data: ttsData, error } = await supabase.functions.invoke('text-to-speech', {
                   body: { 
@@ -435,17 +491,20 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                 
                 if (error) {
                   console.error('[CallKit] Pre-load TTS error:', error);
+                  sendRemoteLog('tts_preload_error', { error: String(error) }, userId);
                   return null;
                 }
                 
                 if (ttsData?.audioContent) {
                   console.log('[CallKit] ✅ TTS PRE-LOADED! Length:', ttsData.audioContent.length);
                   preloadedTTSRef.current = ttsData.audioContent;
+                  sendRemoteLog('tts_preload_success', { audioLength: ttsData.audioContent.length }, userId);
                   return ttsData.audioContent;
                 }
                 return null;
               } catch (e) {
                 console.error('[CallKit] Pre-load TTS exception:', e);
+                sendRemoteLog('tts_preload_exception', { error: String(e) }, userId);
                 return null;
               }
             })();
@@ -459,6 +518,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         CallKitVoip.addListener('callEnded', async (data: any) => {
           console.log('[CallKit] ====== CALL ENDED ======');
           console.log('[CallKit] End data:', JSON.stringify(data));
+          
+          // REMOTE LOG: Call ended
+          const { data: { user } } = await supabase.auth.getUser();
+          sendRemoteLog('call_ended', {
+            eventId: data?.eventId,
+            wasAnswered: isCallingTTSRef.current,
+          }, user?.id);
           
           // Clear safety timeout immediately
           if (safetyTimeoutRef.current) {
@@ -666,10 +732,24 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   // Play TTS after call is answered - max 15 seconds with loop
   // Play TTS via native Swift (AVAudioPlayer) - works during CallKit call
   const playTTS = useCallback(async (event: CallKitEvent) => {
+    // Get user ID for remote logging
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+    
     if (isCallingTTSRef.current) {
       console.log('[CallKit] TTS already in progress');
+      sendRemoteLog('tts_already_in_progress', { eventId: event.id }, userId);
       return;
     }
+    
+    // REMOTE LOG: TTS play attempt started
+    sendRemoteLog('tts_play_started', { 
+      eventId: event.id,
+      eventTitle: event.title,
+      eventTime: event.time,
+      preloadedTTSAvailable: !!preloadedTTSRef.current,
+      preloadingTTSPending: !!preloadingTTSRef.current,
+    }, userId);
     
     isCallingTTSRef.current = true;
     setIsPlaying(true);
@@ -785,6 +865,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               
               if (result?.playing) {
                 console.log('[CallKit] ✅ Native TTS is playing!');
+                sendRemoteLog('tts_native_success', { attempt: retries + 1 }, userId);
                 return true;
               } else {
                 console.warn('[CallKit] ⚠️ Native TTS did NOT start playing');
@@ -798,6 +879,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               }
             } catch (e) {
               console.error('[CallKit] Native TTS error:', e);
+              sendRemoteLog('tts_native_error', { error: String(e), attempt: retries + 1 }, userId);
               if (retries < maxRetries) {
                 retries++;
                 console.log(`[CallKit] Retrying after error in 500ms...`);
@@ -815,10 +897,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           }
           
           console.warn('[CallKit] All native TTS attempts failed, trying web fallback...');
+          sendRemoteLog('tts_native_all_failed', { fallbackToWeb: true }, userId);
         }
         
         // FALLBACK: Web Audio API (may not work during CallKit call)
         console.log('[CallKit] Using web audio fallback');
+        sendRemoteLog('tts_web_fallback_started', { audioLength: base64Audio.length }, userId);
         const binaryString = atob(base64Audio);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -861,6 +945,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       }
     } catch (error) {
       console.error('[CallKit] Failed to play TTS:', error);
+      sendRemoteLog('tts_play_error', { error: String(error) }, userId);
       setIsPlaying(false);
       isCallingTTSRef.current = false;
       setTimeout(cleanupCall, 3000);
