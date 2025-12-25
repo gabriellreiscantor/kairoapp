@@ -44,9 +44,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   
   // Hooks FIRST (must always be at top, before any conditional returns)
   const [callAlertEnabled, setCallAlertEnabled] = useState(event?.call_alert_enabled || false);
+  const [notificationEnabled, setNotificationEnabled] = useState(event?.notification_enabled ?? true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingNotification, setIsUpdatingNotification] = useState(false);
   const [showEditButton, setShowEditButton] = useState(isRecentlyCreated);
   const [showCallAlertTooltip, setShowCallAlertTooltip] = useState(false);
+  const [showNotificationTooltip, setShowNotificationTooltip] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isCheckingDeleted, setIsCheckingDeleted] = useState(false);
   
@@ -79,6 +82,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const enabled = liveEventData?.call_alert_enabled ?? event?.call_alert_enabled ?? false;
     setCallAlertEnabled(enabled);
   }, [event?.call_alert_enabled, liveEventData?.call_alert_enabled]);
+  
+  // Sync notificationEnabled when event prop changes OR live data changes
+  useEffect(() => {
+    const enabled = liveEventData?.notification_enabled ?? event?.notification_enabled ?? true;
+    setNotificationEnabled(enabled);
+  }, [event?.notification_enabled, liveEventData?.notification_enabled]);
   
   // Check if event is expired (already happened) - only for non-recurring events
   // Uses state + interval to update in real-time when event expires
@@ -124,7 +133,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const fetchLiveData = async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, call_alert_enabled, call_alert_sent_at, call_alert_scheduled_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
+        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, notification_scheduled_at, notification_sent_at, call_alert_enabled, call_alert_sent_at, call_alert_scheduled_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
         .eq('id', event.id)
         .maybeSingle();
       
@@ -444,6 +453,85 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
+  // Handle toggle for notification (Me Notifique)
+  const handleToggleNotification = async (e: React.MouseEvent, checked: boolean) => {
+    e.stopPropagation();
+    if (!event.id || isUpdatingNotification) return;
+    
+    setIsUpdatingNotification(true);
+    setNotificationEnabled(checked);
+    
+    // Show tooltip when activating
+    if (checked) {
+      setShowNotificationTooltip(true);
+      setTimeout(() => setShowNotificationTooltip(false), 3000);
+    }
+    
+    try {
+      // Calculate notification scheduled time based on alerts config or default
+      let notificationScheduledAt: Date | null = null;
+      
+      if (checked && event.event_time) {
+        const [year, month, day] = event.event_date.split('-').map(Number);
+        const [hours, minutes] = event.event_time.split(':').map(Number);
+        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        
+        // Default: 15 minutes before (can be customized in the future)
+        const alertMinutes = 15;
+        notificationScheduledAt = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
+        
+        // If scheduled time already passed, use 5 minutes before or now
+        const now = new Date();
+        if (notificationScheduledAt <= now) {
+          const diffToEvent = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
+          if (diffToEvent > 5) {
+            notificationScheduledAt = new Date(eventDateTime.getTime() - 5 * 60 * 1000);
+          } else if (diffToEvent > 2) {
+            notificationScheduledAt = new Date(now.getTime() + 60 * 1000); // 1 minute from now
+          } else {
+            // Too close, disable
+            setNotificationEnabled(false);
+            setIsUpdatingNotification(false);
+            return;
+          }
+        }
+      }
+      
+      const updateData: {
+        notification_enabled: boolean;
+        notification_scheduled_at?: string | null;
+        notification_sent_at?: null;
+      } = {
+        notification_enabled: checked
+      };
+      
+      if (checked) {
+        updateData.notification_scheduled_at = notificationScheduledAt?.toISOString() || null;
+        updateData.notification_sent_at = null; // Reset sent status
+      } else {
+        updateData.notification_scheduled_at = null;
+      }
+      
+      const { error } = await supabase
+        .from('events')
+        .update(updateData)
+        .eq('id', event.id);
+      
+      if (error) {
+        console.error('Error updating notification:', error);
+        setNotificationEnabled(!checked);
+        setShowNotificationTooltip(false);
+        return;
+      }
+    } catch (err) {
+      console.error('Error updating notification:', err);
+      setNotificationEnabled(!checked);
+      setShowNotificationTooltip(false);
+    } finally {
+      setIsUpdatingNotification(false);
+    }
+  };
+
   // Use live data if available, fallback to original event prop
   const displayEvent = liveEventData || event;
 
@@ -692,15 +780,39 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           )}
         </div>
         
-        {/* Notification time - hide for expired */}
-        {!isExpired && (
-          <div className="flex items-center gap-2 pl-6">
-            <Bell className="w-4 h-4 text-sky-500" />
-            <span className="text-sm text-muted-foreground">
-              {displayEvent.event_time ? `${formatTime(displayEvent.event_time)}, no dia` : "09:00, no dia"}
-            </span>
+        {/* Me Notifique toggle - for push notifications */}
+        <div className="relative pl-6">
+          <div 
+            className="flex items-center justify-between py-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <Bell className={`w-4 h-4 ${isExpired ? 'text-muted-foreground/50' : 'text-sky-500'}`} />
+              <span className={`text-sm ${isExpired ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Notifique</span>
+              {/* Show timing info */}
+              {!isExpired && notificationEnabled && displayEvent.event_time && (
+                <span className="text-xs text-muted-foreground">
+                  (15 min antes)
+                </span>
+              )}
+            </div>
+            <Switch 
+              checked={isExpired ? false : notificationEnabled} 
+              onCheckedChange={(checked) => handleToggleNotification({stopPropagation: () => {}} as React.MouseEvent, checked)}
+              disabled={!event.id || isUpdatingNotification || isExpired}
+              className="data-[state=unchecked]:bg-gray-400 data-[state=checked]:bg-sky-500" 
+            />
           </div>
-        )}
+          
+          {/* Tooltip when activated */}
+          {showNotificationTooltip && !isExpired && (
+            <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+              <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
+                Te notificaremos 15 min antes do evento
+              </div>
+            </div>
+          )}
+        </div>
         
         {/* Notes/Description - with italic styling */}
         {displayEvent.description && (
