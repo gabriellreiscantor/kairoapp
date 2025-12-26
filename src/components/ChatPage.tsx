@@ -4,6 +4,7 @@ import { format, isToday, isYesterday, differenceInMinutes, startOfDay } from "d
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
@@ -104,6 +105,7 @@ interface ExecutedAction {
   success: boolean;
   data?: any;
   error?: string;
+  eventId?: string; // CRITICAL: Explicit event ID for verification
   eventData?: any; // Full event data from image analysis
   resumo_evento?: {
     titulo: string;
@@ -861,11 +863,28 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   }
                   
                   // ALWAYS process actions - moved OUTSIDE of cleanContent check!
-                  // Check if event was created - in optimistic mode, criar_evento includes resumo_evento
+                  // Check if event was created - MUST have success:true AND an ID
                   const eventAction = executedActions.find(a => a.action === 'criar_evento' && a.success);
+                  const failedEventAction = executedActions.find(a => 
+                    a.action === 'criar_evento' && (!a.success || (!a.data?.id && !a.eventId))
+                  );
+                  
+                  // CRITICAL: Check for failed event creation immediately
+                  if (failedEventAction) {
+                    console.error('[ChatPage] EVENT CREATION FAILED:', {
+                      error: failedEventAction.error,
+                      hasId: !!(failedEventAction.data?.id || failedEventAction.eventId),
+                      success: failedEventAction.success
+                    });
+                    toast.error(failedEventAction.error || 'Não foi possível criar o evento. Tente novamente.');
+                  }
+                  
                   const eventResumo = eventAction 
                     ? (eventAction.resumo_evento || eventAction.data?.resumo_evento)
                     : undefined;
+                  
+                  // CRITICAL: Verify event has an ID before showing card
+                  const eventHasValidId = eventAction && (eventAction.data?.id || eventAction.eventId);
                   
                   // Check if confirmation is being requested (legacy flow, kept for compatibility)
                   const confirmationAction = executedActions.find(a => a.action === 'solicitar_confirmacao');
@@ -874,7 +893,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     : undefined;
                   
                   // For optimistic creation, we show the card directly after creation
-                  const showCreatedCard = !!eventAction && !!eventResumo;
+                  // MUST have both resumo AND valid ID
+                  const showCreatedCard = !!eventAction && !!eventResumo && !!eventHasValidId;
                   
                   // Check if event was UPDATED
                   const updateAction = executedActions.find(a => a.action === 'editar_evento' && a.success);
@@ -936,23 +956,67 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                   } else if (showCreatedCard) {
                     // For CREATE: explicitly extract all fields including id
                     const eventFromDb = eventAction.data;
-                    console.log('[ChatPage] eventFromDb for create:', eventFromDb);
+                    const verifiedEventId = eventFromDb?.id || eventAction.eventId;
+                    console.log('[ChatPage] eventFromDb for create:', { eventFromDb, verifiedEventId });
+                    
+                    // CRITICAL: Only create eventData if we have a valid ID
+                    if (verifiedEventId) {
+                      eventData = {
+                        id: verifiedEventId, // CRITICAL: Include id for toggle to work
+                        title: eventFromDb?.title || eventResumo?.titulo,
+                        event_date: eventFromDb?.event_date || eventResumo?.data,
+                        event_time: eventFromDb?.event_time || (eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora),
+                        duration_minutes: eventFromDb?.duration_minutes,
+                        location: eventFromDb?.location || eventResumo?.local,
+                        description: eventFromDb?.description,
+                        category: eventFromDb?.category || 'geral',
+                        notification_enabled: eventFromDb?.notification_enabled ?? true,
+                        call_alert_enabled: eventFromDb?.call_alert_enabled ?? false,
+                        emoji: eventFromDb?.emoji || '📅',
+                        color: eventFromDb?.color || 'primary',
+                        is_all_day: eventFromDb?.is_all_day ?? !eventFromDb?.event_time,
+                        resumo_evento: eventResumo,
+                        _createdAt: Date.now() // Para calcular se deve mostrar botão editar
+                      };
+                    } else {
+                      // No valid ID - mark as failed immediately
+                      console.error('[ChatPage] CRITICAL: Event created but no ID returned!');
+                      eventData = {
+                        title: eventResumo?.titulo || 'Evento',
+                        event_date: eventResumo?.data,
+                        event_time: eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora,
+                        location: eventResumo?.local,
+                        category: 'geral',
+                        notification_enabled: false,
+                        call_alert_enabled: false,
+                        emoji: '📅',
+                        color: 'primary',
+                        is_all_day: eventResumo?.hora === 'Dia inteiro',
+                        saveFailed: true,
+                        saveFailedReason: 'ID não retornado pelo servidor - evento não foi salvo',
+                        resumo_evento: eventResumo,
+                        _createdAt: Date.now()
+                      };
+                      toast.error('Erro ao salvar evento. Tente novamente.');
+                    }
+                  } else if (failedEventAction) {
+                    // Explicitly failed event - show error card
+                    const failedResumo = failedEventAction.resumo_evento || failedEventAction.data?.resumo_evento;
                     eventData = {
-                      id: eventFromDb?.id, // CRITICAL: Include id for toggle to work
-                      title: eventFromDb?.title || eventResumo?.titulo,
-                      event_date: eventFromDb?.event_date || eventResumo?.data,
-                      event_time: eventFromDb?.event_time || (eventResumo?.hora === 'Dia inteiro' ? undefined : eventResumo?.hora),
-                      duration_minutes: eventFromDb?.duration_minutes,
-                      location: eventFromDb?.location || eventResumo?.local,
-                      description: eventFromDb?.description,
-                      category: eventFromDb?.category || 'geral',
-                      notification_enabled: eventFromDb?.notification_enabled ?? true,
-                      call_alert_enabled: eventFromDb?.call_alert_enabled ?? false,
-                      emoji: eventFromDb?.emoji || '📅',
-                      color: eventFromDb?.color || 'primary',
-                      is_all_day: eventFromDb?.is_all_day ?? !eventFromDb?.event_time,
-                      resumo_evento: eventResumo,
-                      _createdAt: Date.now() // Para calcular se deve mostrar botão editar
+                      title: failedResumo?.titulo || 'Evento',
+                      event_date: failedResumo?.data,
+                      event_time: failedResumo?.hora === 'Dia inteiro' ? undefined : failedResumo?.hora,
+                      location: failedResumo?.local,
+                      category: 'geral',
+                      notification_enabled: false,
+                      call_alert_enabled: false,
+                      emoji: '📅',
+                      color: 'primary',
+                      is_all_day: failedResumo?.hora === 'Dia inteiro',
+                      saveFailed: true,
+                      saveFailedReason: failedEventAction.error || 'Falha ao salvar evento',
+                      resumo_evento: failedResumo,
+                      _createdAt: Date.now()
                     };
                   }
                   
