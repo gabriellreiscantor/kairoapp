@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,47 +6,18 @@ import { supabase } from '@/integrations/supabase/client';
 // Update location every 30 minutes max
 const UPDATE_INTERVAL_MS = 30 * 60 * 1000;
 
-interface LocationProfile {
-  user_city: string | null;
-  user_latitude: number | null;
-  user_longitude: number | null;
-  weather_forecast_enabled: boolean | null;
-}
-
 export function useAutoLocationUpdate() {
   const { user, profile } = useAuth();
   const { getCurrentAddress, permissionStatus } = useGeolocation();
   const lastUpdateRef = useRef<number>(0);
   const isUpdatingRef = useRef(false);
-  const [locationProfile, setLocationProfile] = useState<LocationProfile | null>(null);
-
-  // Fetch location data from profile (since Profile interface doesn't include all fields)
-  useEffect(() => {
-    async function fetchLocationProfile() {
-      if (!user?.id) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_city, user_latitude, user_longitude, weather_forecast_enabled')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!error && data) {
-        setLocationProfile(data);
-      }
-    }
-
-    fetchLocationProfile();
-  }, [user?.id, profile?.weather_forecast_enabled]);
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
+    // Only run once per mount
+    if (hasRunRef.current) return;
+    
     async function updateLocationIfNeeded() {
-      // Only update if weather forecast is enabled
-      if (!locationProfile?.weather_forecast_enabled) {
-        console.log('[AutoLocation] Weather forecast not enabled, skipping');
-        return;
-      }
-
       if (!user?.id) {
         console.log('[AutoLocation] No user, skipping');
         return;
@@ -71,7 +42,26 @@ export function useAutoLocationUpdate() {
         return;
       }
 
+      // Fetch current profile data
+      const { data: locationProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('user_city, user_latitude, user_longitude, weather_forecast_enabled')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (fetchError || !locationProfile) {
+        console.log('[AutoLocation] Could not fetch profile');
+        return;
+      }
+
+      // Only update if weather forecast is enabled
+      if (!locationProfile.weather_forecast_enabled) {
+        console.log('[AutoLocation] Weather forecast not enabled, skipping');
+        return;
+      }
+
       isUpdatingRef.current = true;
+      hasRunRef.current = true;
       console.log('[AutoLocation] Starting location update...');
 
       try {
@@ -123,13 +113,6 @@ export function useAutoLocationUpdate() {
         } else {
           console.log('[AutoLocation] Location updated successfully to:', cityName);
           lastUpdateRef.current = now;
-          // Update local state
-          setLocationProfile(prev => prev ? {
-            ...prev,
-            user_city: cityName,
-            user_latitude: address.lat,
-            user_longitude: address.lon,
-          } : null);
         }
       } catch (error) {
         console.error('[AutoLocation] Error:', error);
@@ -139,8 +122,8 @@ export function useAutoLocationUpdate() {
     }
 
     // Small delay to not block app startup
-    const timer = setTimeout(updateLocationIfNeeded, 2000);
+    const timer = setTimeout(updateLocationIfNeeded, 3000);
 
     return () => clearTimeout(timer);
-  }, [user?.id, locationProfile, getCurrentAddress, permissionStatus]);
+  }, [user?.id, getCurrentAddress, permissionStatus]);
 }
