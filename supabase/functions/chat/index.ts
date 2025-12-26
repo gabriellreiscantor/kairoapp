@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fromZonedTime } from 'https://esm.sh/date-fns-tz@3';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1646,6 +1647,50 @@ function getAlertMinutesFromValue(alertValue: string): number {
   return alertMinutesMap[alertValue] ?? 60;
 }
 
+/**
+ * Calculate the call_alert_scheduled_at UTC timestamp during event creation
+ * This MUST be done at creation time to avoid race conditions with the cron job
+ * Uses date-fns-tz for proper timezone handling including DST
+ */
+function calculateCallAlertScheduledAt(
+  eventDate: string,
+  eventTime: string | null | undefined,
+  alertTimeValue: string,
+  timezone: string
+): string | null {
+  if (!eventTime) {
+    console.log('[calculateCallAlertScheduledAt] No event time, returning null');
+    return null;
+  }
+  
+  try {
+    // Parse date and time components
+    const [year, month, day] = eventDate.split('-').map(Number);
+    const [hours, minutes] = eventTime.split(':').map(Number);
+    
+    // Create a Date object representing the local time in the user's timezone
+    const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    
+    // Convert to UTC using date-fns-tz (handles DST correctly)
+    const eventUTC = fromZonedTime(localDate, timezone);
+    
+    // Get alert minutes before event
+    const alertMinutes = getAlertMinutesFromValue(alertTimeValue);
+    
+    // Calculate scheduled time (event time minus alert minutes)
+    const scheduledAtMs = eventUTC.getTime() - (alertMinutes * 60 * 1000);
+    const scheduledAt = new Date(scheduledAtMs);
+    
+    const isoString = scheduledAt.toISOString();
+    console.log(`[calculateCallAlertScheduledAt] Event: ${eventDate} ${eventTime} ${timezone} -> Event UTC: ${eventUTC.toISOString()} -> Alert ${alertMinutes}min before -> Scheduled: ${isoString}`);
+    
+    return isoString;
+  } catch (error) {
+    console.error('[calculateCallAlertScheduledAt] Error calculating scheduled time:', error);
+    return null;
+  }
+}
+
 
 // Execute action in database - THIS IS THE BACKEND LOGIC
 async function executeAction(
@@ -1717,11 +1762,15 @@ async function executeAction(
         // Calculate intelligent alert time based on time until event
         const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
         
-        // Note: call_alert_scheduled_at and notification_scheduled_at are calculated by check-upcoming-alerts
-        // using date-fns-tz for proper timezone handling. We just save the alerts config here.
-        // The check-upcoming-alerts cron job will recalculate the correct UTC times based on user timezone.
+        // Calculate call_alert_scheduled_at and notification_scheduled_at NOW during creation
+        // This eliminates race conditions with the cron job that was causing missed calls
+        const userTzForCalc = timezone || 'America/Sao_Paulo';
+        const callAlertScheduledAt = calculateCallAlertScheduledAt(eventDate, action.hora, bestAlertTime, userTzForCalc);
+        const notificationScheduledAt = calculateCallAlertScheduledAt(eventDate, action.hora, bestAlertTime, userTzForCalc);
         
         console.log('[criar_evento] Attempting to insert event for user:', userId);
+        console.log('[criar_evento] Calculated call_alert_scheduled_at:', callAlertScheduledAt);
+        console.log('[criar_evento] Calculated notification_scheduled_at:', notificationScheduledAt);
         
         const { data, error } = await supabase
           .from('events')
@@ -1740,7 +1789,10 @@ async function executeAction(
             status: 'pending',
             notification_enabled: true,
             call_alert_enabled: true, // Default to enabled
-            alerts: [{ time: bestAlertTime }] // Intelligent alert time - scheduled_at calculated by check-upcoming-alerts
+            alerts: [{ time: bestAlertTime }],
+            // CRITICAL: Pre-calculate scheduled times to avoid race conditions with cron
+            call_alert_scheduled_at: callAlertScheduledAt,
+            notification_scheduled_at: notificationScheduledAt
           })
           .select()
           .single();
