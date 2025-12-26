@@ -604,6 +604,52 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       console.error('[ChatPage] Chat timeout after 30s - forcing loading off');
       setIsLoading(false);
     }, 30000);
+
+    // CRITICAL: Verify session before sending - handle expired JWT
+    try {
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !currentSession) {
+        console.error('[ChatPage] Session invalid or expired:', sessionError);
+        clearTimeout(safetyTimeout);
+        setIsLoading(false);
+        
+        // Try to refresh the token
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          console.error('[ChatPage] Failed to refresh session:', refreshError);
+          // Force logout and show error
+          await supabase.auth.signOut();
+          
+          // Show error message to user
+          setMessages(prev => [...prev, {
+            id: `error-${Date.now()}`,
+            type: 'assistant',
+            content: '⚠️ Sua sessão expirou. Por favor, faça login novamente para continuar.',
+            createdAt: new Date()
+          }]);
+          return;
+        }
+        
+        console.log('[ChatPage] Session refreshed successfully');
+      }
+    } catch (sessionCheckError) {
+      console.error('[ChatPage] Error checking session:', sessionCheckError);
+      clearTimeout(safetyTimeout);
+      setIsLoading(false);
+      
+      setMessages(prev => [...prev, {
+        id: `error-${Date.now()}`,
+        type: 'assistant',
+        content: '⚠️ Erro ao verificar sua sessão. Por favor, tente novamente.',
+        createdAt: new Date()
+      }]);
+      return;
+    }
+
+    // Get fresh session after potential refresh
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
     
     const apiMessages = allMessages.map(m => ({
       role: m.type === 'user' ? 'user' : 'assistant',
@@ -626,7 +672,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${freshSession?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ 
           messages: apiMessages,
@@ -640,6 +686,29 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
       console.log('[ChatPage] Response status:', response.status);
       console.log('[ChatPage] Response ok:', response.ok);
+      
+      // Check for JWT expired error in response
+      if (response.status === 401) {
+        const errorText = await response.text();
+        console.error('[ChatPage] 401 Unauthorized:', errorText);
+        
+        // Check if it's a JWT expired error
+        if (errorText.includes('JWT') || errorText.includes('expired') || errorText.includes('PGRST303')) {
+          clearTimeout(safetyTimeout);
+          setIsLoading(false);
+          
+          // Force logout
+          await supabase.auth.signOut();
+          
+          setMessages(prev => [...prev, {
+            id: `error-${Date.now()}`,
+            type: 'assistant',
+            content: '⚠️ Sua sessão expirou. Por favor, faça login novamente.',
+            createdAt: new Date()
+          }]);
+          return;
+        }
+      }
 
       if (!response.ok || !response.body) {
         const errorText = await response.text();
