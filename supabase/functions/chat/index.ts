@@ -1717,70 +1717,9 @@ async function executeAction(
         // Calculate intelligent alert time based on time until event
         const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
         
-        // Calculate both call_alert_scheduled_at and notification_scheduled_at using the SAME bestAlertTime
-        // This ensures Me Ligue and Me Notifique always fire at the same time
-        let callAlertScheduledAt: string | null = null;
-        let notificationScheduledAt: string | null = null;
-        
-        if (action.hora) {
-          const alertMinutes = getAlertMinutesFromValue(bestAlertTime);
-          const [hours, minutes] = action.hora.split(':').map(Number);
-          const [year, month, day] = eventDate.split('-').map(Number);
-          
-          // IMPORTANT: The event time is in the USER'S timezone, not UTC
-          // We need to create a UTC timestamp that represents that local time
-          // Example: If user says 22:30 in Brazil (UTC-3), we need to store 01:30 UTC
-          const userTz = timezone || 'America/Sao_Paulo';
-          
-          // Create event datetime as UTC, then adjust for timezone offset
-          // Format: YYYY-MM-DDTHH:MM:SS in user's timezone
-          const eventDateTimeStr = `${eventDate}T${action.hora}:00`;
-          
-          // Get the timezone offset for the user's timezone at this specific date/time
-          // Use Intl.DateTimeFormat to get the offset
-          const tempDate = new Date(`${eventDate}T12:00:00Z`); // Use noon to avoid DST edge cases
-          const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: userTz,
-            timeZoneName: 'shortOffset'
-          });
-          const parts = formatter.formatToParts(tempDate);
-          const offsetPart = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT-3';
-          
-          // Parse offset like "GMT-3" or "GMT+5:30"
-          const offsetMatch = offsetPart.match(/GMT([+-]?)(\d+)(?::(\d+))?/);
-          let offsetMinutes = -180; // Default to Brazil UTC-3
-          if (offsetMatch) {
-            const sign = offsetMatch[1] === '-' ? -1 : 1;
-            const hrs = parseInt(offsetMatch[2], 10);
-            const mins = parseInt(offsetMatch[3] || '0', 10);
-            offsetMinutes = sign * (hrs * 60 + mins);
-          }
-          
-          console.log(`[criar_evento] User timezone: ${userTz}, offset: ${offsetMinutes} minutes`);
-          
-          // Create event datetime in user's local time, then convert to UTC
-          // If event is 22:30 Brazil (UTC-3), offset is -180
-          // UTC = local - offset = 22:30 - (-180min) = 22:30 + 3h = 01:30 next day
-          const eventDateTimeLocal = new Date(year, month - 1, day, hours, minutes, 0, 0);
-          const eventDateTimeUTC = new Date(eventDateTimeLocal.getTime() - offsetMinutes * 60 * 1000);
-          
-          console.log(`[criar_evento] Event local time: ${eventDateTimeLocal.toISOString()}`);
-          console.log(`[criar_evento] Event UTC time: ${eventDateTimeUTC.toISOString()}`);
-          
-          // Calculate alert time (subtract alert minutes from UTC event time)
-          const alertTimeUTC = new Date(eventDateTimeUTC.getTime() - alertMinutes * 60 * 1000);
-          
-          console.log(`[criar_evento] Alert time UTC: ${alertTimeUTC.toISOString()} (${alertMinutes} min before)`);
-          
-          // Only set if alert time is in the future
-          if (alertTimeUTC > new Date()) {
-            const alertTimeISO = alertTimeUTC.toISOString();
-            callAlertScheduledAt = alertTimeISO;
-            notificationScheduledAt = alertTimeISO; // Same time for both
-          }
-        }
-        
-        console.log(`[criar_evento] call_alert_scheduled_at: ${callAlertScheduledAt}, notification_scheduled_at: ${notificationScheduledAt}`);
+        // Note: call_alert_scheduled_at and notification_scheduled_at are calculated by check-upcoming-alerts
+        // using date-fns-tz for proper timezone handling. We just save the alerts config here.
+        // The check-upcoming-alerts cron job will recalculate the correct UTC times based on user timezone.
         
         const { data, error } = await supabase
           .from('events')
@@ -1799,10 +1738,7 @@ async function executeAction(
             status: 'pending',
             notification_enabled: true,
             call_alert_enabled: true, // Default to enabled
-            alerts: [{ time: bestAlertTime }], // Intelligent alert time
-            // Pre-calculate scheduled times so cron job can find them
-            call_alert_scheduled_at: callAlertScheduledAt,
-            notification_scheduled_at: notificationScheduledAt
+            alerts: [{ time: bestAlertTime }] // Intelligent alert time - scheduled_at calculated by check-upcoming-alerts
           })
           .select()
           .single();
