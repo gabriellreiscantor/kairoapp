@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight, Trash2, Clock, FileText
+  Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight, Trash2, Clock, FileText, AlertCircle, RefreshCw
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { scheduleCallAlert, cancelCallAlert, getCallAlertTime } from "@/hooks/useCallAlertScheduler";
 import { getColorClassName } from "@/lib/event-constants";
@@ -32,13 +33,16 @@ interface EventCreatedCardProps {
     repeat?: string;
     alerts?: Array<{ time?: string }>; // Alert configuration from DB
     _createdAt?: number;
+    saveFailed?: boolean; // If true, event was not saved to database
+    saveFailedReason?: string; // Reason for save failure
   };
   type?: 'created' | 'updated';
   onEdit?: (eventId: string) => void;
+  onRetry?: (event: EventCreatedCardProps['event']) => void; // Callback to retry saving
 }
 
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
-  ({ event, type = 'created', onEdit }, ref) => {
+  ({ event, type = 'created', onEdit, onRetry }, ref) => {
   
   // Calculate if event was just created (within 15 seconds)
   const isRecentlyCreated = event._createdAt ? (Date.now() - event._createdAt < 15000) : false;
@@ -613,6 +617,77 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       onEdit(event.id);
     }
   };
+
+  // Render save failed state
+  if (event.saveFailed) {
+    const formatDateFailed = (dateStr: string) => {
+      try {
+        const date = parseISO(dateStr);
+        return format(date, "d 'de' MMM", { locale: ptBR });
+      } catch {
+        return dateStr;
+      }
+    };
+
+    const handleRetryClick = () => {
+      if (onRetry) {
+        onRetry(event);
+      }
+    };
+
+    return (
+      <div ref={ref} className="w-full max-w-[320px]">
+        {/* Header text with error indicator */}
+        <div className="flex items-center gap-2 mb-3">
+          <AlertCircle className="w-4 h-4 text-destructive" />
+          <p className="text-sm text-destructive">Erro ao salvar evento</p>
+        </div>
+        
+        {/* Failed Event Card */}
+        <div className="bg-kairo-surface-2/50 border border-destructive/40 rounded-2xl p-4 space-y-3">
+          {/* Header: Emoji + Title */}
+          <div className="flex items-center gap-3">
+            <span className="text-xl flex-shrink-0 opacity-60">{event.emoji || '📅'}</span>
+            <span className="text-base font-semibold text-foreground/70 flex-1 truncate">
+              {event.title}
+            </span>
+          </div>
+          
+          {/* Date */}
+          <div className="text-sm text-muted-foreground/60 pl-9">
+            {formatDateFailed(event.event_date)}
+            {event.event_time && ` às ${event.event_time.slice(0, 5)}`}
+          </div>
+          
+          {/* Location if exists */}
+          {event.location && (
+            <div className="flex items-center gap-2 pl-9 text-muted-foreground/60">
+              <MapPin className="w-3 h-3" />
+              <span className="text-sm">{event.location}</span>
+            </div>
+          )}
+          
+          {/* Error message */}
+          <div className="text-xs text-destructive/70 pl-9 mt-2">
+            O evento não foi salvo. Sua sessão pode ter expirado.
+          </div>
+          
+          {/* Retry button */}
+          {onRetry && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetryClick}
+              className="w-full mt-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Tentar novamente
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Render deleted state
   if (isDeleted) {

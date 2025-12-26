@@ -1141,6 +1141,43 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           if (action.action === 'criar_evento') {
             onEventCreated?.();
             
+            // VALIDATION: Verify event was actually saved to database
+            if (finalEventData?.id) {
+              console.log('[ChatPage] Verifying event was saved:', finalEventData.id);
+              // Wait a moment for DB propagation
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              const { data: savedEvent, error: verifyError } = await supabase
+                .from('events')
+                .select('id')
+                .eq('id', finalEventData.id)
+                .maybeSingle();
+              
+              if (verifyError || !savedEvent) {
+                console.error('[ChatPage] EVENT VERIFICATION FAILED! Event not found in DB:', {
+                  eventId: finalEventData.id,
+                  error: verifyError
+                });
+                
+                // Update the message to show save failed state
+                setMessages(prev => prev.map(m => {
+                  if (m.eventData?.id === finalEventData.id) {
+                    return {
+                      ...m,
+                      eventData: {
+                        ...m.eventData,
+                        saveFailed: true,
+                        saveFailedReason: verifyError?.message || 'Evento não encontrado no banco'
+                      }
+                    };
+                  }
+                  return m;
+                }));
+              } else {
+                console.log('[ChatPage] Event verification SUCCESS:', savedEvent.id);
+              }
+            }
+            
             // Check if this is first event during onboarding
             if (isInOnboarding && (onboardingStep === 'welcome' || onboardingStep === 'guiding')) {
               await markFirstEventCreated();
@@ -1213,6 +1250,33 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   const handleSuggestionClick = (text: string) => {
     handleSend(text);
+  };
+
+  // Handle retry saving event - recreates the event via chat
+  const handleRetryEvent = async (failedEvent: any) => {
+    console.log('[ChatPage] Retrying failed event:', failedEvent);
+    
+    // Build a command to recreate the event
+    let command = `Criar evento: ${failedEvent.title}`;
+    
+    if (failedEvent.event_date) {
+      command += ` no dia ${failedEvent.event_date}`;
+    }
+    if (failedEvent.event_time) {
+      command += ` às ${failedEvent.event_time}`;
+    }
+    if (failedEvent.location) {
+      command += ` em ${failedEvent.location}`;
+    }
+    if (failedEvent.description) {
+      command += ` - ${failedEvent.description}`;
+    }
+    
+    // Remove the failed message
+    setMessages(prev => prev.filter(m => !m.eventData?.saveFailed || m.eventData?.title !== failedEvent.title));
+    
+    // Resend the event creation command
+    await handleSend(command);
   };
 
   // Handle event confirmation - for image analysis, create event directly
@@ -1652,6 +1716,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           event={message.eventData} 
                           type={message.eventData.isUpdate ? 'updated' : 'created'}
                           onEdit={handleEditEventById}
+                          onRetry={handleRetryEvent}
                         />
                       </div>
                     )}
