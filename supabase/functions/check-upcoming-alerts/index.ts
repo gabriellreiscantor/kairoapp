@@ -131,16 +131,18 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Time window: check for events where call_alert_scheduled_at is within the next 5 minutes
+    // Time window: only process events where call_alert_scheduled_at has ARRIVED (now or past)
+    // CRITICAL FIX: Previously used targetTimeMaxUTC (5min in future) which caused premature processing
     const now = new Date();
-    const targetTimeMaxUTC = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+    const nowUTC = now.toISOString();
 
-    console.log(`Server time (UTC): ${now.toISOString()}`);
-    console.log(`Checking for events with call_alert_scheduled_at <= ${targetTimeMaxUTC.toISOString()} (UTC)`);
+    console.log(`Server time (UTC): ${nowUTC}`);
+    console.log(`Checking for events with call_alert_scheduled_at <= ${nowUTC} (only events whose time has ARRIVED)`);
 
     // ===== PART 1: ME LIGUE (Call Alerts) =====
     
     // Query 1: Events with call_alert_scheduled_at set (normal flow)
+    // CRITICAL FIX: Use now.toISOString() instead of targetTimeMaxUTC to only process events whose scheduled time has arrived
     const { data: eventsWithSchedule, error: eventsError1 } = await supabase
       .from('events')
       .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at')
@@ -148,7 +150,7 @@ Deno.serve(async (req) => {
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
       .not('call_alert_scheduled_at', 'is', null)
-      .lte('call_alert_scheduled_at', targetTimeMaxUTC.toISOString());
+      .lte('call_alert_scheduled_at', nowUTC);
 
     if (eventsError1) {
       console.error('Error fetching events with schedule:', eventsError1);
@@ -199,9 +201,9 @@ Deno.serve(async (req) => {
       
       const calculatedScheduledAt = new Date(eventUTC.getTime() - alertMinutes * 60 * 1000);
       
-      // Check if this calculated time is within our window
-      if (calculatedScheduledAt <= targetTimeMaxUTC && calculatedScheduledAt >= now) {
-        console.log(`[fallback] Event "${event.title}" calculated call at ${calculatedScheduledAt.toISOString()} (${alertMinutes}min before event)`);
+      // CRITICAL FIX: Only process if scheduled time has ARRIVED (now or past), not future
+      if (calculatedScheduledAt <= now) {
+        console.log(`[fallback] Event "${event.title}" calculated call at ${calculatedScheduledAt.toISOString()} (${alertMinutes}min before event) - TIME HAS ARRIVED, processing`);
         
         // Update the event with the calculated scheduled time for future runs
         await supabase
@@ -214,6 +216,8 @@ Deno.serve(async (req) => {
           ...event,
           call_alert_scheduled_at: calculatedScheduledAt.toISOString()
         });
+      } else {
+        console.log(`[fallback] Event "${event.title}" calculated call at ${calculatedScheduledAt.toISOString()} - NOT YET (still ${Math.round((calculatedScheduledAt.getTime() - now.getTime()) / 1000)}s in future)`);
       }
     }
 
@@ -531,24 +535,47 @@ Deno.serve(async (req) => {
           // If VoIP failed and no regular push, release lock
           console.log(`No notification sent for event ${event.id} - no valid delivery method (VoIP: ${voipFailureReason})`);
           errors.push(`Event ${event.id}: No valid delivery method (VoIP: ${voipFailureReason}, push disabled)`);
-          await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
+          
+          // CRITICAL FIX: Revert lock so event can be retried on next cron run
+          console.log(`[LOCK REVERT] Reverting call_alert_sent_at for event ${event.id} due to complete failure`);
+          await supabase.from('events').update({ 
+            call_alert_sent_at: null,
+            call_alert_outcome: `complete_failure:${voipFailureReason}`
+          }).eq('id', event.id);
+        }
+        
+        // CRITICAL FIX: If VoIP failed and no fallback was sent, revert the lock
+        if (!voipSentSuccessfully && voipFailureReason && !pushEnabled) {
+          console.log(`[LOCK REVERT] Final check - No notification delivered for event ${event.id}`);
         }
       } catch (eventError) {
         console.error(`Error processing event ${event.id}:`, eventError);
         errors.push(`Event ${event.id}: ${String(eventError)}`);
+        
+        // CRITICAL FIX: Revert lock on exception so event can be retried
+        console.log(`[LOCK REVERT] Reverting lock for event ${event.id} due to exception`);
+        try {
+          await supabase.from('events').update({ 
+            call_alert_sent_at: null,
+            call_alert_outcome: `exception:${String(eventError).substring(0, 100)}`
+          }).eq('id', event.id);
+        } catch (revertError) {
+          console.error(`[LOCK REVERT] Failed to revert lock for event ${event.id}:`, revertError);
+        }
       }
     }
 
     // ===== PART 2: ME NOTIFIQUE (Push Notifications - separate from Me Ligue) =====
     
     // Query events with notification_scheduled_at set
+    // CRITICAL FIX: Use nowUTC instead of targetTimeMaxUTC to only process events whose scheduled time has arrived
     const { data: pushNotifEvents, error: pushNotifError } = await supabase
       .from('events')
       .select('id, title, event_date, event_time, location, user_id, emoji, notification_scheduled_at')
       .eq('notification_enabled', true)
       .is('notification_sent_at', null)
       .not('notification_scheduled_at', 'is', null)
-      .lte('notification_scheduled_at', targetTimeMaxUTC.toISOString());
+      .lte('notification_scheduled_at', nowUTC);
 
     if (pushNotifError) {
       console.error('Error fetching push notification events:', pushNotifError);
