@@ -135,7 +135,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const fetchLiveData = async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, notification_scheduled_at, notification_sent_at, call_alert_enabled, call_alert_sent_at, call_alert_scheduled_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat')
+        .select('id, title, description, event_date, event_time, duration_minutes, location, category, notification_enabled, notification_scheduled_at, notification_sent_at, call_alert_enabled, call_alert_sent_at, call_alert_scheduled_at, call_alert_attempts, call_alert_answered, call_alert_answered_at, call_alert_outcome, emoji, color, is_all_day, repeat, alerts')
         .eq('id', event.id)
         .maybeSingle();
       
@@ -173,6 +173,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         color: data.color ?? undefined,
         is_all_day: data.is_all_day ?? undefined,
         repeat: data.repeat ?? undefined,
+        alerts: (data.alerts as Array<{ time?: string }>) ?? undefined,
       });
     };
     
@@ -212,6 +213,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             color: newData.color ?? undefined,
             is_all_day: newData.is_all_day ?? undefined,
             repeat: newData.repeat ?? undefined,
+            alerts: (newData.alerts as Array<{ time?: string }>) ?? undefined,
           });
         }
       )
