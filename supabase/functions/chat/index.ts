@@ -1654,7 +1654,7 @@ async function executeAction(
   action: KairoAction,
   profile: UserProfile,
   timezone?: string // User's device timezone
-): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; pastDate?: boolean; attemptedEvent?: any }> {
+): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
   console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
 
@@ -1721,6 +1721,8 @@ async function executeAction(
         // using date-fns-tz for proper timezone handling. We just save the alerts config here.
         // The check-upcoming-alerts cron job will recalculate the correct UTC times based on user timezone.
         
+        console.log('[criar_evento] Attempting to insert event for user:', userId);
+        
         const { data, error } = await supabase
           .from('events')
           .insert({
@@ -1743,11 +1745,26 @@ async function executeAction(
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[criar_evento] CRITICAL - Database insert error:', error);
+          throw error;
+        }
+        
+        // CRITICAL: Verify the event was actually saved and has an ID
+        if (!data?.id) {
+          console.error('[criar_evento] CRITICAL - Event insert succeeded but no ID returned!', { data });
+          return { 
+            success: false, 
+            error: 'Evento não foi salvo no banco de dados. Por favor, tente novamente.',
+            noIdReturned: true
+          };
+        }
+        
+        console.log('[criar_evento] SUCCESS - Event created with ID:', data.id);
 
         await saveUserPattern(supabase, userId, action, profile);
 
-        return { success: true, data };
+        return { success: true, data, eventId: data.id };
       }
 
       case 'listar_eventos': {
@@ -3156,7 +3173,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     console.log('Parsed action:', action);
 
-    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any } = { success: true };
+    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any; eventId?: string; limitReached?: boolean; noIdReturned?: boolean } = { success: true };
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
@@ -3219,6 +3236,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       success: executionResult.success,
       data: executionResult.data || action,
       error: executionResult.error,
+      eventId: executionResult.data?.id || executionResult.eventId, // CRITICAL: Explicit event ID for verification
       resumo_evento: action.resumo_evento,
       evento_atualizado: action.evento_atualizado, // CRITICAL: Include for update card persistence
       evento_deletado: action.evento_deletado, // CRITICAL: Include for delete card persistence
@@ -3227,6 +3245,13 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       weeklyReportNotReady: action.weeklyReportNotReady, // Weekly report not ready data
       weatherData: action.weatherData // Weather forecast data
     };
+    
+    console.log('[SSE] Action data prepared:', { 
+      action: actionData.action, 
+      success: actionData.success, 
+      eventId: actionData.eventId,
+      hasError: !!actionData.error 
+    });
     
     const actionJson = JSON.stringify([actionData]);
     const actionContent = `<!--KAIRO_ACTIONS:${actionJson}-->`;
