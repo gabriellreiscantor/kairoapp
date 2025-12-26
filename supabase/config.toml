@@ -1,5 +1,8 @@
 project_id = "codkpccwtffhoacwswso"
 
+[functions.generate-weather-phrase]
+verify_jwt = false
+
 [functions.chat]
 enabled = true
 verify_jwt = false
