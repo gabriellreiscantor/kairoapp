@@ -1717,23 +1717,27 @@ async function executeAction(
         // Calculate intelligent alert time based on time until event
         const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
         
-// Calculate call_alert_scheduled_at using the SAME bestAlertTime used for alerts
-        // This ensures the card displays the same time as the alert configuration
+        // Calculate both call_alert_scheduled_at and notification_scheduled_at using the SAME bestAlertTime
+        // This ensures Me Ligue and Me Notifique always fire at the same time
         let callAlertScheduledAt: string | null = null;
+        let notificationScheduledAt: string | null = null;
+        
         if (action.hora) {
           const alertMinutes = getAlertMinutesFromValue(bestAlertTime);
           const [hours, minutes] = action.hora.split(':').map(Number);
           const [year, month, day] = eventDate.split('-').map(Number);
           const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-          const callTime = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
+          const alertTime = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
           
-          // Only set if call time is in the future
-          if (callTime > new Date()) {
-            callAlertScheduledAt = callTime.toISOString();
+          // Only set if alert time is in the future
+          if (alertTime > new Date()) {
+            const alertTimeISO = alertTime.toISOString();
+            callAlertScheduledAt = alertTimeISO;
+            notificationScheduledAt = alertTimeISO; // Same time for both
           }
         }
         
-        console.log(`[criar_evento] call_alert_scheduled_at: ${callAlertScheduledAt}`);
+        console.log(`[criar_evento] call_alert_scheduled_at: ${callAlertScheduledAt}, notification_scheduled_at: ${notificationScheduledAt}`);
         
         const { data, error } = await supabase
           .from('events')
@@ -1751,9 +1755,11 @@ async function executeAction(
             emoji: getCategoryEmoji(action.categoria || 'geral', action.titulo),
             status: 'pending',
             notification_enabled: true,
+            call_alert_enabled: true, // Default to enabled
             alerts: [{ time: bestAlertTime }], // Intelligent alert time
-            // Pre-calculate call_alert_scheduled_at so cron job can find it
-            call_alert_scheduled_at: callAlertScheduledAt
+            // Pre-calculate scheduled times so cron job can find them
+            call_alert_scheduled_at: callAlertScheduledAt,
+            notification_scheduled_at: notificationScheduledAt
           })
           .select()
           .single();
