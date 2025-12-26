@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { ChevronRight, Droplets, Wind, MapPin, Thermometer, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-
+import { useWeatherPhrase } from "@/hooks/useWeatherPhrase";
 interface WeatherData {
   temperature: number;
   temperatureMax: number;
@@ -131,6 +131,15 @@ const getWeatherDescription = (code: number, lang: string): string => {
 const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onClick }) => {
   const { language } = useLanguage();
   
+  // Get personalized weather phrase
+  const { phrase } = useWeatherPhrase({
+    weatherCode: weather.weatherCode,
+    temperature: weather.temperature,
+    language,
+    city: weather.city,
+    enabled: true,
+  });
+  
   const getLocale = () => {
     switch (language) {
       case 'en-US': return enUS;
@@ -151,18 +160,6 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
     } catch {
       return weather.date;
     }
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (language === 'en-US') {
-      if (hour < 12) return 'Good morning';
-      if (hour < 18) return 'Good afternoon';
-      return 'Good evening';
-    }
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
   };
 
   return (
@@ -198,8 +195,10 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
             </div>
           </div>
           
-          {/* Greeting */}
-          <p className="text-white/80 text-sm mb-1">{getGreeting()}!</p>
+          {/* Personalized phrase */}
+          <p className="text-white/90 text-sm font-medium mb-1">
+            {phrase.emoji} {phrase.text}
+          </p>
           
           {/* Date */}
           <p className="text-white/70 text-xs mb-4 capitalize">{formatDate()}</p>

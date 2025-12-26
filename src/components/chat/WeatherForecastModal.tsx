@@ -4,6 +4,7 @@ import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { X, Share2, Settings, Droplets, Wind, MapPin, Thermometer, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, Umbrella, Shirt, Glasses } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "next-themes";
+import { useWeatherPhrase } from "@/hooks/useWeatherPhrase";
 import {
   Drawer,
   DrawerContent,
@@ -179,6 +180,15 @@ const WeatherForecastModal: React.FC<WeatherForecastModalProps> = ({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
+  // Get personalized weather phrase
+  const { phrase } = useWeatherPhrase({
+    weatherCode: weather.weatherCode,
+    temperature: weather.temperature,
+    language,
+    city: weather.city,
+    enabled: isOpen, // Only fetch when modal is open
+  });
+  
   const getLocale = () => {
     switch (language) {
       case 'en-US': return enUS;
@@ -259,6 +269,11 @@ const WeatherForecastModal: React.FC<WeatherForecastModalProps> = ({
             
             <p className="text-white/70 text-sm mb-4 capitalize">
               {formatDate()}
+            </p>
+            
+            {/* Personalized phrase */}
+            <p className="text-white/90 text-sm font-medium mb-4">
+              {phrase.emoji} {phrase.text}
             </p>
             
             {/* Main temperature */}
