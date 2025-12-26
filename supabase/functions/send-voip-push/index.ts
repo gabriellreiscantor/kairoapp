@@ -76,30 +76,67 @@ async function createAPNsJWT(teamId: string, keyId: string, privateKey: string):
 }
 
 Deno.serve(async (req) => {
+  console.log('[send-voip-push] Function invoked');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Parse request body first to log what we received
+    let requestBody: VoIPPushRequest;
+    try {
+      requestBody = await req.json();
+      console.log('[send-voip-push] Received request:', JSON.stringify(requestBody));
+    } catch (parseError) {
+      console.error('[send-voip-push] Error parsing request body:', parseError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    const { user_id, event_id, event_title, event_time, event_location, event_emoji } = requestBody;
+    
+    console.log(`[send-voip-push] Processing VoIP for event: ${event_id}, user: ${user_id}, title: ${event_title}`);
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const apnsKeyId = Deno.env.get('APNS_KEY_ID');
     const apnsTeamId = Deno.env.get('APNS_TEAM_ID');
     const apnsPrivateKey = Deno.env.get('APNS_PRIVATE_KEY');
     const appBundleId = 'com.kairo'; // App bundle ID for VoIP
     
+    // Log which secrets are configured (without revealing values)
+    console.log('[send-voip-push] Secrets check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasApnsKeyId: !!apnsKeyId,
+      hasApnsTeamId: !!apnsTeamId,
+      hasApnsPrivateKey: !!apnsPrivateKey,
+      apnsKeyIdPreview: apnsKeyId ? `${apnsKeyId.substring(0, 4)}...` : 'NOT SET',
+      apnsTeamIdPreview: apnsTeamId ? `${apnsTeamId.substring(0, 4)}...` : 'NOT SET',
+    });
+    
     if (!apnsKeyId || !apnsTeamId || !apnsPrivateKey) {
-      console.error('Missing APNs configuration');
+      console.error('[send-voip-push] Missing APNs configuration - cannot send VoIP');
       return new Response(
-        JSON.stringify({ success: false, error: 'APNs not configured' }),
+        JSON.stringify({ success: false, error: 'APNs not configured', details: { hasKeyId: !!apnsKeyId, hasTeamId: !!apnsTeamId, hasPrivateKey: !!apnsPrivateKey } }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[send-voip-push] Missing Supabase configuration');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Supabase not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { user_id, event_id, event_title, event_time, event_location, event_emoji }: VoIPPushRequest = await req.json();
     
-    console.log(`Sending VoIP push for event: ${event_id} to user: ${user_id}`);
+    console.log(`[send-voip-push] Fetching VoIP token for user: ${user_id}`);
     
     // Fetch user's VoIP token
     const { data: profile, error: profileError } = await supabase
@@ -109,21 +146,31 @@ Deno.serve(async (req) => {
       .maybeSingle();
     
     if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      throw profileError;
+      console.error('[send-voip-push] Error fetching profile:', profileError);
+      return new Response(
+        JSON.stringify({ success: false, error: `Profile fetch error: ${profileError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
     
     const voipToken = profile?.voip_token;
     
+    console.log(`[send-voip-push] Profile data:`, {
+      hasProfile: !!profile,
+      hasVoipToken: !!voipToken,
+      voipTokenPreview: voipToken ? `${voipToken.substring(0, 20)}...` : 'NULL',
+      displayName: profile?.display_name || 'NOT SET'
+    });
+    
     if (!voipToken) {
-      console.log(`User ${user_id} has no VoIP token`);
+      console.log(`[send-voip-push] User ${user_id} has no VoIP token - CANNOT SEND`);
       return new Response(
-        JSON.stringify({ success: false, error: 'No VoIP token' }),
+        JSON.stringify({ success: false, error: 'No VoIP token', user_id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
     
-    console.log(`Found VoIP token for user, sending push...`);
+    console.log(`[send-voip-push] VoIP token found, preparing APNs request...`);
     
     // Create APNs JWT
     const jwt = await createAPNsJWT(apnsTeamId, apnsKeyId, apnsPrivateKey);
