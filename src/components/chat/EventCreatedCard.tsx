@@ -30,6 +30,7 @@ interface EventCreatedCardProps {
     color?: string;
     is_all_day?: boolean;
     repeat?: string;
+    alerts?: Array<{ time?: string }>; // Alert configuration from DB
     _createdAt?: number;
   };
   type?: 'created' | 'updated';
@@ -75,6 +76,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     color?: string;
     is_all_day?: boolean;
     repeat?: string;
+    alerts?: Array<{ time?: string }>; // Alert configuration from DB
   } | null>(null);
 
   // Sync callAlertEnabled when event prop changes OR live data changes
@@ -542,33 +544,53 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   // Use live data if available, fallback to original event prop
   const displayEvent = liveEventData || event;
 
-  // Get call alert info - prefer actual scheduled time from database over dynamic calculation
+  // Map alert time value to display label
+  const getAlertLabel = (alertValue: string): string => {
+    const labelMap: Record<string, string> = {
+      'exact': 'No momento exato',
+      '5min': '5 min antes',
+      '15min': '15 min antes',
+      '30min': '30 min antes',
+      '1hour': '1 hora antes',
+      '2hours': '2 horas antes',
+      '1day': '1 dia antes',
+    };
+    return labelMap[alertValue] || alertValue;
+  };
+
+  // Get call alert info - USE alerts JSONB as source of truth for the LABEL
   const getActualCallAlertInfo = () => {
-    // If we have a scheduled time from the database, use that
+    // Get label from alerts JSONB (the source of truth)
+    let label = '1 hora antes'; // default
+    let minutesBefore = 60;
+    
+    if (displayEvent.alerts && Array.isArray(displayEvent.alerts) && displayEvent.alerts.length > 0) {
+      const alertValue = (displayEvent.alerts[0] as { time?: string })?.time;
+      if (alertValue) {
+        label = getAlertLabel(alertValue);
+        // Map to minutes for sorting/logic
+        const minutesMap: Record<string, number> = {
+          'exact': 0, '5min': 5, '15min': 15, '30min': 30,
+          '1hour': 60, '2hours': 120, '1day': 1440,
+        };
+        minutesBefore = minutesMap[alertValue] ?? 60;
+      }
+    }
+    
+    // Get the actual scheduled time for display
     if (displayEvent.call_alert_scheduled_at) {
       const scheduledDate = parseISO(displayEvent.call_alert_scheduled_at);
       const callTime = format(scheduledDate, 'HH:mm');
-      
-      // Calculate minutes before for the label
-      if (displayEvent.event_time) {
-        const [year, month, day] = displayEvent.event_date.split('-').map(Number);
-        const [hours, minutes] = displayEvent.event_time.split(':').map(Number);
-        const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-        const diffMs = eventDateTime.getTime() - scheduledDate.getTime();
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        
-        const label = diffMinutes < 60 
-          ? `${diffMinutes} min antes` 
-          : `${Math.floor(diffMinutes / 60)} hora${Math.floor(diffMinutes / 60) > 1 ? 's' : ''} antes`;
-        
-        return { time: callTime, label, minutesBefore: diffMinutes };
-      }
-      
-      return { time: callTime, label: 'agendado', minutesBefore: 0 };
+      return { time: callTime, label, minutesBefore };
     }
     
-    // Fallback to dynamic calculation
-    return getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
+    // Fallback: calculate time if no scheduled time in DB
+    const fallback = getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
+    if (fallback) {
+      return { ...fallback, label, minutesBefore };
+    }
+    
+    return null;
   };
   
   const callAlertInfo = getActualCallAlertInfo();
