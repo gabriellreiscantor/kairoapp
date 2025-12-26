@@ -468,7 +468,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
     
     try {
-      // Calculate notification scheduled time based on alerts config or default
+      // Calculate notification scheduled time using SAME logic as Me Ligue
       let notificationScheduledAt: Date | null = null;
       
       if (checked && event.event_time) {
@@ -476,18 +476,25 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         const [hours, minutes] = event.event_time.split(':').map(Number);
         const eventDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
         
-        // Default: 15 minutes before (can be customized in the future)
-        const alertMinutes = 15;
+        const now = new Date();
+        const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
+        
+        // Use same alert calculation as Me Ligue
+        let alertMinutes = 60; // default
+        if (diffMinutes <= 2) alertMinutes = 0;
+        else if (diffMinutes <= 5) alertMinutes = 2;
+        else if (diffMinutes <= 15) alertMinutes = 5;
+        else if (diffMinutes <= 30) alertMinutes = 15;
+        else if (diffMinutes <= 60) alertMinutes = 30;
+        else if (diffMinutes <= 120) alertMinutes = 60;
+        
         notificationScheduledAt = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
         
-        // If scheduled time already passed, use 5 minutes before or now
-        const now = new Date();
+        // If scheduled time already passed, check if we can still notify
         if (notificationScheduledAt <= now) {
-          const diffToEvent = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
-          if (diffToEvent > 5) {
-            notificationScheduledAt = new Date(eventDateTime.getTime() - 5 * 60 * 1000);
-          } else if (diffToEvent > 2) {
-            notificationScheduledAt = new Date(now.getTime() + 60 * 1000); // 1 minute from now
+          if (diffMinutes > 2) {
+            // Notify 1 minute from now
+            notificationScheduledAt = new Date(now.getTime() + 60 * 1000);
           } else {
             // Too close, disable
             setNotificationEnabled(false);
@@ -726,30 +733,24 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {displayEvent.call_alert_sent_at && (
             <div className="mt-2 flex items-center gap-2 text-xs">
               {displayEvent.call_alert_answered ? (
-                <>
-                  <span className="inline-flex items-center gap-1 text-emerald-500">
-                    <Phone className="w-3 h-3" />
-                    ✅ Atendida
-                  </span>
+                <span className="inline-flex items-center gap-1 text-emerald-500">
+                  ✅ Atendida
                   {displayEvent.call_alert_answered_at && (
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground ml-1">
                       às {format(parseISO(displayEvent.call_alert_answered_at), 'HH:mm')}
                     </span>
                   )}
-                </>
+                </span>
               ) : displayEvent.call_alert_outcome === 'missed' ? (
                 <span className="inline-flex items-center gap-1 text-amber-500">
-                  <Phone className="w-3 h-3" />
                   📞 Ligamos {displayEvent.call_alert_attempts && displayEvent.call_alert_attempts > 1 ? `${displayEvent.call_alert_attempts}x` : ''} - não atendida
                 </span>
               ) : displayEvent.call_alert_outcome === 'sent' ? (
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Phone className="w-3 h-3" />
                   📞 Ligação enviada às {format(parseISO(displayEvent.call_alert_sent_at), 'HH:mm')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-muted-foreground/60">
-                  <Phone className="w-3 h-3" />
                   📞 Ligamos (sem dados de resultado)
                 </span>
               )}
@@ -789,10 +790,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             <div className="flex items-center gap-2">
               <Bell className={`w-4 h-4 ${isExpired ? 'text-muted-foreground/50' : 'text-sky-500'}`} />
               <span className={`text-sm ${isExpired ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Notifique</span>
-              {/* Show timing info */}
-              {!isExpired && notificationEnabled && displayEvent.event_time && (
+              {/* Show timing info - same as Me Ligue */}
+              {callAlertInfo && !isExpired && (
                 <span className="text-xs text-muted-foreground">
-                  (15 min antes)
+                  ({callAlertInfo.label})
                 </span>
               )}
             </div>
@@ -805,10 +806,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           </div>
           
           {/* Tooltip when activated */}
-          {showNotificationTooltip && !isExpired && (
+          {showNotificationTooltip && !isExpired && callAlertInfo && (
             <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
               <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
-                Te notificaremos 15 min antes do evento
+                Te notificaremos às {callAlertInfo.time} ({callAlertInfo.label})
               </div>
             </div>
           )}
