@@ -28,6 +28,7 @@ import WeatherForecastModal from "@/components/chat/WeatherForecastModal";
 import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
 import CallNotificationCard from "@/components/chat/CallNotificationCard";
+import PushNotificationCard from "@/components/chat/PushNotificationCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -83,12 +84,18 @@ interface Message {
     daysRemaining: number;
   };
   weatherData?: any; // For showing weather forecast card
-  callNotificationData?: { // For showing call notification card
+  callNotificationData?: { // For showing call notification card (native VoIP only)
     eventId: string;
     eventTitle: string;
     eventTime: string;
     callSentAt: string;
     answered?: boolean;
+  };
+  pushNotificationData?: { // For showing push notification card (regular push fallback)
+    eventId: string;
+    eventTitle: string;
+    eventTime: string;
+    notificationSentAt: string;
   };
 }
 
@@ -321,6 +328,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       weeklyReportNotReady: m.metadata?.weeklyReportNotReady,
       weatherData: m.metadata?.weatherData,
       callNotificationData: m.metadata?.callNotificationData,
+      pushNotificationData: m.metadata?.pushNotificationData,
     };
   };
 
@@ -1626,7 +1634,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       </div>
                     )}
                     
-                    {/* Call Notification Card */}
+                    {/* Call Notification Card - only for native VoIP calls */}
                     {message.callNotificationData && (
                       <div className="pl-9 animate-fade-in">
                         <CallNotificationCard
@@ -1635,6 +1643,18 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           eventTime={message.callNotificationData.eventTime}
                           callSentAt={message.callNotificationData.callSentAt}
                           answered={message.callNotificationData.answered}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Push Notification Card - for regular push fallback */}
+                    {message.pushNotificationData && (
+                      <div className="pl-9 animate-fade-in">
+                        <PushNotificationCard
+                          eventId={message.pushNotificationData.eventId}
+                          eventTitle={message.pushNotificationData.eventTitle}
+                          eventTime={message.pushNotificationData.eventTime}
+                          notificationSentAt={message.pushNotificationData.notificationSentAt}
                         />
                       </div>
                     )}

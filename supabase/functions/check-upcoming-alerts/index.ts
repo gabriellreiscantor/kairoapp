@@ -452,13 +452,12 @@ Deno.serve(async (req) => {
 
             notificationsSent.push(event.id);
             
-            // Insert chat message for push notification
-            const callNotificationData = {
+            // Insert chat message for push notification (NOT a call - different card type)
+            const pushNotificationData = {
               eventId: event.id,
               eventTitle: event.title,
               eventTime: event.event_time,
-              callSentAt: lockTime,
-              answered: false
+              notificationSentAt: lockTime
             };
             
             const { error: chatError } = await supabase
@@ -466,10 +465,10 @@ Deno.serve(async (req) => {
               .insert({
                 user_id: event.user_id,
                 role: 'assistant',
-                content: `📞 Te enviei uma notificação para lembrar do evento "${event.title}"!`,
+                content: `🔔 Te enviei uma notificação para lembrar do evento "${event.title}"!`,
                 metadata: {
-                  type: 'call_notification',
-                  callNotificationData
+                  type: 'push_notification',
+                  pushNotificationData
                 }
               });
             
