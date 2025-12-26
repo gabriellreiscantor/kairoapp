@@ -21,18 +21,34 @@ export const usePushNotifications = (options: UsePushNotificationsOptions = {}) 
         return;
       }
 
+      // Detect platform - iOS returns APNs tokens, Android returns FCM tokens
+      // APNs tokens are 64 hex chars, FCM tokens are much longer with colons
+      const platform = Capacitor.getPlatform();
+      const tokenType = platform === 'ios' ? 'ios' : 'android';
+      
+      remoteLog.info('push', 'saving_token', { 
+        platform, 
+        tokenType,
+        tokenLength: token.length,
+        tokenPreview: token.substring(0, 20) + '...' 
+      });
+
       const { error } = await supabase
         .from('profiles')
         .update({
           fcm_token: token,
-          fcm_token_updated_at: new Date().toISOString()
+          fcm_token_updated_at: new Date().toISOString(),
+          fcm_token_platform: tokenType
         })
         .eq('id', user.id);
 
       if (error) {
         remoteLog.error('push', 'token_save_error', { error: error.message });
       } else {
-        remoteLog.info('push', 'token_saved', { tokenPreview: token.substring(0, 20) + '...' });
+        remoteLog.info('push', 'token_saved', { 
+          tokenType,
+          tokenPreview: token.substring(0, 20) + '...' 
+        });
       }
     } catch (err) {
       remoteLog.error('push', 'token_save_exception', { error: String(err) });

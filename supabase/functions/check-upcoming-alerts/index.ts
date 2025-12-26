@@ -231,8 +231,8 @@ Deno.serve(async (req) => {
 
     for (const event of callAlertEvents || []) {
       try {
-        // OPTIMISTIC LOCK: Check if already being processed by another instance
-        // This prevents race conditions that cause duplicate cards
+        // LIGHT LOCK CHECK: Check if already being processed by another instance
+        // We do NOT acquire lock here - lock is acquired AFTER successful VoIP
         const { data: lockCheck, error: lockError } = await supabase
           .from('events')
           .select('call_alert_sent_at')
@@ -250,32 +250,7 @@ Deno.serve(async (req) => {
           continue;
         }
         
-        // IMMEDIATELY mark as being processed to prevent race conditions
-        const lockTime = new Date().toISOString();
-        const { error: lockSetError } = await supabase
-          .from('events')
-          .update({ call_alert_sent_at: lockTime })
-          .eq('id', event.id)
-          .is('call_alert_sent_at', null); // Only update if still null (atomic check)
-        
-        if (lockSetError) {
-          console.error(`Error setting lock for event ${event.id}:`, lockSetError);
-          continue;
-        }
-        
-        // Verify lock was acquired (another instance might have gotten it first)
-        const { data: lockVerify } = await supabase
-          .from('events')
-          .select('call_alert_sent_at')
-          .eq('id', event.id)
-          .maybeSingle();
-        
-        if (lockVerify?.call_alert_sent_at !== lockTime) {
-          console.log(`Event ${event.id} lock acquired by another instance (${lockVerify?.call_alert_sent_at} vs ${lockTime}), skipping`);
-          continue;
-        }
-        
-        console.log(`Lock acquired for event ${event.id} at ${lockTime}`);
+        console.log(`Processing event ${event.id} - lock not yet acquired, will acquire AFTER successful notification`);
 
         // Fetch user profile with notification preferences, timezone and language
         const { data: profile, error: profileError } = await supabase
@@ -309,8 +284,7 @@ Deno.serve(async (req) => {
         const callEnabled = profile?.call_enabled !== false; // Default true if not set
         if (!callEnabled) {
           console.log(`User ${event.user_id} has call_enabled=false, skipping event ${event.id}`);
-          // Release lock since we're not processing
-          await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
+          // No lock acquired yet, just skip
           continue;
         }
 
@@ -320,8 +294,7 @@ Deno.serve(async (req) => {
         
         if (!fcmToken && pushEnabled) {
           console.log(`User ${event.user_id} has no FCM token, skipping event ${event.id}`);
-          // Release lock since we can't send
-          await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
+          // No lock acquired yet, just skip
           continue;
         }
 
@@ -385,22 +358,23 @@ Deno.serve(async (req) => {
                 voipSentSuccessfully = true;
                 console.log(`[VoIP] Push sent successfully for ${event.id}`);
                 
-                // Update attempts and outcome
-                const { data: currentEvent } = await supabase
-                  .from('events')
-                  .select('call_alert_attempts')
-                  .eq('id', event.id)
-                  .maybeSingle();
-                
-                const currentAttempts = currentEvent?.call_alert_attempts || 0;
-                
-                await supabase
+                // LOCK NOW: Acquire lock AFTER successful VoIP send
+                const lockTime = new Date().toISOString();
+                const { error: lockSetError } = await supabase
                   .from('events')
                   .update({ 
-                    call_alert_attempts: currentAttempts + 1,
+                    call_alert_sent_at: lockTime,
+                    call_alert_attempts: 1,
                     call_alert_outcome: 'voip_sent'
                   })
-                  .eq('id', event.id);
+                  .eq('id', event.id)
+                  .is('call_alert_sent_at', null); // Only update if still null (atomic)
+                
+                if (lockSetError) {
+                  console.error(`[VoIP] Error setting lock after success for ${event.id}:`, lockSetError);
+                } else {
+                  console.log(`[VoIP] Lock acquired AFTER successful VoIP for event ${event.id} at ${lockTime}`);
+                }
 
                 notificationsSent.push(event.id);
                 
@@ -474,27 +448,27 @@ Deno.serve(async (req) => {
           if (pushError) {
             console.error(`Error sending fallback push for event ${event.id}:`, pushError);
             errors.push(`Event ${event.id}: ${pushError.message}`);
-            // Release lock on failure
-            await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
+            // No lock was acquired, so nothing to release
           } else {
             console.log(`[Fallback Push] Sent successfully for event ${event.id}`);
             
-            const { data: currentEvent } = await supabase
-              .from('events')
-              .select('call_alert_attempts')
-              .eq('id', event.id)
-              .maybeSingle();
-            
-            const currentAttempts = currentEvent?.call_alert_attempts || 0;
-            
-            // Mark as voip_failed_push_sent to differentiate from regular push
-            await supabase
+            // LOCK NOW: Acquire lock AFTER successful push fallback
+            const fallbackLockTime = new Date().toISOString();
+            const { error: lockSetError } = await supabase
               .from('events')
               .update({ 
-                call_alert_attempts: currentAttempts + 1,
+                call_alert_sent_at: fallbackLockTime,
+                call_alert_attempts: 1,
                 call_alert_outcome: `voip_failed_push_sent:${voipFailureReason}`
               })
-              .eq('id', event.id);
+              .eq('id', event.id)
+              .is('call_alert_sent_at', null); // Only update if still null (atomic)
+            
+            if (lockSetError) {
+              console.error(`[Fallback Push] Error setting lock after success for ${event.id}:`, lockSetError);
+            } else {
+              console.log(`[Fallback Push] Lock acquired AFTER successful push for event ${event.id} at ${fallbackLockTime}`);
+            }
 
             notificationsSent.push(event.id);
             
@@ -504,10 +478,10 @@ Deno.serve(async (req) => {
               eventId: event.id,
               eventTitle: event.title,
               eventTime: event.event_time,
-              callAttemptedAt: lockTime,
+              callAttemptedAt: fallbackLockTime,
               voipFailed: true,
               voipFailureReason: voipFailureReason,
-              pushSentAt: new Date().toISOString()
+              pushSentAt: fallbackLockTime
             };
             
             // Different message to make clear this is Me Ligue fallback, NOT Me Notifique
@@ -530,38 +504,20 @@ Deno.serve(async (req) => {
             }
           }
         } else if (!voipSentSuccessfully && !pushEnabled) {
+          // No notification could be sent - no lock was acquired so nothing to revert
           console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping fallback push`);
-          
-          // If VoIP failed and no regular push, release lock
           console.log(`No notification sent for event ${event.id} - no valid delivery method (VoIP: ${voipFailureReason})`);
           errors.push(`Event ${event.id}: No valid delivery method (VoIP: ${voipFailureReason}, push disabled)`);
           
-          // CRITICAL FIX: Revert lock so event can be retried on next cron run
-          console.log(`[LOCK REVERT] Reverting call_alert_sent_at for event ${event.id} due to complete failure`);
+          // Store outcome for debugging (but don't acquire lock - let it retry)
           await supabase.from('events').update({ 
-            call_alert_sent_at: null,
-            call_alert_outcome: `complete_failure:${voipFailureReason}`
+            call_alert_outcome: `no_delivery_method:${voipFailureReason}`
           }).eq('id', event.id);
-        }
-        
-        // CRITICAL FIX: If VoIP failed and no fallback was sent, revert the lock
-        if (!voipSentSuccessfully && voipFailureReason && !pushEnabled) {
-          console.log(`[LOCK REVERT] Final check - No notification delivered for event ${event.id}`);
         }
       } catch (eventError) {
         console.error(`Error processing event ${event.id}:`, eventError);
         errors.push(`Event ${event.id}: ${String(eventError)}`);
-        
-        // CRITICAL FIX: Revert lock on exception so event can be retried
-        console.log(`[LOCK REVERT] Reverting lock for event ${event.id} due to exception`);
-        try {
-          await supabase.from('events').update({ 
-            call_alert_sent_at: null,
-            call_alert_outcome: `exception:${String(eventError).substring(0, 100)}`
-          }).eq('id', event.id);
-        } catch (revertError) {
-          console.error(`[LOCK REVERT] Failed to revert lock for event ${event.id}:`, revertError);
-        }
+        // No lock was acquired, nothing to revert
       }
     }
 
