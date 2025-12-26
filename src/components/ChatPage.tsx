@@ -599,6 +599,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const streamChat = async (userMessage: string, allMessages: Message[], imageAnalysis?: any) => {
     setIsLoading(true);
     
+    // Safety timeout - force loading off after 30 seconds to prevent UI getting stuck
+    const safetyTimeout = setTimeout(() => {
+      console.error('[ChatPage] Chat timeout after 30s - forcing loading off');
+      setIsLoading(false);
+    }, 30000);
+    
     const apiMessages = allMessages.map(m => ({
       role: m.type === 'user' ? 'user' : 'assistant',
       content: m.content,
@@ -1098,6 +1104,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     } catch (error) {
       console.error("Chat error:", error);
     } finally {
+      clearTimeout(safetyTimeout);
       setIsLoading(false);
     }
   };
