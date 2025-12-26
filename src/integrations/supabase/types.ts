@@ -221,6 +221,7 @@ export type Database = {
           critical_alerts_enabled: boolean
           display_name: string | null
           fcm_token: string | null
+          fcm_token_platform: string | null
           fcm_token_updated_at: string | null
           first_event_created: boolean | null
           font_preference: string | null
@@ -258,6 +259,7 @@ export type Database = {
           critical_alerts_enabled?: boolean
           display_name?: string | null
           fcm_token?: string | null
+          fcm_token_platform?: string | null
           fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
           font_preference?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           critical_alerts_enabled?: boolean
           display_name?: string | null
           fcm_token?: string | null
+          fcm_token_platform?: string | null
           fcm_token_updated_at?: string | null
           first_event_created?: boolean | null
           font_preference?: string | null
