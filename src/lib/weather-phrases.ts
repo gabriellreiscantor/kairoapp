@@ -52,7 +52,7 @@ export function getWeatherCategory(weatherCode: number, temperature: number): We
 const phrases: Record<WeatherCategory, Record<SupportedLanguage, WeatherPhrase[]>> = {
   sunny_hot: {
     'pt-BR': [
-      { text: "Tá tão quente que até o diabo tá reclamando", emoji: "😈" },
+      { text: "Tá tão quente que até o coisa-ruim tá reclamando", emoji: "😈" },
       { text: "Clima perfeito pra piscina e churras!", emoji: "🏊‍♂️" },
       { text: "Esse calor tá igual senha de WiFi: impossível", emoji: "🥵" },
       { text: "Hoje o sol acordou violento", emoji: "☀️" },
