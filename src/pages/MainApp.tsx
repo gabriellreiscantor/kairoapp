@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, RefreshCw } from "lucide-react";
 import { SplashScreen } from '@capacitor/splash-screen';
-import { LocalNotifications } from '@capacitor/local-notifications';
+
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSearchParams } from "react-router-dom";
@@ -15,8 +15,6 @@ import CreateEventModal from "@/components/CreateEventModal";
 import EditEventModal from "@/components/EditEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
-import CallScreen from "@/components/CallScreen";
-import { useCallAlert } from "@/hooks/useCallAlert";
 import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -51,16 +49,6 @@ const MainApp = () => {
   // Check if settings should be open from URL param
   const shouldOpenSettings = searchParams.get('settings') === 'open';
   
-  // Call alert hook for "Me Ligue" feature
-  const { 
-    isCallVisible, 
-    currentEvent, 
-    showCall, 
-    handleAnswer, 
-    handleDecline, 
-    handleSnooze,
-    isPlaying 
-  } = useCallAlert();
   
   // CallKit context for VoIP (iOS native only) - agora roda no app start
   const { registerVoIPToken } = useCallKit();
@@ -193,69 +181,10 @@ const MainApp = () => {
     fetchEvents();
   }, [fetchEvents, eventsVersion]);
 
-  // Request notification permissions and set up listeners for "Me Ligue"
+  // Request notification permissions on mount
   useEffect(() => {
-    // Request permissions on mount
     requestNotificationPermissions();
-
-    // Set up native notification listener
-    if (Capacitor.isNativePlatform()) {
-      const setupNotificationListeners = async () => {
-        // Listen for notification received (when app is in foreground)
-        await LocalNotifications.addListener('localNotificationReceived', (notification) => {
-          console.log('[MainApp] Notification received:', notification);
-          
-          if (notification.extra?.type === 'call-alert') {
-            showCall({
-              id: notification.extra.eventId,
-              title: notification.extra.eventTitle,
-              emoji: notification.extra.eventEmoji || '📅',
-              time: notification.extra.eventTime,
-              location: notification.extra.eventLocation,
-            }, language);
-          }
-        });
-
-        // Listen for notification action performed (when user taps notification)
-        await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-          console.log('[MainApp] Notification action:', action);
-          
-          if (action.notification.extra?.type === 'call-alert') {
-            showCall({
-              id: action.notification.extra.eventId,
-              title: action.notification.extra.eventTitle,
-              emoji: action.notification.extra.eventEmoji || '📅',
-              time: action.notification.extra.eventTime,
-              location: action.notification.extra.eventLocation,
-            }, language);
-          }
-        });
-      };
-
-      setupNotificationListeners();
-    }
-
-    // Web fallback listener
-    const handleWebCallAlert = (event: CustomEvent) => {
-      const { event: eventData } = event.detail;
-      showCall({
-        id: eventData.id,
-        title: eventData.title,
-        emoji: eventData.emoji || '📅',
-        time: eventData.event_time,
-        location: eventData.location,
-      }, language);
-    };
-
-    window.addEventListener('kairo-call-alert', handleWebCallAlert as EventListener);
-
-    return () => {
-      window.removeEventListener('kairo-call-alert', handleWebCallAlert as EventListener);
-      if (Capacitor.isNativePlatform()) {
-        LocalNotifications.removeAllListeners();
-      }
-    };
-  }, [showCall, language]);
+  }, []);
 
   // Callback when event is created via chat
   const handleEventCreated = useCallback(() => {
@@ -334,16 +263,6 @@ const MainApp = () => {
   if (activeView === 'chat') {
     return (
       <>
-        {/* Call Screen for "Me Ligue" */}
-        <CallScreen
-          isVisible={isCallVisible}
-          eventTitle={currentEvent?.title || ''}
-          eventTime={currentEvent?.time}
-          eventEmoji={currentEvent?.emoji}
-          onAnswer={handleAnswer}
-          onDecline={handleDecline}
-          onSnooze={handleSnooze}
-        />
         
         <div className="h-screen">
           <ChatPage 
