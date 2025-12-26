@@ -328,89 +328,120 @@ Deno.serve(async (req) => {
 
         // Track if VoIP was sent successfully
         let voipSentSuccessfully = false;
+        let voipFailureReason: string | null = null;
 
         // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
         if (criticalAlertsEnabled) {
-          console.log(`[VoIP] Attempting to send VoIP push for event ${event.id} (${event.title})`);
+          console.log(`[VoIP PRE-CHECK] Checking voip_token for user ${event.user_id}...`);
           
-          try {
-            const { data: voipResponse, error: voipError } = await supabase.functions.invoke('send-voip-push', {
-              body: {
+          // CRITICAL: Check if user has voip_token BEFORE trying to call VoIP
+          const { data: voipProfile, error: voipProfileError } = await supabase
+            .from('profiles')
+            .select('voip_token')
+            .eq('id', event.user_id)
+            .maybeSingle();
+          
+          if (voipProfileError) {
+            console.error(`[VoIP] Error fetching voip_token for user ${event.user_id}:`, voipProfileError);
+            voipFailureReason = 'profile_fetch_error';
+          } else if (!voipProfile?.voip_token) {
+            console.log(`[VoIP] User ${event.user_id} has NO voip_token - cannot send VoIP call`);
+            console.log(`[VoIP] voip_token value: ${voipProfile?.voip_token || 'NULL/UNDEFINED'}`);
+            voipFailureReason = 'no_voip_token';
+          } else {
+            console.log(`[VoIP] User ${event.user_id} has voip_token (${voipProfile.voip_token.substring(0, 20)}...)`);
+            console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})`);
+            
+            try {
+              const voipPayload = {
                 user_id: event.user_id,
                 event_id: event.id,
                 event_title: event.title,
                 event_time: event.event_time,
                 event_location: event.location || '',
                 event_emoji: event.emoji || '📅',
-              },
-            });
-
-            console.log(`[VoIP] Response for ${event.id}:`, JSON.stringify(voipResponse));
-
-            if (voipError) {
-              console.log(`[VoIP] Push failed for ${event.id}, will try regular push as fallback:`, voipError);
-            } else if (voipResponse?.success === false) {
-              console.log(`[VoIP] Push returned failure for ${event.id}:`, voipResponse.error);
-            } else {
-              voipSentSuccessfully = true;
-              console.log(`[VoIP] Push sent successfully for ${event.id}`);
-              
-              // Update attempts and outcome
-              const { data: currentEvent } = await supabase
-                .from('events')
-                .select('call_alert_attempts')
-                .eq('id', event.id)
-                .maybeSingle();
-              
-              const currentAttempts = currentEvent?.call_alert_attempts || 0;
-              
-              await supabase
-                .from('events')
-                .update({ 
-                  call_alert_attempts: currentAttempts + 1,
-                  call_alert_outcome: 'voip_sent'
-                })
-                .eq('id', event.id);
-
-              notificationsSent.push(event.id);
-              
-              // Insert chat message to notify user about the call (ONLY HERE - not in push section)
-              const callNotificationData = {
-                eventId: event.id,
-                eventTitle: event.title,
-                eventTime: event.event_time,
-                callSentAt: lockTime,
-                answered: false
               };
               
-              const { error: chatError } = await supabase
-                .from('chat_messages')
-                .insert({
-                  user_id: event.user_id,
-                  role: 'assistant',
-                  content: `📞 Te liguei para lembrar do evento "${event.title}"!`,
-                  metadata: {
-                    type: 'call_notification',
-                    callNotificationData
-                  }
-                });
+              console.log(`[VoIP] Calling send-voip-push with payload:`, JSON.stringify(voipPayload));
               
-              if (chatError) {
-                console.error(`Error inserting chat message for event ${event.id}:`, chatError);
+              const { data: voipResponse, error: voipError } = await supabase.functions.invoke('send-voip-push', {
+                body: voipPayload,
+              });
+
+              console.log(`[VoIP] Response for ${event.id}:`, JSON.stringify(voipResponse));
+              console.log(`[VoIP] Error for ${event.id}:`, voipError ? JSON.stringify(voipError) : 'null');
+
+              if (voipError) {
+                console.log(`[VoIP] Push failed for ${event.id}:`, voipError);
+                voipFailureReason = `invoke_error: ${voipError.message || JSON.stringify(voipError)}`;
+              } else if (voipResponse?.success === false) {
+                console.log(`[VoIP] Push returned failure for ${event.id}:`, voipResponse.error);
+                voipFailureReason = `api_error: ${voipResponse.error || 'unknown'}`;
               } else {
-                console.log(`Chat message inserted for call notification of event ${event.id}`);
+                voipSentSuccessfully = true;
+                console.log(`[VoIP] Push sent successfully for ${event.id}`);
+                
+                // Update attempts and outcome
+                const { data: currentEvent } = await supabase
+                  .from('events')
+                  .select('call_alert_attempts')
+                  .eq('id', event.id)
+                  .maybeSingle();
+                
+                const currentAttempts = currentEvent?.call_alert_attempts || 0;
+                
+                await supabase
+                  .from('events')
+                  .update({ 
+                    call_alert_attempts: currentAttempts + 1,
+                    call_alert_outcome: 'voip_sent'
+                  })
+                  .eq('id', event.id);
+
+                notificationsSent.push(event.id);
+                
+                // Insert chat message to notify user about the call (ONLY HERE - not in push section)
+                const callNotificationData = {
+                  eventId: event.id,
+                  eventTitle: event.title,
+                  eventTime: event.event_time,
+                  callSentAt: lockTime,
+                  answered: false
+                };
+                
+                const { error: chatError } = await supabase
+                  .from('chat_messages')
+                  .insert({
+                    user_id: event.user_id,
+                    role: 'assistant',
+                    content: `📞 Te liguei para lembrar do evento "${event.title}"!`,
+                    metadata: {
+                      type: 'call_notification',
+                      callNotificationData
+                    }
+                  });
+                
+                if (chatError) {
+                  console.error(`Error inserting chat message for event ${event.id}:`, chatError);
+                } else {
+                  console.log(`Chat message inserted for call notification of event ${event.id}`);
+                }
               }
+            } catch (voipErr) {
+              console.error(`[VoIP] Exception calling send-voip-push for ${event.id}:`, voipErr);
+              voipFailureReason = `exception: ${String(voipErr)}`;
             }
-          } catch (voipErr) {
-            console.error(`[VoIP] Exception calling send-voip-push for ${event.id}:`, voipErr);
           }
         } else {
           console.log(`User ${event.user_id} has critical_alerts_enabled=false, skipping VoIP (will use regular push)`);
+          voipFailureReason = 'critical_alerts_disabled';
         }
 
         // Also send regular push as fallback for Android and web (if push enabled AND VoIP failed)
         // IMPORTANT: Only send push fallback if VoIP was NOT successful (to avoid duplicate notifications)
         if (pushEnabled && fcmToken && !voipSentSuccessfully) {
+          console.log(`[Fallback Push] VoIP failed (reason: ${voipFailureReason}), sending push fallback for event ${event.id}`);
+          
           // Get localized messages for the user
           const messages = getAlertMessages(userLanguage);
           const eventEmoji = event.emoji || '📅';
@@ -427,7 +458,7 @@ Deno.serve(async (req) => {
               title: `${eventEmoji} ${event.title}`,
               body: notificationBody,
               data: {
-                type: 'event-reminder',
+                type: 'call-alert-fallback', // Different type to identify this is Me Ligue fallback
                 event_id: event.id,
                 event_title: event.title,
                 event_time: event.event_time,
@@ -437,12 +468,12 @@ Deno.serve(async (req) => {
           });
 
           if (pushError) {
-            console.error(`Error sending regular push for event ${event.id}:`, pushError);
+            console.error(`Error sending fallback push for event ${event.id}:`, pushError);
             errors.push(`Event ${event.id}: ${pushError.message}`);
             // Release lock on failure
             await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
           } else {
-            console.log(`Regular push sent for event ${event.id}`);
+            console.log(`[Fallback Push] Sent successfully for event ${event.id}`);
             
             const { data: currentEvent } = await supabase
               .from('events')
@@ -452,51 +483,55 @@ Deno.serve(async (req) => {
             
             const currentAttempts = currentEvent?.call_alert_attempts || 0;
             
+            // Mark as voip_failed_push_sent to differentiate from regular push
             await supabase
               .from('events')
               .update({ 
                 call_alert_attempts: currentAttempts + 1,
-                call_alert_outcome: 'push_sent'
+                call_alert_outcome: `voip_failed_push_sent:${voipFailureReason}`
               })
               .eq('id', event.id);
 
             notificationsSent.push(event.id);
             
-            // Insert chat message for push notification (NOT a call - different card type)
-            const pushNotificationData = {
+            // Insert chat message - IMPORTANT: This is Me Ligue fallback, NOT Me Notifique
+            // Show specific message that VoIP call failed but we sent push instead
+            const callFallbackData = {
               eventId: event.id,
               eventTitle: event.title,
               eventTime: event.event_time,
-              notificationSentAt: lockTime
+              callAttemptedAt: lockTime,
+              voipFailed: true,
+              voipFailureReason: voipFailureReason,
+              pushSentAt: new Date().toISOString()
             };
             
+            // Different message to make clear this is Me Ligue fallback, NOT Me Notifique
             const { error: chatError } = await supabase
               .from('chat_messages')
               .insert({
                 user_id: event.user_id,
                 role: 'assistant',
-                content: `🔔 Te enviei uma notificação para lembrar do evento "${event.title}"!`,
+                content: `⚠️ Tentei te ligar para "${event.title}" mas não consegui. Te mandei uma notificação no lugar!`,
                 metadata: {
-                  type: 'push_notification',
-                  pushNotificationData
+                  type: 'call_fallback_notification', // New type to differentiate
+                  callFallbackData
                 }
               });
             
             if (chatError) {
               console.error(`Error inserting chat message for event ${event.id}:`, chatError);
             } else {
-              console.log(`Chat message inserted for push notification of event ${event.id}`);
+              console.log(`Chat message inserted for call fallback notification of event ${event.id}`);
             }
           }
         } else if (!voipSentSuccessfully && !pushEnabled) {
-          console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping regular push`);
+          console.log(`User ${event.user_id} has push_enabled=false or no FCM token, skipping fallback push`);
           
           // If VoIP failed and no regular push, release lock
-          if (!voipSentSuccessfully) {
-            console.log(`No notification sent for event ${event.id} - no valid delivery method`);
-            errors.push(`Event ${event.id}: No valid delivery method (VoIP failed, push disabled)`);
-            await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
-          }
+          console.log(`No notification sent for event ${event.id} - no valid delivery method (VoIP: ${voipFailureReason})`);
+          errors.push(`Event ${event.id}: No valid delivery method (VoIP: ${voipFailureReason}, push disabled)`);
+          await supabase.from('events').update({ call_alert_sent_at: null }).eq('id', event.id);
         }
       } catch (eventError) {
         console.error(`Error processing event ${event.id}:`, eventError);
