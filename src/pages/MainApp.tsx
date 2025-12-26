@@ -18,6 +18,7 @@ import ChatPage from "@/components/ChatPage";
 import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useAutoLocationUpdate } from "@/hooks/useAutoLocationUpdate";
 import { useToast } from "@/hooks/use-toast";
 import horahLogo from "@/assets/horah-logo.png";
 import horahLogoDark from "@/assets/horah-logo-dark.png";
@@ -80,6 +81,9 @@ const MainApp = () => {
       }
     }
   });
+  
+  // Auto-update location when app opens (if weather forecast enabled)
+  useAutoLocationUpdate();
   
   // Force VoIP re-registration on app start for iOS
   useEffect(() => {
