@@ -598,25 +598,74 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
   // Listen for auth state changes to register VoIP token when user logs in
+  // Handles both SIGNED_IN (new login) and INITIAL_SESSION (session recovered from storage)
   useEffect(() => {
     if (!isIOSNative()) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[CallKit] Auth state changed:', event);
+    const checkAndRegisterVoIPToken = async (userId: string) => {
+      console.log('[CallKit] ====== PROACTIVE VOIP TOKEN CHECK ======');
+      console.log('[CallKit] Checking voip_token for user:', userId);
       
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('[CallKit] User signed in, checking for pending token...');
+      // 1. Check if user already has voip_token in database
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('voip_token')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('[CallKit] Error fetching profile:', error);
+      }
+      
+      if (profile?.voip_token) {
+        console.log('[CallKit] ✅ User already has voip_token in DB, no action needed');
+        return;
+      }
+      
+      console.log('[CallKit] ⚠️ User has NO voip_token in DB, will try to save...');
+      console.log('[CallKit] Current pendingTokenRef:', pendingTokenRef.current ? 'EXISTS' : 'NULL');
+      
+      // 2. If we have a pending token, save it immediately
+      if (pendingTokenRef.current) {
+        console.log('[CallKit] Found pending token, saving immediately...');
+        await saveVoIPToken(pendingTokenRef.current);
+        return;
+      }
+      
+      // 3. No pending token - force re-registration
+      console.log('[CallKit] No pending token, forcing re-registration...');
+      hasRegisteredRef.current = false;
+      await attemptVoIPRegistration();
+      
+      // 4. Wait for iOS callback to arrive (can take 1-3 seconds)
+      console.log('[CallKit] Waiting 3 seconds for iOS registration callback...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // 5. Check again if token arrived
+      if (pendingTokenRef.current) {
+        console.log('[CallKit] ✅ Token arrived after wait, saving now...');
+        await saveVoIPToken(pendingTokenRef.current);
+      } else {
+        console.log('[CallKit] ❌ Token still not available after wait');
         
-        // If we have a pending token, save it now
+        // One more attempt after extra wait
+        await new Promise(resolve => setTimeout(resolve, 2000));
         if (pendingTokenRef.current) {
-          console.log('[CallKit] Saving pending token after login');
+          console.log('[CallKit] ✅ Token arrived on second check, saving...');
           await saveVoIPToken(pendingTokenRef.current);
         } else {
-          // Re-trigger registration to get a fresh token
-          console.log('[CallKit] No pending token, re-registering...');
-          hasRegisteredRef.current = false;
-          await attemptVoIPRegistration();
+          console.log('[CallKit] ❌ VoIP token registration failed - token never arrived');
         }
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[CallKit] Auth state changed:', event, '- User:', session?.user?.id?.substring(0, 8) || 'none');
+      
+      // Handle both SIGNED_IN (new login) and INITIAL_SESSION (recovered session)
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        console.log('[CallKit] User authenticated via', event, '- triggering proactive check');
+        await checkAndRegisterVoIPToken(session.user.id);
       }
     });
 
