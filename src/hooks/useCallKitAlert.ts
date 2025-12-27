@@ -95,6 +95,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
     console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
     
+    // REMOTE LOG: Token save attempt
+    remoteLog.info('voip', 'token_save_attempt', {
+      tokenLength: token?.length,
+      tokenPreview: token?.substring(0, 20) + '...',
+    });
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       console.log('[CallKit] Current user:', user?.id);
@@ -102,6 +108,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       if (!user) {
         console.log('[CallKit] No user logged in, storing token for later');
         pendingTokenRef.current = token;
+        remoteLog.warn('voip', 'token_save_deferred', { reason: 'no_user' });
         return false;
       }
       
@@ -117,12 +124,21 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       if (error) {
         console.error('[CallKit] Failed to save VoIP token:', error);
         console.error('[CallKit] Error details:', JSON.stringify(error));
+        remoteLog.error('voip', 'token_save_failed', { 
+          error: error.message,
+          code: error.code,
+          userId: user.id.substring(0, 8) + '...',
+        });
         return false;
       } else {
         console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
         console.log('[CallKit] Updated profile:', JSON.stringify(data));
         console.log('[CallKit] VoIP token is now active in database!');
         pendingTokenRef.current = null;
+        remoteLog.info('voip', 'token_saved_success', {
+          userId: user.id.substring(0, 8) + '...',
+          tokenLength: token?.length,
+        });
         toast({
           title: "Me Ligue ativado",
           description: "Você receberá chamadas nativas para seus lembretes",
@@ -132,6 +148,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       }
     } catch (error) {
       console.error('[CallKit] Error saving VoIP token:', error);
+      remoteLog.error('voip', 'token_save_exception', { 
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }, [toast]);
@@ -176,6 +195,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] Is native platform:', Capacitor.isNativePlatform());
       console.log('[CallKit] isIOSNative():', isIOSNative());
       
+      // REMOTE LOG: Init check
+      remoteLog.info('voip', 'callkit_init_check', {
+        platform: Capacitor.getPlatform(),
+        isNative: Capacitor.isNativePlatform(),
+        isIOSNative: isIOSNative(),
+      });
+      
       if (!isIOSNative()) {
         console.log('[CallKit] Not on iOS native, skipping initialization');
         console.log('[CallKit] This is expected in browser/web preview');
@@ -185,11 +211,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       // Prevent double initialization
       if (hasInitializedRef.current) {
         console.log('[CallKit] Already initialized, skipping');
+        remoteLog.info('voip', 'callkit_already_initialized');
         return;
       }
 
       try {
         console.log('[CallKit] ====== STARTING CALLKIT INIT ON iOS ======');
+        remoteLog.info('voip', 'callkit_init_start');
         
         // Dynamic import to avoid errors on non-native platforms
         console.log('[CallKit] Importing capacitor-plugin-callkit-voip...');
@@ -211,6 +239,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] Plugin imported successfully');
         console.log('[CallKit] CallKitVoip object:', CallKitVoip);
         console.log('[CallKit] Available methods:', Object.keys(CallKitVoip || {}));
+        remoteLog.info('voip', 'callkit_plugin_loaded', {
+          methods: Object.keys(CallKitVoip || {}).join(','),
+        });
         
         // Listen for DEBUG events from Swift - THIS IS THE KEY FOR DEBUGGING WITHOUT XCODE
         console.log('[CallKit] Setting up DEBUG listener...');
@@ -253,19 +284,33 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           console.log('[CallKit] Token length:', data?.value?.length);
           console.log('[CallKit] Token preview:', data?.value?.substring(0, 50) + '...');
           
+          // REMOTE LOG: Token received from iOS
+          remoteLog.info('voip', 'token_received_from_ios', {
+            hasValue: !!data?.value,
+            tokenLength: data?.value?.length,
+            tokenPreview: data?.value?.substring(0, 20) + '...',
+            dataKeys: Object.keys(data || {}).join(','),
+          });
+          
           if (data?.value) {
             const saved = await saveVoIPToken(data.value);
             console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'FAILED');
+            remoteLog.info('voip', 'token_save_result', { success: saved });
           } else {
             console.error('[CallKit] No value in registration data! Keys received:', Object.keys(data || {}));
+            remoteLog.error('voip', 'token_missing_in_data', { 
+              dataKeys: Object.keys(data || {}).join(','),
+            });
           }
         });
         console.log('[CallKit] Registration listener set up:', registrationListener);
         
         // Register for VoIP notifications with retry
         console.log('[CallKit] Calling attemptVoIPRegistration()...');
+        remoteLog.info('voip', 'registration_attempt_start');
         await attemptVoIPRegistration();
         console.log('[CallKit] attemptVoIPRegistration() completed');
+        remoteLog.info('voip', 'registration_attempt_complete');
         
         // Listen for call answered
         console.log('[CallKit] Setting up callAnswered listener...');
@@ -606,6 +651,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] ====== PROACTIVE VOIP TOKEN CHECK ======');
       console.log('[CallKit] Checking voip_token for user:', userId);
       
+      // REMOTE LOG: Proactive check start
+      remoteLog.info('voip', 'proactive_check_start', {
+        userId: userId.substring(0, 8) + '...',
+      });
+      
       // 1. Check if user already has voip_token in database
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -615,9 +665,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       
       if (error) {
         console.error('[CallKit] Error fetching profile:', error);
+        remoteLog.error('voip', 'proactive_check_profile_error', { error: error.message });
       }
       
-      if (profile?.voip_token) {
+      const hasTokenInDB = !!profile?.voip_token;
+      remoteLog.info('voip', 'proactive_check_db_result', {
+        hasTokenInDB,
+        tokenLength: profile?.voip_token?.length,
+      });
+      
+      if (hasTokenInDB) {
         console.log('[CallKit] ✅ User already has voip_token in DB, no action needed');
         return;
       }
@@ -625,15 +682,22 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] ⚠️ User has NO voip_token in DB, will try to save...');
       console.log('[CallKit] Current pendingTokenRef:', pendingTokenRef.current ? 'EXISTS' : 'NULL');
       
+      remoteLog.warn('voip', 'proactive_check_no_token', {
+        hasPendingToken: !!pendingTokenRef.current,
+        pendingTokenLength: pendingTokenRef.current?.length,
+      });
+      
       // 2. If we have a pending token, save it immediately
       if (pendingTokenRef.current) {
         console.log('[CallKit] Found pending token, saving immediately...');
+        remoteLog.info('voip', 'proactive_saving_pending_token');
         await saveVoIPToken(pendingTokenRef.current);
         return;
       }
       
       // 3. No pending token - force re-registration
       console.log('[CallKit] No pending token, forcing re-registration...');
+      remoteLog.info('voip', 'proactive_forcing_reregistration');
       hasRegisteredRef.current = false;
       await attemptVoIPRegistration();
       
@@ -644,17 +708,23 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       // 5. Check again if token arrived
       if (pendingTokenRef.current) {
         console.log('[CallKit] ✅ Token arrived after wait, saving now...');
+        remoteLog.info('voip', 'proactive_token_arrived_first_wait');
         await saveVoIPToken(pendingTokenRef.current);
       } else {
         console.log('[CallKit] ❌ Token still not available after wait');
+        remoteLog.warn('voip', 'proactive_token_not_arrived_first_wait');
         
         // One more attempt after extra wait
         await new Promise(resolve => setTimeout(resolve, 2000));
         if (pendingTokenRef.current) {
           console.log('[CallKit] ✅ Token arrived on second check, saving...');
+          remoteLog.info('voip', 'proactive_token_arrived_second_wait');
           await saveVoIPToken(pendingTokenRef.current);
         } else {
           console.log('[CallKit] ❌ VoIP token registration failed - token never arrived');
+          remoteLog.error('voip', 'proactive_token_never_arrived', {
+            message: 'VoIP token registration failed - token never arrived from iOS',
+          });
         }
       }
     };
@@ -662,9 +732,17 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[CallKit] Auth state changed:', event, '- User:', session?.user?.id?.substring(0, 8) || 'none');
       
+      // REMOTE LOG: Auth state change
+      remoteLog.info('voip', 'auth_state_changed', {
+        event,
+        hasSession: !!session,
+        userId: session?.user?.id?.substring(0, 8) + '...',
+      });
+      
       // Handle both SIGNED_IN (new login) and INITIAL_SESSION (recovered session)
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         console.log('[CallKit] User authenticated via', event, '- triggering proactive check');
+        remoteLog.info('voip', 'triggering_proactive_check', { event });
         await checkAndRegisterVoIPToken(session.user.id);
       }
     });
