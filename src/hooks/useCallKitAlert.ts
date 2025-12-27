@@ -156,34 +156,114 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     }
   }, [toast]);
 
-  // Try to register VoIP with retries
+  // Try to register VoIP with retries and timeout verification
   const attemptVoIPRegistration = useCallback(async (retryCount = 0): Promise<void> => {
-    if (!isIOSNative() || hasRegisteredRef.current) {
+    if (!isIOSNative()) {
+      remoteLog.info('voip', 'registration_skip_not_ios');
+      return;
+    }
+    
+    // Only skip if we already have a pending token (meaning registration succeeded before)
+    if (hasRegisteredRef.current && pendingTokenRef.current) {
+      remoteLog.info('voip', 'registration_skip_already_have_token', { 
+        tokenLength: pendingTokenRef.current.length 
+      });
       return;
     }
 
     const maxRetries = 3;
+    const TOKEN_TIMEOUT_MS = 10000; // 10 seconds to wait for token
     
     try {
       console.log(`[CallKit] Registration attempt ${retryCount + 1}/${maxRetries + 1}`);
+      remoteLog.info('voip', 'registration_attempt_start', { 
+        attempt: retryCount + 1, 
+        maxAttempts: maxRetries + 1 
+      });
       
       if (!callKitPluginRef.current) {
+        remoteLog.info('voip', 'plugin_import_start');
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
         callKitPluginRef.current = CallKitVoip;
+        remoteLog.info('voip', 'plugin_import_success', { 
+          methods: Object.keys(CallKitVoip || {}).join(',') 
+        });
       }
+      
+      // Log before calling register()
+      remoteLog.info('voip', 'calling_register', { 
+        timestamp: new Date().toISOString() 
+      });
       
       await callKitPluginRef.current.register();
       hasRegisteredRef.current = true;
-      console.log('[CallKit] Registration successful');
+      
+      remoteLog.info('voip', 'register_returned', { 
+        timestamp: new Date().toISOString(),
+        note: 'register() returned, waiting for token callback from iOS...',
+      });
+      
+      // CRITICAL: Set timeout to verify if token actually arrived
+      // The register() returns immediately but token comes via callback
+      setTimeout(async () => {
+        remoteLog.info('voip', 'token_timeout_check', {
+          hasToken: !!pendingTokenRef.current,
+          tokenLength: pendingTokenRef.current?.length,
+          timeoutMs: TOKEN_TIMEOUT_MS,
+        });
+        
+        if (!pendingTokenRef.current) {
+          // Token didn't arrive in time!
+          remoteLog.warn('voip', 'token_timeout_no_token', {
+            message: 'Token did not arrive within timeout! This indicates iOS/APNs issue.',
+            possibleCauses: 'Push Notifications capability, VoIP entitlement, Certificate issue, APNs network',
+          });
+          
+          // Try re-registration if we haven't exhausted retries
+          if (retryCount < maxRetries) {
+            remoteLog.info('voip', 'token_timeout_retry', { 
+              nextAttempt: retryCount + 2 
+            });
+            hasRegisteredRef.current = false; // Reset to allow retry
+            attemptVoIPRegistration(retryCount + 1);
+          } else {
+            remoteLog.error('voip', 'token_all_retries_exhausted', { 
+              totalAttempts: maxRetries + 1,
+              finalResult: 'FAILED - No token received from iOS',
+            });
+          }
+        } else {
+          remoteLog.info('voip', 'token_timeout_success', {
+            message: 'Token was received within timeout!',
+            tokenLength: pendingTokenRef.current.length,
+            tokenPreview: pendingTokenRef.current.substring(0, 20) + '...',
+          });
+        }
+      }, TOKEN_TIMEOUT_MS);
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[CallKit] Registration attempt failed:', error);
+      
+      remoteLog.error('voip', 'registration_attempt_failed', { 
+        attempt: retryCount + 1, 
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       
       if (retryCount < maxRetries) {
         const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
         console.log(`[CallKit] Retrying in ${delay}ms...`);
+        remoteLog.info('voip', 'registration_retry_scheduled', { 
+          delayMs: delay, 
+          nextAttempt: retryCount + 2 
+        });
         setTimeout(() => attemptVoIPRegistration(retryCount + 1), delay);
       } else {
         console.error('[CallKit] All registration attempts failed');
+        remoteLog.error('voip', 'registration_all_attempts_failed', { 
+          totalAttempts: maxRetries + 1 
+        });
       }
     }
   }, []);
@@ -278,19 +358,24 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         // Listen for registration token BEFORE registering
         // IMPORTANT: Plugin sends token as "value" not "token"
         console.log('[CallKit] Setting up registration listener...');
+        remoteLog.info('voip', 'setting_up_registration_listener');
+        
         const registrationListener = (CallKitVoip as any).addListener('registration', async (data: { value: string }) => {
+          const receivedAt = new Date().toISOString();
           console.log('[CallKit] ====== VOIP TOKEN RECEIVED FROM iOS ======');
           console.log('[CallKit] Raw data:', JSON.stringify(data));
           console.log('[CallKit] Token (data.value) exists:', !!data?.value);
           console.log('[CallKit] Token length:', data?.value?.length);
           console.log('[CallKit] Token preview:', data?.value?.substring(0, 50) + '...');
           
-          // REMOTE LOG: Token received from iOS
-          remoteLog.info('voip', 'token_received_from_ios', {
+          // REMOTE LOG: Token received from iOS - THIS IS THE KEY EVENT!
+          remoteLog.info('voip', 'TOKEN_RECEIVED_FROM_IOS', {
+            receivedAt,
             hasValue: !!data?.value,
             tokenLength: data?.value?.length,
             tokenPreview: data?.value?.substring(0, 20) + '...',
             dataKeys: Object.keys(data || {}).join(','),
+            fullData: JSON.stringify(data).substring(0, 200),
           });
           
           if (data?.value) {
@@ -298,32 +383,43 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             // This ensures we never lose the token even if the user isn't logged in yet
             console.log('[CallKit] 🔒 Storing token in pendingTokenRef as backup...');
             pendingTokenRef.current = data.value;
-            remoteLog.info('voip', 'token_stored_in_pending', {
-              tokenLength: data.value.length,
+            
+            remoteLog.info('voip', 'token_stored_in_pending_ref', { 
+              tokenLength: data.value.length 
             });
             
             // Now try to save to DB (will only succeed if user is logged in)
             const saved = await saveVoIPToken(data.value);
             console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'DEFERRED (will save on login)');
-            remoteLog.info('voip', 'token_save_result', { 
+            
+            remoteLog.info('voip', 'token_save_to_db_result', { 
               success: saved,
               pendingTokenStored: !!pendingTokenRef.current,
             });
           } else {
             console.error('[CallKit] No value in registration data! Keys received:', Object.keys(data || {}));
-            remoteLog.error('voip', 'token_missing_in_data', { 
+            remoteLog.error('voip', 'TOKEN_MISSING_IN_CALLBACK_DATA', { 
               dataKeys: Object.keys(data || {}).join(','),
+              fullData: JSON.stringify(data),
             });
           }
         });
         console.log('[CallKit] Registration listener set up:', registrationListener);
         
+        remoteLog.info('voip', 'registration_listener_ready');
+        
         // Register for VoIP notifications with retry
         console.log('[CallKit] Calling attemptVoIPRegistration()...');
-        remoteLog.info('voip', 'registration_attempt_start');
+        remoteLog.info('voip', 'calling_attemptVoIPRegistration', { 
+          timestamp: new Date().toISOString() 
+        });
+        
         await attemptVoIPRegistration();
+        
         console.log('[CallKit] attemptVoIPRegistration() completed');
-        remoteLog.info('voip', 'registration_attempt_complete');
+        remoteLog.info('voip', 'attemptVoIPRegistration_returned', { 
+          timestamp: new Date().toISOString() 
+        });
         
         // Listen for call answered
         console.log('[CallKit] Setting up callAnswered listener...');
