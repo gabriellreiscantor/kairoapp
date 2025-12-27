@@ -1699,7 +1699,7 @@ async function executeAction(
   action: KairoAction,
   profile: UserProfile,
   timezone?: string // User's device timezone
-): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
+): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
   console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
 
@@ -1748,9 +1748,25 @@ async function executeAction(
           const limits: Record<string, number> = { free: 14, plus: 50, super: 280 };
           const limit = limits[planName] || 14;
           
+          // Get current event count for this week
+          const { data: eventCount } = await supabase.rpc('count_user_events_this_week', {
+            _user_id: userId
+          });
+          
+          // Calculate days until week resets (next Sunday)
+          const now = new Date();
+          const dayOfWeek = now.getDay(); // 0 = Sunday
+          const daysUntilReset = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
+          
           return { 
             success: false, 
             limitReached: true,
+            limitData: {
+              currentPlan: planName,
+              eventsUsed: eventCount || limit,
+              eventsLimit: limit,
+              daysUntilReset
+            },
             error: `Você atingiu o limite de ${limit} eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos.`
           };
         }
@@ -3225,7 +3241,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     console.log('Parsed action:', action);
 
-    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any; eventId?: string; limitReached?: boolean; noIdReturned?: boolean } = { success: true };
+    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any; eventId?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; noIdReturned?: boolean } = { success: true };
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
@@ -3295,7 +3311,9 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
       eventos: listedEvents, // Include structured events for list action
       weeklyReportData: action.weeklyReportData, // Weekly report data
       weeklyReportNotReady: action.weeklyReportNotReady, // Weekly report not ready data
-      weatherData: action.weatherData // Weather forecast data
+      weatherData: action.weatherData, // Weather forecast data
+      limitReached: executionResult.limitReached, // Limit reached flag
+      limitData: executionResult.limitData // Limit data for UpgradePlanCard
     };
     
     console.log('[SSE] Action data prepared:', { 

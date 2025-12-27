@@ -30,6 +30,7 @@ import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
 import CallNotificationCard from "@/components/chat/CallNotificationCard";
 import PushNotificationCard from "@/components/chat/PushNotificationCard";
+import UpgradePlanCard from "@/components/chat/UpgradePlanCard";
 
 type ViewType = 'chat' | 'list' | 'calendar';
 
@@ -98,6 +99,12 @@ interface Message {
     eventTime: string;
     notificationSentAt: string;
   };
+  limitReachedData?: { // For showing upgrade plan card when limit is reached
+    currentPlan: string;
+    eventsUsed: number;
+    eventsLimit: number;
+    daysUntilReset: number;
+  };
 }
 
 interface ExecutedAction {
@@ -133,6 +140,13 @@ interface ExecutedAction {
     daysRemaining: number;
   };
   weatherData?: any; // Weather forecast data
+  limitReached?: boolean; // Limit reached flag
+  limitData?: { // Limit data for UpgradePlanCard
+    currentPlan: string;
+    eventsUsed: number;
+    eventsLimit: number;
+    daysUntilReset: number;
+  };
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -331,6 +345,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       weatherData: m.metadata?.weatherData,
       callNotificationData: m.metadata?.callNotificationData,
       pushNotificationData: m.metadata?.pushNotificationData,
+      limitReachedData: m.metadata?.limitReachedData,
     };
   };
 
@@ -731,6 +746,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       let finalWeeklyReportData: any = undefined; // Track weekly report data for persistence
       let finalWeeklyReportNotReady: any = undefined; // Track weekly report not ready data
       let finalWeatherData: any = undefined; // Track weather forecast data for persistence
+      let finalLimitReachedData: any = undefined; // Track limit reached data for UpgradePlanCard
 
       setMessages(prev => [...prev, {
         id: assistantId,
@@ -1102,6 +1118,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     finalWeatherData = weatherData;
                   }
                   
+                  // Check if LIMIT REACHED
+                  const limitReachedAction = executedActions.find(a => a.limitReached && a.limitData);
+                  let limitReachedData = undefined;
+                  
+                  if (limitReachedAction?.limitData) {
+                    limitReachedData = limitReachedAction.limitData;
+                    console.log('[ChatPage] Limit reached:', limitReachedData);
+                    finalLimitReachedData = limitReachedData;
+                  }
+                  
                   console.log('[ChatPage] List events processing:', { 
                     listAction: !!listAction, 
                     listedEvents: listedEvents?.length || 0 
@@ -1121,6 +1147,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       weeklyReportData,
                       weeklyReportNotReady,
                       weatherData,
+                      limitReachedData,
                     } : m
                   ));
 
@@ -1180,8 +1207,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         executedActions: executedActions.map(a => ({ action: a.action, success: a.success })),
       });
       
-      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData) {
-        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData) 
+      if (assistantContent || finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData || finalLimitReachedData) {
+        const metadata = (finalEventData || finalDeletedEventData || finalEventsListData || finalPastDateData || finalWeeklyReportData || finalWeeklyReportNotReady || finalWeatherData || finalLimitReachedData) 
           ? { 
               eventData: finalEventData, 
               deletedEventData: finalDeletedEventData, 
@@ -1190,6 +1217,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               weeklyReportData: finalWeeklyReportData,
               weeklyReportNotReady: finalWeeklyReportNotReady,
               weatherData: finalWeatherData,
+              limitReachedData: finalLimitReachedData,
             }
           : undefined;
         
@@ -1861,6 +1889,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           eventTime={message.pushNotificationData.eventTime}
                           notificationSentAt={message.pushNotificationData.notificationSentAt}
                         />
+                      </div>
+                    )}
+                    
+                    {/* Upgrade Plan Card - when event limit is reached */}
+                    {message.limitReachedData && (
+                      <div className="pl-9 animate-fade-in">
+                        <UpgradePlanCard limitData={message.limitReachedData} />
                       </div>
                     )}
                     
