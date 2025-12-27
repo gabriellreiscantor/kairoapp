@@ -231,26 +231,32 @@ Deno.serve(async (req) => {
 
     for (const event of callAlertEvents || []) {
       try {
-        // LIGHT LOCK CHECK: Check if already being processed by another instance
-        // We do NOT acquire lock here - lock is acquired AFTER successful VoIP
-        const { data: lockCheck, error: lockError } = await supabase
+        // ATOMIC LOCK: Use UPDATE with RETURNING to atomically acquire processing lock
+        // This prevents race condition where two cron instances process the same event
+        // We use a temporary "processing" marker, then update to final value after success
+        const processingMarker = `processing_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        
+        const { data: lockedEvent, error: lockError } = await supabase
           .from('events')
-          .select('call_alert_sent_at')
+          .update({ call_alert_outcome: processingMarker })
           .eq('id', event.id)
+          .is('call_alert_sent_at', null) // Only if not already processed
+          .not('call_alert_outcome', 'ilike', 'processing_%') // Only if not being processed by another instance
+          .select('id, title, event_date, event_time, location, user_id, emoji')
           .maybeSingle();
         
         if (lockError) {
-          console.error(`Error checking lock for event ${event.id}:`, lockError);
+          console.error(`Error acquiring atomic lock for event ${event.id}:`, lockError);
           continue;
         }
         
-        // If already sent (by another instance), skip
-        if (lockCheck?.call_alert_sent_at) {
-          console.log(`Event ${event.id} already processed by another instance, skipping`);
+        // If no rows returned, another instance already grabbed this event
+        if (!lockedEvent) {
+          console.log(`Event ${event.id} already being processed by another instance (atomic lock failed), skipping`);
           continue;
         }
         
-        console.log(`Processing event ${event.id} - lock not yet acquired, will acquire AFTER successful notification`);
+        console.log(`[ATOMIC LOCK] Acquired processing lock for event ${event.id} with marker: ${processingMarker}`);
 
         // Fetch user profile with notification preferences, timezone and language
         const { data: profile, error: profileError } = await supabase
@@ -540,24 +546,29 @@ Deno.serve(async (req) => {
       
       for (const event of pushNotifEvents || []) {
         try {
-          // OPTIMISTIC LOCK for push notifications too
-          const { data: lockCheck } = await supabase
+          // ATOMIC LOCK for push notifications - use UPDATE with condition to prevent race
+          const pushLockTime = new Date().toISOString();
+          
+          const { data: lockedPushEvent, error: pushLockError } = await supabase
             .from('events')
-            .select('notification_sent_at')
+            .update({ notification_sent_at: pushLockTime })
             .eq('id', event.id)
+            .is('notification_sent_at', null) // Only if not already sent
+            .select('id, title, event_date, event_time, location, user_id, emoji')
             .maybeSingle();
           
-          if (lockCheck?.notification_sent_at) {
-            console.log(`Push notification for event ${event.id} already sent, skipping`);
+          if (pushLockError) {
+            console.error(`Error acquiring atomic lock for push notification ${event.id}:`, pushLockError);
             continue;
           }
           
-          const lockTime = new Date().toISOString();
-          await supabase
-            .from('events')
-            .update({ notification_sent_at: lockTime })
-            .eq('id', event.id)
-            .is('notification_sent_at', null);
+          // If no rows returned, another instance already grabbed this event
+          if (!lockedPushEvent) {
+            console.log(`Push notification for event ${event.id} already being processed by another instance, skipping`);
+            continue;
+          }
+          
+          console.log(`[ATOMIC LOCK] Acquired push notification lock for event ${event.id}`);
           
           // Fetch user profile
           const { data: profile } = await supabase
