@@ -134,7 +134,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
         console.log('[CallKit] Updated profile:', JSON.stringify(data));
         console.log('[CallKit] VoIP token is now active in database!');
-        pendingTokenRef.current = null;
+        // Note: We intentionally keep pendingTokenRef as backup
+        // It will be cleared on next successful check or when not needed
         remoteLog.info('voip', 'token_saved_success', {
           userId: user.id.substring(0, 8) + '...',
           tokenLength: token?.length,
@@ -293,9 +294,21 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           });
           
           if (data?.value) {
+            // ✅ CRITICAL FIX: ALWAYS store token as backup FIRST, before attempting to save
+            // This ensures we never lose the token even if the user isn't logged in yet
+            console.log('[CallKit] 🔒 Storing token in pendingTokenRef as backup...');
+            pendingTokenRef.current = data.value;
+            remoteLog.info('voip', 'token_stored_in_pending', {
+              tokenLength: data.value.length,
+            });
+            
+            // Now try to save to DB (will only succeed if user is logged in)
             const saved = await saveVoIPToken(data.value);
-            console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'FAILED');
-            remoteLog.info('voip', 'token_save_result', { success: saved });
+            console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'DEFERRED (will save on login)');
+            remoteLog.info('voip', 'token_save_result', { 
+              success: saved,
+              pendingTokenStored: !!pendingTokenRef.current,
+            });
           } else {
             console.error('[CallKit] No value in registration data! Keys received:', Object.keys(data || {}));
             remoteLog.error('voip', 'token_missing_in_data', { 
