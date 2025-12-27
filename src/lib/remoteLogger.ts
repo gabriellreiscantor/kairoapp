@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
+import * as Sentry from '@sentry/react';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -90,8 +91,34 @@ class RemoteLogger {
       default:
         console.log(prefix, logData);
     }
+
+    // ALWAYS send to Sentry (works on ALL platforms including iOS native!)
+    try {
+      const message = `[${entry.category}:${entry.event}]`;
+      const sentryData = {
+        category: entry.category,
+        event: entry.event,
+        device: this.device,
+        userId: this.userId?.substring(0, 8) || 'anonymous',
+        ...entry.data,
+      };
+
+      if (entry.level === 'error') {
+        Sentry.captureMessage(message, {
+          level: 'error',
+          extra: sentryData,
+        });
+      } else if (entry.level === 'warn') {
+        Sentry.logger.warn(message, sentryData);
+      } else {
+        Sentry.logger.info(message, sentryData);
+      }
+    } catch (sentryError) {
+      // Silently fail Sentry logging to avoid infinite loops
+      console.debug('[RemoteLogger] Sentry logging failed:', sentryError);
+    }
     
-    // Only send to remote if enabled and on native platform
+    // Only send to Supabase remote-log if enabled and on native platform
     if (!this.isEnabled || !Capacitor.isNativePlatform()) return;
 
     const queuedLog: QueuedLog = {
