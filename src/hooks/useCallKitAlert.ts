@@ -683,7 +683,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] Event:', eventType);
       console.log('[CallKit] User ID:', userId.substring(0, 8));
       
-      remoteLog.info('voip', 'force_associate_device_start_v3', {
+      remoteLog.info('voip', 'force_associate_device_start_v5', {
         event: eventType,
         userId: userId.substring(0, 8) + '...',
         hasPendingToken: !!pendingTokenRef.current,
@@ -697,7 +697,35 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         console.log('[CallKit] Native Device ID (IDFV):', deviceId.substring(0, 8) + '...');
         
-        // ✅ STEP 1: Check if this NATIVE device_id already has a token in the database
+        // ✅ STEP 1: Call claim-device Edge Function (bypasses RLS via SERVICE_ROLE)
+        // This is the RELIABLE way to associate device with user regardless of RLS
+        console.log('[CallKit] 🔄 Calling claim-device Edge Function...');
+        
+        const { data: claimResult, error: claimError } = await supabase.functions.invoke('claim-device', {
+          body: { device_id: deviceId }
+        });
+        
+        if (claimError) {
+          console.error('[CallKit] ❌ claim-device failed:', claimError);
+          remoteLog.error('voip', 'claim_device_failed_v5', { 
+            error: claimError.message,
+            deviceId: deviceId.substring(0, 8),
+          });
+        } else {
+          console.log('[CallKit] ✅ claim-device result:', claimResult);
+          remoteLog.info('voip', 'claim_device_success_v5', {
+            deviceId: deviceId.substring(0, 8),
+            result: claimResult,
+          });
+          
+          // If device was claimed and has token, we're done
+          if (claimResult?.claimed && claimResult?.has_token) {
+            console.log('[CallKit] ✅ Device claimed with token! VoIP ready.');
+            return;
+          }
+        }
+        
+        // ✅ STEP 2: Also check locally if we have token for immediate use
         const { data: existingDevice } = await supabase
           .from('devices')
           .select('user_id, voip_token, device_id')
@@ -705,155 +733,22 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           .maybeSingle();
         
         const hasExistingToken = !!(existingDevice?.voip_token);
-        const currentDbUserId = existingDevice?.user_id;
         
-        console.log('[CallKit] DB State (by native device_id):', {
-          hasExistingToken,
-          existingTokenLength: existingDevice?.voip_token?.length || 0,
-          currentDbUserId: currentDbUserId?.substring(0, 8) || 'none',
-          needsUpdate: currentDbUserId !== userId,
-        });
-        
-        remoteLog.info('voip', 'db_state_check_v4_native', {
-          deviceId: deviceId.substring(0, 8),
+        console.log('[CallKit] Local DB check:', {
           hasExistingToken,
           tokenLength: existingDevice?.voip_token?.length || 0,
-          currentDbUserId: currentDbUserId?.substring(0, 8) || 'none',
-          newUserId: userId.substring(0, 8),
-          needsUpdate: currentDbUserId !== userId,
         });
         
-        // ✅ STEP 2: If token already exists for native device_id, just UPDATE the user_id
         if (hasExistingToken) {
-          console.log('[CallKit] ✅ TOKEN ALREADY EXISTS FOR NATIVE DEVICE_ID! Just updating user_id association...');
-          
           // Store token in memory for immediate use
           pendingTokenRef.current = existingDevice.voip_token;
-          
-          if (currentDbUserId === userId) {
-            console.log('[CallKit] ✅ Device already correctly associated with this user');
-            remoteLog.info('voip', 'device_already_correct_user_v4', {
-              deviceId: deviceId.substring(0, 8),
-              userId: userId.substring(0, 8),
-            });
-            return; // Nothing to do!
-          }
-          
-          // Update user_id only - keep existing token
-          console.log('[CallKit] 🔄 Updating user_id from', currentDbUserId?.substring(0, 8) || 'none', '→', userId.substring(0, 8));
-          
-          const { error: updateError, data: updateData } = await supabase
-            .from('devices')
-            .update({
-              user_id: userId,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('device_id', deviceId)
-            .select();
-          
-          if (updateError) {
-            console.error('[CallKit] ❌ Update user_id failed:', updateError);
-            remoteLog.error('voip', 'update_user_id_failed_v4', { 
-              error: updateError.message,
-              deviceId: deviceId.substring(0, 8),
-            });
-          } else {
-            console.log('[CallKit] ✅ USER_ID UPDATED SUCCESSFULLY!', updateData);
-            remoteLog.info('voip', 'user_id_updated_success_v4', {
-              deviceId: deviceId.substring(0, 8),
-              oldUserId: currentDbUserId?.substring(0, 8) || 'none',
-              newUserId: userId.substring(0, 8),
-              tokenPreserved: true,
-            });
-          }
+          console.log('[CallKit] ✅ Token loaded to memory');
           return;
         }
         
-        // ✅ STEP 2.5: MIGRATION - No token for native device_id, but check if user has a token with OLD device_id
-        console.log('[CallKit] 🔄 MIGRATION CHECK: Looking for token by user_id (old device_id)...');
-        
-        const { data: userDevices } = await supabase
-          .from('devices')
-          .select('device_id, voip_token')
-          .eq('user_id', userId)
-          .not('voip_token', 'is', null);
-        
-        if (userDevices && userDevices.length > 0) {
-          const oldDevice = userDevices[0];
-          console.log('[CallKit] ✅ MIGRATION: Found token with OLD device_id:', oldDevice.device_id.substring(0, 8) + '...');
-          console.log('[CallKit] 🔄 Migrating to NATIVE device_id:', deviceId.substring(0, 8) + '...');
-          
-          remoteLog.info('voip', 'migration_found_old_token_v4', {
-            oldDeviceId: oldDevice.device_id.substring(0, 8),
-            newDeviceId: deviceId.substring(0, 8),
-            tokenLength: oldDevice.voip_token?.length,
-          });
-          
-          // Store token in memory
-          pendingTokenRef.current = oldDevice.voip_token;
-          
-          // Update the device_id to the new native one
-          const { error: migrationError, data: migrationData } = await supabase
-            .from('devices')
-            .update({
-              device_id: deviceId,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('device_id', oldDevice.device_id)
-            .eq('user_id', userId)
-            .select();
-          
-          if (migrationError) {
-            console.error('[CallKit] ❌ Migration failed:', migrationError);
-            remoteLog.error('voip', 'migration_update_failed_v4', { 
-              error: migrationError.message,
-              oldDeviceId: oldDevice.device_id.substring(0, 8),
-              newDeviceId: deviceId.substring(0, 8),
-            });
-          } else {
-            console.log('[CallKit] ✅ MIGRATION COMPLETE! Token now uses native device_id');
-            console.log('[CallKit] Migration result:', migrationData);
-            remoteLog.info('voip', 'migration_success_v4', {
-              oldDeviceId: oldDevice.device_id.substring(0, 8),
-              newDeviceId: deviceId.substring(0, 8),
-              userId: userId.substring(0, 8),
-              tokenPreserved: true,
-            });
-          }
-          return;
-        }
-        
-        console.log('[CallKit] No token found for user_id either, checking memory...');
-        
-        // ✅ STEP 3: No token in DB for this device_id or user_id. Check if we have one in memory.
+        // ✅ STEP 3: No token in local DB. Check if we have one in memory.
         if (pendingTokenRef.current) {
-          console.log('[CallKit] Token in memory, saving to DB with new user_id...');
-          
-          const { error: upsertError, data: upsertData } = await supabase
-            .from('devices')
-            .upsert({
-              device_id: deviceId,
-              user_id: userId,
-              voip_token: pendingTokenRef.current,
-              platform: 'ios',
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'device_id'
-            })
-            .select();
-          
-          if (upsertError) {
-            console.error('[CallKit] Upsert failed:', upsertError);
-            remoteLog.error('voip', 'upsert_from_memory_failed_v4', { 
-              error: upsertError.message,
-            });
-          } else {
-            console.log('[CallKit] ✅ Token from memory saved!', upsertData);
-            remoteLog.info('voip', 'upsert_from_memory_success_v4', {
-              deviceId: deviceId.substring(0, 8),
-              userId: userId.substring(0, 8),
-            });
-          }
+          console.log('[CallKit] Token in memory, saving to DB via claim-device already handled...');
           return;
         }
         
