@@ -18,6 +18,7 @@ interface CallKitContextType {
   handleSnooze: () => void;
   isPlaying: boolean;
   registerVoIPToken: () => Promise<{ success: boolean; message: string }>;
+  resetVoIPState: () => Promise<void>;
 }
 
 const CallKitContext = createContext<CallKitContextType | null>(null);

@@ -283,7 +283,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     remoteLog.info('auth', 'logout');
     
-    // ✅ NEW: Disassociate device from user (don't delete the token!)
+    // ✅ CRITICAL: Reset VoIP state BEFORE logout
+    // This resets PKPushRegistry/CXProvider state so next account works
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+        console.log('[Auth] Resetting VoIP state before logout...');
+        
+        // Dynamically get the CallKit context to reset state
+        // We can't use useCallKit here (hooks in hooks), so we emit a custom event
+        window.dispatchEvent(new CustomEvent('horah:reset-voip'));
+        
+        // Give time for reset to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[Auth] VoIP reset event dispatched');
+      }
+    } catch (error) {
+      console.error('[Auth] Error resetting VoIP state:', error);
+      remoteLog.error('voip', 'reset_on_logout_failed', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+    
+    // ✅ Disassociate device from user (don't delete the token!)
     // VoIP token stays on the device, only user_id is cleared
     if (user) {
       try {
