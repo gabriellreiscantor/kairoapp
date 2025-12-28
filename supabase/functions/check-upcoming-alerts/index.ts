@@ -315,24 +315,24 @@ Deno.serve(async (req) => {
 
         // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
         if (criticalAlertsEnabled) {
-          console.log(`[VoIP PRE-CHECK] Checking voip_token for user ${event.user_id}...`);
+          console.log(`[VoIP PRE-CHECK] Checking devices table for user ${event.user_id}...`);
           
-          // CRITICAL: Check if user has voip_token BEFORE trying to call VoIP
-          const { data: voipProfile, error: voipProfileError } = await supabase
-            .from('profiles')
+          // ✅ NEW: Check devices table instead of profiles
+          const { data: deviceData, error: deviceError } = await supabase
+            .from('devices')
             .select('voip_token')
-            .eq('id', event.user_id)
+            .eq('user_id', event.user_id)
+            .limit(1)
             .maybeSingle();
           
-          if (voipProfileError) {
-            console.error(`[VoIP] Error fetching voip_token for user ${event.user_id}:`, voipProfileError);
-            voipFailureReason = 'profile_fetch_error';
-          } else if (!voipProfile?.voip_token) {
-            console.log(`[VoIP] User ${event.user_id} has NO voip_token - cannot send VoIP call`);
-            console.log(`[VoIP] voip_token value: ${voipProfile?.voip_token || 'NULL/UNDEFINED'}`);
+          if (deviceError) {
+            console.error(`[VoIP] Error fetching device for user ${event.user_id}:`, deviceError);
+            voipFailureReason = 'device_fetch_error';
+          } else if (!deviceData?.voip_token) {
+            console.log(`[VoIP] User ${event.user_id} has NO device with voip_token - cannot send VoIP call`);
             voipFailureReason = 'no_voip_token';
           } else {
-            console.log(`[VoIP] User ${event.user_id} has voip_token (${voipProfile.voip_token.substring(0, 20)}...)`);
+            console.log(`[VoIP] User ${event.user_id} has voip_token (${deviceData.voip_token.substring(0, 20)}...)`);
             console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})`);
             
             try {

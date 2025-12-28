@@ -76,6 +76,33 @@ export type Database = {
         }
         Relationships: []
       }
+      devices: {
+        Row: {
+          created_at: string
+          device_id: string
+          platform: string
+          updated_at: string
+          user_id: string | null
+          voip_token: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          platform?: string
+          updated_at?: string
+          user_id?: string | null
+          voip_token: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string | null
+          voip_token?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           alerts: Json | null
@@ -242,7 +269,6 @@ export type Database = {
           user_latitude: number | null
           user_longitude: number | null
           vibration_enabled: boolean
-          voip_token: string | null
           weather_forecast_enabled: boolean | null
           weather_forecast_hour: number | null
           weather_forecast_time: string | null
@@ -280,7 +306,6 @@ export type Database = {
           user_latitude?: number | null
           user_longitude?: number | null
           vibration_enabled?: boolean
-          voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_hour?: number | null
           weather_forecast_time?: string | null
@@ -318,7 +343,6 @@ export type Database = {
           user_latitude?: number | null
           user_longitude?: number | null
           vibration_enabled?: boolean
-          voip_token?: string | null
           weather_forecast_enabled?: boolean | null
           weather_forecast_hour?: number | null
           weather_forecast_time?: string | null

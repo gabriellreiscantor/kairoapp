@@ -265,22 +265,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     remoteLog.info('auth', 'logout');
     
-    // ✅ CRITICAL: Clear voip_token from user profile BEFORE signing out
-    // This ensures the device won't receive calls for this account anymore
+    // ✅ NEW: Disassociate device from user (don't delete the token!)
+    // VoIP token stays on the device, only user_id is cleared
     if (user) {
       try {
-        await supabase
-          .from('profiles')
-          .update({ voip_token: null })
-          .eq('id', user.id);
+        // Import dynamically to avoid circular deps
+        const { getOrCreateDeviceId } = await import('@/hooks/useDeviceId');
+        const deviceId = await getOrCreateDeviceId();
         
-        remoteLog.info('voip', 'token_cleared_on_logout', { 
-          userId: user.id.substring(0, 8) + '...' 
-        });
-        console.log('[Auth] VoIP token cleared on logout for user:', user.id.substring(0, 8));
+        const { error } = await supabase
+          .from('devices')
+          .update({ user_id: null })
+          .eq('device_id', deviceId);
+        
+        if (error) {
+          console.log('[Auth] No device record to update:', error.message);
+        } else {
+          remoteLog.info('voip', 'device_disassociated_on_logout', { 
+            deviceId: deviceId.substring(0, 8) + '...',
+            userId: user.id.substring(0, 8) + '...' 
+          });
+          console.log('[Auth] Device disassociated from user on logout');
+        }
       } catch (error) {
-        console.error('[Auth] Failed to clear voip_token on logout:', error);
-        remoteLog.error('voip', 'token_clear_failed_on_logout', { 
+        console.error('[Auth] Failed to disassociate device on logout:', error);
+        remoteLog.error('voip', 'device_disassociate_failed_on_logout', { 
           error: error instanceof Error ? error.message : String(error) 
         });
       }
