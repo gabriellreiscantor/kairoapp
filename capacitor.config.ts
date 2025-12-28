@@ -5,7 +5,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const config: CapacitorConfig = {
   appId: 'com.kairo',
-  appName: 'Kairo',
+  appName: 'Horah',
   webDir: 'dist',
   
   // Cor de fundo do WebView - combina com o splash do polvo

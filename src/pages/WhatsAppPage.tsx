@@ -75,7 +75,7 @@ const WhatsAppPage = () => {
           <div className="flex items-center gap-4 mb-4">
             <FoxIcon size={48} />
             <div>
-              <p className="text-foreground font-medium">Kairo</p>
+              <p className="text-foreground font-medium">Horah</p>
               <p className="text-xs text-muted-foreground">
                 Assistente inteligente
               </p>
@@ -83,7 +83,7 @@ const WhatsAppPage = () => {
           </div>
 
           <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-            Envie mensagens em linguagem natural e o Kairo entende. Crie,
+            Envie mensagens em linguagem natural e o Horah entende. Crie,
             edite ou consulte eventos apenas conversando.
           </p>
 
