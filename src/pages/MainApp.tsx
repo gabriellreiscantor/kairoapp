@@ -279,7 +279,41 @@ const MainApp = () => {
             onClearInitialEditMessage={() => setInitialEditMessage(null)}
           />
           
-          {/* Botão de teste VoIP temporário */}
+          {/* Botão para FORÇAR registro do Token VoIP - DEBUG */}
+          <button
+            onClick={async () => {
+              toast({ title: '🔄 Forçando registro VoIP...', description: 'Aguardando token do iOS' });
+              
+              try {
+                const result = await registerVoIPToken();
+                
+                if (result.success) {
+                  toast({ 
+                    title: '✅ Registro VoIP iniciado!', 
+                    description: result.message,
+                  });
+                } else {
+                  toast({ 
+                    title: '❌ Falha no registro VoIP', 
+                    description: result.message,
+                    variant: 'destructive'
+                  });
+                }
+              } catch (err) {
+                console.error('[Force VoIP] Exception:', err);
+                toast({ 
+                  title: '❌ Erro ao forçar registro', 
+                  description: String(err),
+                  variant: 'destructive'
+                });
+              }
+            }}
+            className="fixed bottom-24 right-20 z-50 w-14 h-14 rounded-full bg-blue-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          >
+            🔑
+          </button>
+          
+          {/* Botão para ENVIAR VoIP push - DEBUG */}
           <button
             onClick={async () => {
               if (!user) {
