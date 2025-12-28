@@ -182,75 +182,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         return true;
       }
       
-      // ✅ NEW: Check if there's an ORPHANED token for this user with a DIFFERENT device_id
-      // This handles the case where the device_id changed but the user has a token saved
-      if (userId) {
-        console.log('[CallKit] Checking for orphaned token by user_id...');
-        const { data: existingByUser } = await supabase
-          .from('devices')
-          .select('device_id, voip_token')
-          .eq('user_id', userId)
-          .neq('device_id', nativeDeviceId)
-          .maybeSingle();
-        
-        if (existingByUser?.voip_token) {
-          console.log('[CallKit] ⚠️ ORPHANED TOKEN FOUND! Migrating device_id...');
-          console.log('[CallKit] Old device_id:', existingByUser.device_id.substring(0, 8) + '...');
-          console.log('[CallKit] New device_id (IDFV):', nativeDeviceId.substring(0, 8) + '...');
-          
-          remoteLog.info('voip', 'orphan_token_migration_detected', {
-            oldDeviceId: existingByUser.device_id.substring(0, 8),
-            newDeviceId: nativeDeviceId.substring(0, 8),
-            userId: userId.substring(0, 8),
-          });
-          
-          // Update the device_id to the new native IDFV
-          const { error: orphanMigrationError } = await supabase
-            .from('devices')
-            .update({
-              device_id: nativeDeviceId,
-              voip_token: token, // Also update token in case it changed
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId);
-          
-          if (orphanMigrationError) {
-            console.error('[CallKit] Orphan migration failed:', orphanMigrationError);
-            remoteLog.error('voip', 'orphan_migration_failed', { error: orphanMigrationError.message });
-            
-            // Try delete old + insert new
-            console.log('[CallKit] Trying delete old + insert new approach...');
-            await supabase.from('devices').delete().eq('user_id', userId);
-            const { error: insertError } = await supabase
-              .from('devices')
-              .insert({
-                device_id: nativeDeviceId,
-                voip_token: token,
-                user_id: userId,
-                platform: 'ios',
-                updated_at: new Date().toISOString(),
-              });
-            
-            if (insertError) {
-              console.error('[CallKit] Insert after delete also failed:', insertError);
-              return false;
-            }
-          }
-          
-          console.log('[CallKit] ✅ ORPHANED TOKEN MIGRATED TO NATIVE IDFV!');
-          remoteLog.info('voip', 'orphan_migration_success', {
-            newDeviceId: nativeDeviceId.substring(0, 8),
-          });
-          
-          toast({
-            title: "Me Ligue ativado",
-            description: "Você receberá chamadas nativas para seus lembretes",
-            duration: 3000,
-          });
-          
-          return true;
-        }
-      }
+      // Token lookup by voip_token is the PRIMARY migration strategy
+      // No need for user_id based lookups - the voip_token IS the device identifier
       
       // Normal upsert - token doesn't exist or already has correct device_id
       console.log('[CallKit] Upserting to devices table with native IDFV...');
