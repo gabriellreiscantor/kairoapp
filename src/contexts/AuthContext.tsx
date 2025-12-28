@@ -17,6 +17,7 @@ interface Profile {
   weather_forecast_enabled: boolean;
   weather_forecast_time: string | null;
   preferred_times: any[];
+  user_city: string | null;
 }
 
 interface AuthContextType {
