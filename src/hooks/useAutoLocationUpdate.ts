@@ -72,13 +72,44 @@ export function useAutoLocationUpdate() {
           return;
         }
 
-        // Extract city name (first part before comma)
-        const cityName = address.address.split(',')[0]?.trim();
+        // Get city info with proper format ("Cidade, UF")
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${address.lat}&lon=${address.lon}&format=json&addressdetails=1&zoom=10`,
+          { headers: { 'Accept-Language': 'pt-BR' } }
+        );
         
-        if (!cityName) {
+        if (!response.ok) {
+          console.log('[AutoLocation] Reverse geocode failed');
+          return;
+        }
+        
+        const data = await response.json();
+        if (!data.address) {
+          console.log('[AutoLocation] No address data');
+          return;
+        }
+        
+        // Brazilian state abbreviations
+        const STATE_ABBR: Record<string, string> = {
+          'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM',
+          'Bahia': 'BA', 'Ceará': 'CE', 'Distrito Federal': 'DF', 'Espírito Santo': 'ES',
+          'Goiás': 'GO', 'Maranhão': 'MA', 'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS',
+          'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR',
+          'Pernambuco': 'PE', 'Piauí': 'PI', 'Rio de Janeiro': 'RJ', 'Rio Grande do Norte': 'RN',
+          'Rio Grande do Sul': 'RS', 'Rondônia': 'RO', 'Roraima': 'RR', 'Santa Catarina': 'SC',
+          'São Paulo': 'SP', 'Sergipe': 'SE', 'Tocantins': 'TO',
+        };
+        
+        const city = data.address.city || data.address.town || data.address.village || data.address.municipality;
+        const state = data.address.state || '';
+        const stateAbbr = STATE_ABBR[state] || state.substring(0, 2).toUpperCase();
+        
+        if (!city) {
           console.log('[AutoLocation] Could not extract city name');
           return;
         }
+        
+        const cityName = stateAbbr ? `${city}, ${stateAbbr}` : city;
 
         // Check if city changed
         const cityChanged = cityName !== locationProfile.user_city;

@@ -137,8 +137,34 @@ const SmartTasksPage = () => {
           const address = await getCurrentAddress();
           
           if (address) {
-            // Extract city from address string (first part before comma)
-            const cityName = address.address.split(',')[0]?.trim() || 'Sua cidade';
+            // Get city with proper format using reverse geocode
+            const geoResponse = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${address.lat}&lon=${address.lon}&format=json&addressdetails=1&zoom=10`,
+              { headers: { 'Accept-Language': 'pt-BR' } }
+            );
+            
+            let cityName = 'Sua cidade';
+            
+            if (geoResponse.ok) {
+              const geoData = await geoResponse.json();
+              const STATE_ABBR: Record<string, string> = {
+                'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM',
+                'Bahia': 'BA', 'Ceará': 'CE', 'Distrito Federal': 'DF', 'Espírito Santo': 'ES',
+                'Goiás': 'GO', 'Maranhão': 'MA', 'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS',
+                'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR',
+                'Pernambuco': 'PE', 'Piauí': 'PI', 'Rio de Janeiro': 'RJ', 'Rio Grande do Norte': 'RN',
+                'Rio Grande do Sul': 'RS', 'Rondônia': 'RO', 'Roraima': 'RR', 'Santa Catarina': 'SC',
+                'São Paulo': 'SP', 'Sergipe': 'SE', 'Tocantins': 'TO',
+              };
+              
+              const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.municipality;
+              const state = geoData.address?.state || '';
+              const stateAbbr = STATE_ABBR[state] || state.substring(0, 2).toUpperCase();
+              
+              if (city) {
+                cityName = stateAbbr ? `${city}, ${stateAbbr}` : city;
+              }
+            }
             
             // Save location to profile
             const { error } = await supabase
@@ -192,7 +218,34 @@ const SmartTasksPage = () => {
       const address = await getCurrentAddress();
       
       if (address) {
-        const cityName = address.address.split(',')[0]?.trim() || 'Sua cidade';
+        // Get city with proper format using reverse geocode
+        const geoResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${address.lat}&lon=${address.lon}&format=json&addressdetails=1&zoom=10`,
+          { headers: { 'Accept-Language': 'pt-BR' } }
+        );
+        
+        let cityName = 'Sua cidade';
+        
+        if (geoResponse.ok) {
+          const geoData = await geoResponse.json();
+          const STATE_ABBR: Record<string, string> = {
+            'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM',
+            'Bahia': 'BA', 'Ceará': 'CE', 'Distrito Federal': 'DF', 'Espírito Santo': 'ES',
+            'Goiás': 'GO', 'Maranhão': 'MA', 'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS',
+            'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR',
+            'Pernambuco': 'PE', 'Piauí': 'PI', 'Rio de Janeiro': 'RJ', 'Rio Grande do Norte': 'RN',
+            'Rio Grande do Sul': 'RS', 'Rondônia': 'RO', 'Roraima': 'RR', 'Santa Catarina': 'SC',
+            'São Paulo': 'SP', 'Sergipe': 'SE', 'Tocantins': 'TO',
+          };
+          
+          const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.municipality;
+          const state = geoData.address?.state || '';
+          const stateAbbr = STATE_ABBR[state] || state.substring(0, 2).toUpperCase();
+          
+          if (city) {
+            cityName = stateAbbr ? `${city}, ${stateAbbr}` : city;
+          }
+        }
         
         const { error } = await supabase
           .from('profiles')
