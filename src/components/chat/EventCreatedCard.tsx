@@ -432,21 +432,29 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       if (checked && shouldCallImmediately && user?.id) {
         console.log('[EventCreatedCard] Triggering immediate VoIP call');
         try {
-          const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
-            body: {
-              user_id: user.id,
-              event_id: event.id,
-              event_title: event.title,
-              event_time: event.event_time,
-              event_location: event.location,
-              event_emoji: event.emoji || '📅',
-            },
-          });
+          // Get device_id from localStorage (same as debug button in MainApp)
+          const storedDeviceId = localStorage.getItem('device_id');
           
-          if (voipError) {
-            console.error('[EventCreatedCard] VoIP error:', voipError);
+          if (!storedDeviceId) {
+            console.warn('[EventCreatedCard] No device_id found in localStorage, cannot trigger VoIP');
           } else {
-            console.log('[EventCreatedCard] VoIP call triggered successfully');
+            const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
+              body: {
+                device_id: storedDeviceId, // CRITICAL: device_id is required by send-voip-push
+                user_id: user.id,
+                event_id: event.id,
+                event_title: event.title,
+                event_time: event.event_time,
+                event_location: event.location,
+                event_emoji: event.emoji || '📅',
+              },
+            });
+            
+            if (voipError) {
+              console.error('[EventCreatedCard] VoIP error:', voipError);
+            } else {
+              console.log('[EventCreatedCard] VoIP call triggered successfully with device_id:', storedDeviceId.substring(0, 8) + '...');
+            }
           }
         } catch (voipErr) {
           console.error('[EventCreatedCard] Error triggering VoIP:', voipErr);
