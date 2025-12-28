@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import SplashScreen from "@/components/SplashScreen";
 import MainApp from "@/pages/MainApp";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { remoteLog } from "@/lib/remoteLogger";
 
 type AppState = 'splash' | 'loading' | 'app';
 
@@ -42,6 +42,29 @@ const Index = () => {
     setAppState('loading');
   };
 
+  // Fallback timeout - força transição se travar por mais de 10 segundos
+  useEffect(() => {
+    if (appState !== 'loading') return;
+    
+    const timeout = setTimeout(() => {
+      remoteLog.warn('app_lifecycle', 'loading_timeout', { 
+        hasUser: !!user, 
+        isLoading,
+        waited: '10s' 
+      });
+      
+      // Forçar navegação se ainda travado
+      if (user) {
+        setAppState('app');
+      } else {
+        navigate('/auth');
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeout);
+  }, [appState, user, navigate, isLoading]);
+
+  // Transição normal quando auth carrega
   useEffect(() => {
     if (appState === 'loading' && !isLoading) {
       if (user) {
