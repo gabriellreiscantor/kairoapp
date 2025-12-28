@@ -604,82 +604,131 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     };
   }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
-  // ✅ NEW: Listen for auth state changes to ASSOCIATE device with user
+  // ✅ CRITICAL: Listen for auth state changes to FORCE ASSOCIATE device with current user
   useEffect(() => {
     if (!isIOSNative()) return;
 
-    const associateDeviceWithUser = async (userId: string) => {
-      console.log('[CallKit] ====== ASSOCIATING DEVICE WITH USER (NEW LOGIC) ======');
-      console.log('[CallKit] User logged in:', userId.substring(0, 8));
+    const forceAssociateDeviceWithUser = async (userId: string, eventType: string) => {
+      console.log('[CallKit] ====== FORCE ASSOCIATING DEVICE WITH USER ======');
+      console.log('[CallKit] Event:', eventType);
+      console.log('[CallKit] User ID:', userId.substring(0, 8));
       
-      remoteLog.info('voip', 'associate_device_with_user', {
+      remoteLog.info('voip', 'force_associate_device_start', {
+        event: eventType,
         userId: userId.substring(0, 8) + '...',
         hasPendingToken: !!pendingTokenRef.current,
+        hasDeviceId: !!deviceIdRef.current,
       });
       
-      // Get device_id
-      const deviceId = deviceIdRef.current || await getOrCreateDeviceId();
-      deviceIdRef.current = deviceId;
-      
-      // If we have a pending token, save it now with the user_id
-      if (pendingTokenRef.current) {
-        console.log('[CallKit] Saving pending token with user association...');
-        await saveVoIPToken(pendingTokenRef.current);
-      } else {
-        // Just update user_id on existing device record
-        console.log('[CallKit] Updating device user_id association...');
-        const { data: updateResult, error } = await supabase
-          .from('devices')
-          .update({ 
-            user_id: userId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('device_id', deviceId)
-          .select();
+      try {
+        // Get device_id
+        const deviceId = deviceIdRef.current || await getOrCreateDeviceId();
+        deviceIdRef.current = deviceId;
         
-        if (error) {
-          console.log('[CallKit] Update error, triggering registration...');
-          remoteLog.warn('voip', 'device_update_error', { error: error.message });
-          hasRegisteredRef.current = false;
-          await attemptVoIPRegistration();
-        } else if (!updateResult || updateResult.length === 0) {
-          // ✅ CRITICAL: No rows updated = device_id doesn't exist in table
-          // This happens when device_id changed or never registered
-          console.log('[CallKit] ⚠️ No device record found for this device_id, forcing re-registration...');
-          remoteLog.warn('voip', 'device_not_found_forcing_reregister', {
-            deviceId: deviceId.substring(0, 8),
-            userId: userId.substring(0, 8),
-          });
-          hasRegisteredRef.current = false;
-          await attemptVoIPRegistration();
+        console.log('[CallKit] Device ID:', deviceId.substring(0, 8));
+        
+        // First, check current state of device in database
+        const { data: existingDevice } = await supabase
+          .from('devices')
+          .select('user_id, voip_token')
+          .eq('device_id', deviceId)
+          .maybeSingle();
+        
+        console.log('[CallKit] Existing device in DB:', existingDevice ? {
+          currentUserId: existingDevice.user_id?.substring(0, 8),
+          hasToken: !!existingDevice.voip_token,
+        } : 'NOT FOUND');
+        
+        remoteLog.info('voip', 'device_db_state_before_update', {
+          deviceId: deviceId.substring(0, 8),
+          existingUserId: existingDevice?.user_id?.substring(0, 8) || 'none',
+          hasToken: !!existingDevice?.voip_token,
+          newUserId: userId.substring(0, 8),
+        });
+        
+        // If device exists with different user_id, we need to FORCE update
+        const needsUpdate = !existingDevice || existingDevice.user_id !== userId;
+        
+        if (needsUpdate) {
+          console.log('[CallKit] 🔄 Device needs user_id update (current:', existingDevice?.user_id?.substring(0, 8) || 'none', '→ new:', userId.substring(0, 8), ')');
+          
+          if (pendingTokenRef.current || existingDevice?.voip_token) {
+            // UPSERT with new user_id - this ALWAYS works
+            const tokenToUse = pendingTokenRef.current || existingDevice?.voip_token || '';
+            
+            console.log('[CallKit] Upserting device with new user_id...');
+            const { error: upsertError, data: upsertData } = await supabase
+              .from('devices')
+              .upsert({
+                device_id: deviceId,
+                user_id: userId,
+                voip_token: tokenToUse,
+                platform: 'ios',
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'device_id'
+              })
+              .select();
+            
+            if (upsertError) {
+              console.error('[CallKit] Upsert failed:', upsertError);
+              remoteLog.error('voip', 'device_upsert_failed', { 
+                error: upsertError.message,
+                deviceId: deviceId.substring(0, 8),
+              });
+            } else {
+              console.log('[CallKit] ✅ Device UPSERTED successfully!', upsertData);
+              remoteLog.info('voip', 'device_upserted_success', {
+                deviceId: deviceId.substring(0, 8),
+                userId: userId.substring(0, 8),
+              });
+            }
+          } else {
+            // No token available, need to re-register
+            console.log('[CallKit] ⚠️ No token available, forcing re-registration...');
+            remoteLog.warn('voip', 'no_token_forcing_reregister', {
+              deviceId: deviceId.substring(0, 8),
+              userId: userId.substring(0, 8),
+            });
+            hasRegisteredRef.current = false;
+            await attemptVoIPRegistration();
+          }
         } else {
-          console.log('[CallKit] ✅ Device associated with user');
-          remoteLog.info('voip', 'device_user_associated', {
+          console.log('[CallKit] ✅ Device already associated with correct user');
+          remoteLog.info('voip', 'device_already_correct_user', {
             deviceId: deviceId.substring(0, 8),
             userId: userId.substring(0, 8),
           });
         }
+      } catch (error) {
+        console.error('[CallKit] Error in forceAssociateDeviceWithUser:', error);
+        remoteLog.error('voip', 'force_associate_exception', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[CallKit] Auth state changed:', event);
       
       remoteLog.info('voip', 'auth_state_changed', {
         event,
         hasSession: !!session,
-        userId: session?.user?.id?.substring(0, 8) + '...',
+        userId: session?.user?.id?.substring(0, 8) || 'none',
       });
       
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user?.id) {
-        await associateDeviceWithUser(session.user.id);
+        // Use setTimeout to avoid Supabase auth deadlock
+        setTimeout(() => {
+          forceAssociateDeviceWithUser(session.user.id, event);
+        }, 0);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [saveVoIPToken, attemptVoIPRegistration]);
+  }, [attemptVoIPRegistration]);
 
   // Manual registration function
   const registerVoIPToken = useCallback(async (): Promise<{ success: boolean; message: string }> => {
