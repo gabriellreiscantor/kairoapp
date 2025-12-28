@@ -1,67 +1,48 @@
 import { Capacitor } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
+import { Device } from '@capacitor/device';
 
 const DEVICE_ID_KEY = 'horah_device_id';
 
 /**
- * Generates a UUID v4 for device identification
- */
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-/**
- * Gets or creates a unique device ID
- * - Uses Capacitor Preferences on native (persists in Keychain/SharedPreferences)
- * - Falls back to localStorage on web
- * - NEVER regenerates on login/logout - device ID is permanent
+ * Gets the native device identifier
+ * - iOS: identifierForVendor (IDFV) - permanente, único por vendor
+ * - Android: ANDROID_ID - único por app + user + device
+ * - Web: localStorage fallback com UUID
+ * 
+ * NEVER generates random IDs on native - always uses the OS-provided identifier
  */
 export async function getOrCreateDeviceId(): Promise<string> {
-  // On native, use Capacitor Preferences (secure storage)
+  // On native platforms, ALWAYS use the native identifier (IDFV on iOS)
   if (Capacitor.isNativePlatform()) {
     try {
-      const { value } = await Preferences.get({ key: DEVICE_ID_KEY });
-      
-      if (value) {
-        console.log('[DeviceId] Found existing device_id:', value.substring(0, 8) + '...');
-        return value;
-      }
-      
-      // Generate new device ID
-      const newDeviceId = generateUUID();
-      await Preferences.set({ key: DEVICE_ID_KEY, value: newDeviceId });
-      console.log('[DeviceId] Generated new device_id:', newDeviceId.substring(0, 8) + '...');
-      return newDeviceId;
+      const { identifier } = await Device.getId();
+      console.log('[DeviceId] Native IDFV:', identifier.substring(0, 8) + '...');
+      return identifier;
     } catch (error) {
-      console.error('[DeviceId] Preferences error, falling back to localStorage:', error);
+      console.error('[DeviceId] Failed to get native ID, this should not happen:', error);
+      // This is a critical error on native - log it but still try localStorage
     }
   }
   
-  // Fallback: localStorage (for web or if Preferences fails)
+  // Web fallback: localStorage with generated UUID
   const existingId = localStorage.getItem(DEVICE_ID_KEY);
   if (existingId) {
-    console.log('[DeviceId] Found existing device_id in localStorage:', existingId.substring(0, 8) + '...');
+    console.log('[DeviceId] Web localStorage ID:', existingId.substring(0, 8) + '...');
     return existingId;
   }
   
-  const newDeviceId = generateUUID();
+  // Generate new UUID for web only
+  const newDeviceId = crypto.randomUUID();
   localStorage.setItem(DEVICE_ID_KEY, newDeviceId);
-  console.log('[DeviceId] Generated new device_id (localStorage):', newDeviceId.substring(0, 8) + '...');
+  console.log('[DeviceId] Generated new web ID:', newDeviceId.substring(0, 8) + '...');
   return newDeviceId;
 }
 
 /**
- * Clears the device ID (should NEVER be called in normal operation)
- * Only for debugging/testing purposes
+ * Clears the device ID (DEBUG ONLY - should never be used in production)
+ * Note: On native, this only clears localStorage, the IDFV is permanent
  */
 export async function clearDeviceId(): Promise<void> {
-  if (Capacitor.isNativePlatform()) {
-    await Preferences.remove({ key: DEVICE_ID_KEY });
-  }
   localStorage.removeItem(DEVICE_ID_KEY);
-  console.log('[DeviceId] Device ID cleared (DEBUG ONLY)');
+  console.log('[DeviceId] Web device ID cleared (DEBUG ONLY)');
 }
