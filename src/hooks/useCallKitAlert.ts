@@ -719,6 +719,8 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       window.removeEventListener('horah:reset-voip', handleResetVoIP);
     };
   }, [forceCleanupAllState]);
+
+  // ✅ CRITICAL: Listen for auth state changes to FORCE ASSOCIATE device with current user
   // ✅ FIX: ALWAYS reuse existing token from DB instead of trying to get new one from iOS
   useEffect(() => {
     if (!isIOSNative()) return;
