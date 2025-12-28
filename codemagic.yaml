@@ -51,6 +51,7 @@ workflows:
               private var currentCallUUID: UUID?
               private var silencePlayer: AVAudioPlayer?
               private var currentEventData: [String: Any] = [:]  // Store event data for TTS
+              private var voipRegistry: PKPushRegistry?  // MUST be class property to prevent ARC deallocation
               
               @objc override public func load() {
                   let config = CXProviderConfiguration(localizedName: "Kairo")
@@ -63,9 +64,10 @@ workflows:
                   provider = CXProvider(configuration: config)
                   provider?.setDelegate(self, queue: nil)
                   
-                  let voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
-                  voipRegistry.delegate = self
-                  voipRegistry.desiredPushTypes = [.voIP]
+                  // VoIP registry MUST be stored as class property to keep it alive
+                  voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
+                  voipRegistry?.delegate = self
+                  voipRegistry?.desiredPushTypes = [.voIP]
               }
               
               // Start audio anchor - plays silence.caf in loop to keep call alive
