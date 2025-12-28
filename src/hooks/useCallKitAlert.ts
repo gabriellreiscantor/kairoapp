@@ -757,85 +757,96 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     if (!isIOSNative()) return;
 
     const checkAndRegisterVoIPToken = async (userId: string) => {
-      console.log('[CallKit] ====== PROACTIVE VOIP TOKEN CHECK ======');
-      console.log('[CallKit] Checking voip_token for user:', userId);
+      console.log('[CallKit] ====== PROACTIVE VOIP TOKEN CHECK (NEW LOGIC) ======');
+      console.log('[CallKit] User logged in:', userId.substring(0, 8));
       
       // REMOTE LOG: Proactive check start
-      remoteLog.info('voip', 'proactive_check_start', {
+      remoteLog.info('voip', 'proactive_check_start_v2', {
         userId: userId.substring(0, 8) + '...',
-      });
-      
-      // 1. Check if user already has voip_token in database
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('voip_token')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('[CallKit] Error fetching profile:', error);
-        remoteLog.error('voip', 'proactive_check_profile_error', { error: error.message });
-      }
-      
-      const hasTokenInDB = !!profile?.voip_token;
-      remoteLog.info('voip', 'proactive_check_db_result', {
-        hasTokenInDB,
-        tokenLength: profile?.voip_token?.length,
-      });
-      
-      if (hasTokenInDB) {
-        console.log('[CallKit] ✅ User already has voip_token in DB, no action needed');
-        return;
-      }
-      
-      console.log('[CallKit] ⚠️ User has NO voip_token in DB, will try to save...');
-      console.log('[CallKit] Current pendingTokenRef:', pendingTokenRef.current ? 'EXISTS' : 'NULL');
-      
-      remoteLog.warn('voip', 'proactive_check_no_token', {
         hasPendingToken: !!pendingTokenRef.current,
         pendingTokenLength: pendingTokenRef.current?.length,
       });
       
-      // 2. If we have a pending token, save it immediately
-      if (pendingTokenRef.current) {
-        console.log('[CallKit] Found pending token, saving immediately...');
-        remoteLog.info('voip', 'proactive_saving_pending_token');
-        await saveVoIPToken(pendingTokenRef.current);
+      // ✅ NEW LOGIC: Token is tied to DEVICE, not user
+      // We must ALWAYS associate the current device's token with the logged-in user
+      
+      // 1. Get the current token from this device (from pendingTokenRef or force registration)
+      let deviceToken = pendingTokenRef.current;
+      
+      if (!deviceToken) {
+        console.log('[CallKit] No pending token, forcing registration to get device token...');
+        remoteLog.info('voip', 'forcing_registration_for_token');
+        
+        hasRegisteredRef.current = false;
+        await attemptVoIPRegistration();
+        
+        // Wait for iOS callback
+        console.log('[CallKit] Waiting 3s for iOS token callback...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        deviceToken = pendingTokenRef.current;
+        
+        if (!deviceToken) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          deviceToken = pendingTokenRef.current;
+        }
+      }
+      
+      if (!deviceToken) {
+        console.log('[CallKit] ❌ No device token available');
+        remoteLog.error('voip', 'no_device_token_available');
         return;
       }
       
-      // 3. No pending token - force re-registration
-      console.log('[CallKit] No pending token, forcing re-registration...');
-      remoteLog.info('voip', 'proactive_forcing_reregistration');
-      hasRegisteredRef.current = false;
-      await attemptVoIPRegistration();
+      console.log('[CallKit] Device token available:', deviceToken.substring(0, 20) + '...');
       
-      // 4. Wait for iOS callback to arrive (can take 1-3 seconds)
-      console.log('[CallKit] Waiting 3 seconds for iOS registration callback...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // 2. Check if this token is currently assigned to ANOTHER user (conflict resolution)
+      const { data: conflictingUser, error: conflictError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('voip_token', deviceToken)
+        .neq('id', userId)
+        .maybeSingle();
       
-      // 5. Check again if token arrived
-      if (pendingTokenRef.current) {
-        console.log('[CallKit] ✅ Token arrived after wait, saving now...');
-        remoteLog.info('voip', 'proactive_token_arrived_first_wait');
-        await saveVoIPToken(pendingTokenRef.current);
-      } else {
-        console.log('[CallKit] ❌ Token still not available after wait');
-        remoteLog.warn('voip', 'proactive_token_not_arrived_first_wait');
+      if (conflictError) {
+        console.error('[CallKit] Error checking for conflicting user:', conflictError);
+        remoteLog.error('voip', 'conflict_check_error', { error: conflictError.message });
+      }
+      
+      if (conflictingUser) {
+        console.log('[CallKit] ⚠️ Token is assigned to another user, clearing it...');
+        console.log('[CallKit] Clearing token from user:', conflictingUser.id.substring(0, 8));
         
-        // One more attempt after extra wait
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        if (pendingTokenRef.current) {
-          console.log('[CallKit] ✅ Token arrived on second check, saving...');
-          remoteLog.info('voip', 'proactive_token_arrived_second_wait');
-          await saveVoIPToken(pendingTokenRef.current);
+        remoteLog.warn('voip', 'token_conflict_detected', {
+          currentUserId: userId.substring(0, 8),
+          conflictingUserId: conflictingUser.id.substring(0, 8),
+        });
+        
+        // Clear token from the previous user
+        const { error: clearError } = await supabase
+          .from('profiles')
+          .update({ voip_token: null })
+          .eq('id', conflictingUser.id);
+        
+        if (clearError) {
+          console.error('[CallKit] Failed to clear conflicting token:', clearError);
+          remoteLog.error('voip', 'conflict_clear_failed', { error: clearError.message });
         } else {
-          console.log('[CallKit] ❌ VoIP token registration failed - token never arrived');
-          remoteLog.error('voip', 'proactive_token_never_arrived', {
-            message: 'VoIP token registration failed - token never arrived from iOS',
+          console.log('[CallKit] ✅ Cleared token from previous user');
+          remoteLog.info('voip', 'conflict_resolved', {
+            clearedFrom: conflictingUser.id.substring(0, 8),
+            assigningTo: userId.substring(0, 8),
           });
         }
       }
+      
+      // 3. Save token to current user (ALWAYS, even if they already had one in DB)
+      console.log('[CallKit] Saving device token to current user...');
+      await saveVoIPToken(deviceToken);
+      
+      remoteLog.info('voip', 'token_assigned_to_user', {
+        userId: userId.substring(0, 8),
+        tokenLength: deviceToken.length,
+      });
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {

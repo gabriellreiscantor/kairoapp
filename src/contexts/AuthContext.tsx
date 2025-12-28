@@ -251,6 +251,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     remoteLog.info('auth', 'logout');
     
+    // ✅ CRITICAL: Clear voip_token from user profile BEFORE signing out
+    // This ensures the device won't receive calls for this account anymore
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ voip_token: null })
+          .eq('id', user.id);
+        
+        remoteLog.info('voip', 'token_cleared_on_logout', { 
+          userId: user.id.substring(0, 8) + '...' 
+        });
+        console.log('[Auth] VoIP token cleared on logout for user:', user.id.substring(0, 8));
+      } catch (error) {
+        console.error('[Auth] Failed to clear voip_token on logout:', error);
+        remoteLog.error('voip', 'token_clear_failed_on_logout', { 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+      }
+    }
+    
     await supabase.auth.signOut();
     localStorage.removeItem("kairo-logged-in");
     setUser(null);
