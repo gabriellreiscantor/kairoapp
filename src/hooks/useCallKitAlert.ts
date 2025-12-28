@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { remoteLog } from '@/lib/remoteLogger';
+import { getOrCreateDeviceId } from '@/hooks/useDeviceId';
 
 interface CallKitEvent {
   id: string;
@@ -41,32 +42,30 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const callKitPluginRef = useRef<any>(null);
   const hasRegisteredRef = useRef(false);
   const pendingTokenRef = useRef<string | null>(null);
-  const preloadedTTSRef = useRef<string | null>(null); // Pre-loaded TTS audio base64
-  const preloadingTTSRef = useRef<Promise<string | null> | null>(null); // TTS loading promise
-  const hasInitializedRef = useRef(false); // Prevent double initialization
-  const safetyTimeoutRef = useRef<number | null>(null); // Safety timeout to prevent stuck state
+  const preloadedTTSRef = useRef<string | null>(null);
+  const preloadingTTSRef = useRef<Promise<string | null> | null>(null);
+  const hasInitializedRef = useRef(false);
+  const safetyTimeoutRef = useRef<number | null>(null);
+  const deviceIdRef = useRef<string | null>(null);
 
   // Sync currentEvent to ref
   useEffect(() => {
     currentEventRef.current = currentEvent;
   }, [currentEvent]);
 
-  // Force cleanup all state - called at start of new calls and on timeout
+  // Force cleanup all state
   const forceCleanupAllState = useCallback(() => {
     console.log('[CallKit] 🧹 Force cleaning up ALL state...');
     
-    // Clear safety timeout
     if (safetyTimeoutRef.current) {
       clearTimeout(safetyTimeoutRef.current);
       safetyTimeoutRef.current = null;
     }
     
-    // Reset TTS state
     isCallingTTSRef.current = false;
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
     
-    // Stop any audio
     if (audioRef.current) {
       try {
         audioRef.current.pause();
@@ -78,7 +77,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       audioRef.current = null;
     }
     
-    // Stop native TTS if playing
     if (callKitPluginRef.current?.stopTTSAudio) {
       callKitPluginRef.current.stopTTSAudio().catch((e: any) => {
         console.log('[CallKit] Error stopping native TTS in force cleanup:', e);
@@ -90,80 +88,86 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     setCurrentEvent(null);
   }, []);
 
-  // Save VoIP token to Supabase - returns success status
+  // ✅ NEW: Save VoIP token to devices table (device-based, not user-based)
   const saveVoIPToken = useCallback(async (token: string): Promise<boolean> => {
-    console.log('[CallKit] ====== SAVING VOIP TOKEN ======');
+    console.log('[CallKit] ====== SAVING VOIP TOKEN (DEVICE-BASED) ======');
     console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
     
-    // REMOTE LOG: Token save attempt
-    remoteLog.info('voip', 'token_save_attempt', {
+    remoteLog.info('voip', 'token_save_attempt_v2', {
       tokenLength: token?.length,
       tokenPreview: token?.substring(0, 20) + '...',
     });
     
     try {
+      // Get or create device_id
+      const deviceId = await getOrCreateDeviceId();
+      deviceIdRef.current = deviceId;
+      console.log('[CallKit] Device ID:', deviceId.substring(0, 8) + '...');
+      
+      // Get current user (may be null if not logged in)
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('[CallKit] Current user:', user?.id);
+      const userId = user?.id || null;
+      console.log('[CallKit] Current user:', userId ? userId.substring(0, 8) + '...' : 'NOT LOGGED IN');
       
-      if (!user) {
-        console.log('[CallKit] No user logged in, storing token for later');
-        pendingTokenRef.current = token;
-        remoteLog.warn('voip', 'token_save_deferred', { reason: 'no_user' });
-        return false;
-      }
+      // Store token in memory for immediate use
+      pendingTokenRef.current = token;
       
-      console.log('[CallKit] Updating profile with token...');
+      // UPSERT into devices table - works even without login!
+      console.log('[CallKit] Upserting to devices table...');
       const { error, data } = await supabase
-        .from('profiles')
-        .update({ 
+        .from('devices')
+        .upsert({
+          device_id: deviceId,
           voip_token: token,
+          user_id: userId,
+          platform: 'ios',
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'device_id'
         })
-        .eq('id', user.id)
         .select();
       
       if (error) {
         console.error('[CallKit] Failed to save VoIP token:', error);
-        console.error('[CallKit] Error details:', JSON.stringify(error));
-        remoteLog.error('voip', 'token_save_failed', { 
+        remoteLog.error('voip', 'token_save_failed_v2', { 
           error: error.message,
           code: error.code,
-          userId: user.id.substring(0, 8) + '...',
+          deviceId: deviceId.substring(0, 8) + '...',
         });
         return false;
-      } else {
-        console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY ======');
-        console.log('[CallKit] Updated profile:', JSON.stringify(data));
-        console.log('[CallKit] VoIP token is now active in database!');
-        // Note: We intentionally keep pendingTokenRef as backup
-        // It will be cleared on next successful check or when not needed
-        remoteLog.info('voip', 'token_saved_success', {
-          userId: user.id.substring(0, 8) + '...',
-          tokenLength: token?.length,
-        });
-        toast({
-          title: "Me Ligue ativado",
-          description: "Você receberá chamadas nativas para seus lembretes",
-          duration: 3000,
-        });
-        return true;
       }
+      
+      console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY (DEVICE-BASED) ======');
+      console.log('[CallKit] Saved device record:', JSON.stringify(data));
+      remoteLog.info('voip', 'token_saved_success_v2', {
+        deviceId: deviceId.substring(0, 8) + '...',
+        userId: userId ? userId.substring(0, 8) + '...' : 'none',
+        tokenLength: token?.length,
+      });
+      
+      toast({
+        title: "Me Ligue ativado",
+        description: "Você receberá chamadas nativas para seus lembretes",
+        duration: 3000,
+      });
+      
+      return true;
     } catch (error) {
       console.error('[CallKit] Error saving VoIP token:', error);
-      remoteLog.error('voip', 'token_save_exception', { 
+      remoteLog.error('voip', 'token_save_exception_v2', { 
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
   }, [toast]);
 
-  // Try to register VoIP with retries and timeout verification
+  // Try to register VoIP with retries
   const attemptVoIPRegistration = useCallback(async (retryCount = 0): Promise<void> => {
     if (!isIOSNative()) {
       remoteLog.info('voip', 'registration_skip_not_ios');
       return;
     }
     
-    // Only skip if we already have a pending token (meaning registration succeeded before)
     if (hasRegisteredRef.current && pendingTokenRef.current) {
       remoteLog.info('voip', 'registration_skip_already_have_token', { 
         tokenLength: pendingTokenRef.current.length 
@@ -172,7 +176,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     }
 
     const maxRetries = 3;
-    const TOKEN_TIMEOUT_MS = 10000; // 10 seconds to wait for token
+    const TOKEN_TIMEOUT_MS = 10000;
     
     try {
       console.log(`[CallKit] Registration attempt ${retryCount + 1}/${maxRetries + 1}`);
@@ -190,7 +194,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         });
       }
       
-      // Log before calling register()
       remoteLog.info('voip', 'calling_register', { 
         timestamp: new Date().toISOString() 
       });
@@ -203,8 +206,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         note: 'register() returned, waiting for token callback from iOS...',
       });
       
-      // CRITICAL: Set timeout to verify if token actually arrived
-      // The register() returns immediately but token comes via callback
       setTimeout(async () => {
         remoteLog.info('voip', 'token_timeout_check', {
           hasToken: !!pendingTokenRef.current,
@@ -213,18 +214,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         });
         
         if (!pendingTokenRef.current) {
-          // Token didn't arrive in time!
           remoteLog.warn('voip', 'token_timeout_no_token', {
             message: 'Token did not arrive within timeout! This indicates iOS/APNs issue.',
             possibleCauses: 'Push Notifications capability, VoIP entitlement, Certificate issue, APNs network',
           });
           
-          // Try re-registration if we haven't exhausted retries
           if (retryCount < maxRetries) {
             remoteLog.info('voip', 'token_timeout_retry', { 
               nextAttempt: retryCount + 2 
             });
-            hasRegisteredRef.current = false; // Reset to allow retry
+            hasRegisteredRef.current = false;
             attemptVoIPRegistration(retryCount + 1);
           } else {
             remoteLog.error('voip', 'token_all_retries_exhausted', { 
@@ -252,7 +251,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       });
       
       if (retryCount < maxRetries) {
-        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        const delay = Math.pow(2, retryCount) * 1000;
         console.log(`[CallKit] Retrying in ${delay}ms...`);
         remoteLog.info('voip', 'registration_retry_scheduled', { 
           delayMs: delay, 
@@ -276,7 +275,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] Is native platform:', Capacitor.isNativePlatform());
       console.log('[CallKit] isIOSNative():', isIOSNative());
       
-      // REMOTE LOG: Init check
       remoteLog.info('voip', 'callkit_init_check', {
         platform: Capacitor.getPlatform(),
         isNative: Capacitor.isNativePlatform(),
@@ -285,11 +283,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       
       if (!isIOSNative()) {
         console.log('[CallKit] Not on iOS native, skipping initialization');
-        console.log('[CallKit] This is expected in browser/web preview');
         return;
       }
 
-      // Prevent double initialization
       if (hasInitializedRef.current) {
         console.log('[CallKit] Already initialized, skipping');
         remoteLog.info('voip', 'callkit_already_initialized');
@@ -300,11 +296,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         console.log('[CallKit] ====== STARTING CALLKIT INIT ON iOS ======');
         remoteLog.info('voip', 'callkit_init_start');
         
-        // Dynamic import to avoid errors on non-native platforms
-        console.log('[CallKit] Importing capacitor-plugin-callkit-voip...');
+        // Initialize device_id early
+        deviceIdRef.current = await getOrCreateDeviceId();
+        console.log('[CallKit] Device ID initialized:', deviceIdRef.current.substring(0, 8) + '...');
+        
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
         
-        // Remove previous listeners before re-adding (safety)
         if (callKitPluginRef.current) {
           console.log('[CallKit] Removing previous listeners before init');
           try {
@@ -318,150 +315,95 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         hasInitializedRef.current = true;
         
         console.log('[CallKit] Plugin imported successfully');
-        console.log('[CallKit] CallKitVoip object:', CallKitVoip);
-        console.log('[CallKit] Available methods:', Object.keys(CallKitVoip || {}));
         remoteLog.info('voip', 'callkit_plugin_loaded', {
           methods: Object.keys(CallKitVoip || {}).join(','),
         });
         
-        // Listen for DEBUG events from Swift - THIS IS THE KEY FOR DEBUGGING WITHOUT XCODE
+        // Debug listener
         console.log('[CallKit] Setting up DEBUG listener...');
         (CallKitVoip as any).addListener('debug', (data: any) => {
-          console.log('[CallKit DEBUG] ====================================');
-          console.log('[CallKit DEBUG] Stage:', data.stage);
-          console.log('[CallKit DEBUG] Full data:', JSON.stringify(data, null, 2));
-          console.log('[CallKit DEBUG] ====================================');
+          console.log('[CallKit DEBUG]', data.stage, JSON.stringify(data, null, 2));
           
-          // Show toast with debug info so user can see it on device
           if (data.stage === 'push_received') {
             toast({
               title: `📥 Push: ${data.payload_name}`,
               description: `ID: ${data.payload_id}`,
               duration: 5000,
             });
-          } else if (data.stage === 'anchor_start') {
-            toast({
-              title: `🔇 Silence.caf`,
-              description: `Found: ${data.silence_found}, Started: ${data.silence_started}`,
-              duration: 5000,
-            });
-          } else if (data.stage === 'call_reported') {
-            toast({
-              title: `📞 Call: ${data.displayName}`,
-              description: `Handle: ${data.handleValue}, Error: ${data.error}`,
-              duration: 5000,
-            });
           }
         });
-        console.log('[CallKit] DEBUG listener set up');
         
-        // Listen for registration token BEFORE registering
-        // IMPORTANT: Plugin sends token as "value" not "token"
+        // Registration listener - ✅ IMMEDIATELY save token when received
         console.log('[CallKit] Setting up registration listener...');
         remoteLog.info('voip', 'setting_up_registration_listener');
         
-        const registrationListener = (CallKitVoip as any).addListener('registration', async (data: { value: string }) => {
+        (CallKitVoip as any).addListener('registration', async (data: { value: string }) => {
           const receivedAt = new Date().toISOString();
           console.log('[CallKit] ====== VOIP TOKEN RECEIVED FROM iOS ======');
-          console.log('[CallKit] Raw data:', JSON.stringify(data));
           console.log('[CallKit] Token (data.value) exists:', !!data?.value);
           console.log('[CallKit] Token length:', data?.value?.length);
-          console.log('[CallKit] Token preview:', data?.value?.substring(0, 50) + '...');
           
-          // REMOTE LOG: Token received from iOS - THIS IS THE KEY EVENT!
           remoteLog.info('voip', 'TOKEN_RECEIVED_FROM_IOS', {
             receivedAt,
             hasValue: !!data?.value,
             tokenLength: data?.value?.length,
             tokenPreview: data?.value?.substring(0, 20) + '...',
-            dataKeys: Object.keys(data || {}).join(','),
-            fullData: JSON.stringify(data).substring(0, 200),
           });
           
           if (data?.value) {
-            // ✅ CRITICAL FIX: ALWAYS store token as backup FIRST, before attempting to save
-            // This ensures we never lose the token even if the user isn't logged in yet
-            console.log('[CallKit] 🔒 Storing token in pendingTokenRef as backup...');
+            // ✅ CRITICAL: Store in memory AND save to DB immediately
             pendingTokenRef.current = data.value;
             
             remoteLog.info('voip', 'token_stored_in_pending_ref', { 
               tokenLength: data.value.length 
             });
             
-            // Now try to save to DB (will only succeed if user is logged in)
+            // Save to devices table (works even without login!)
             const saved = await saveVoIPToken(data.value);
-            console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'DEFERRED (will save on login)');
+            console.log('[CallKit] Token save result:', saved ? 'SUCCESS' : 'SAVED (may not have user yet)');
             
             remoteLog.info('voip', 'token_save_to_db_result', { 
               success: saved,
               pendingTokenStored: !!pendingTokenRef.current,
             });
           } else {
-            console.error('[CallKit] No value in registration data! Keys received:', Object.keys(data || {}));
+            console.error('[CallKit] No value in registration data!');
             remoteLog.error('voip', 'TOKEN_MISSING_IN_CALLBACK_DATA', { 
               dataKeys: Object.keys(data || {}).join(','),
-              fullData: JSON.stringify(data),
             });
           }
         });
-        console.log('[CallKit] Registration listener set up:', registrationListener);
         
         remoteLog.info('voip', 'registration_listener_ready');
         
-        // Register for VoIP notifications with retry
+        // Register for VoIP notifications
         console.log('[CallKit] Calling attemptVoIPRegistration()...');
-        remoteLog.info('voip', 'calling_attemptVoIPRegistration', { 
-          timestamp: new Date().toISOString() 
-        });
-        
         await attemptVoIPRegistration();
         
-        console.log('[CallKit] attemptVoIPRegistration() completed');
-        remoteLog.info('voip', 'attemptVoIPRegistration_returned', { 
-          timestamp: new Date().toISOString() 
-        });
-        
-        // Listen for call answered
+        // Call answered listener
         console.log('[CallKit] Setting up callAnswered listener...');
         CallKitVoip.addListener('callAnswered', async (data: any) => {
           console.log('[CallKit] ====== CALL ANSWERED ======');
           console.log('[CallKit] Answer data:', JSON.stringify(data));
-          console.log('[CallKit] Data keys:', Object.keys(data || {}));
           
-          // Get user ID for remote logging (set via AuthContext)
-          
-          // REMOTE LOG: Call answered
           remoteLog.info('voip', 'call_answered', {
             eventId: data?.eventId,
             eventTitle: data?.eventTitle,
-            eventTime: data?.eventTime,
-            hasEventData: !!data?.eventId,
             preloadedTTSAvailable: !!preloadedTTSRef.current,
-            preloadingTTSPending: !!preloadingTTSRef.current,
           });
           
-          // Configure audio session to keep call active during TTS
           try {
             if ((CallKitVoip as any).configureAudioSession) {
-              console.log('[CallKit] Configuring audio session to keep call active...');
               await (CallKitVoip as any).configureAudioSession();
-              console.log('[CallKit] Audio session configured');
-            } else {
-              console.log('[CallKit] configureAudioSession not available');
             }
           } catch (e) {
-            console.log('[CallKit] configureAudioSession error (non-critical):', e);
+            console.log('[CallKit] configureAudioSession error:', e);
           }
           
-          // FIRST: Try to use data directly from the callback payload
           let eventToPlay: CallKitEvent | null = null;
           
           if (data?.eventId || data?.eventTitle || data?.name) {
-            console.log('[CallKit] Building event from payload data');
-            // Capture time from multiple possible fields
             const eventTime = data.eventTime || data.time || '';
-            console.log('[CallKit] Captured eventTime:', eventTime, 'from data.eventTime:', data.eventTime, 'data.time:', data.time);
-            
             eventToPlay = {
               id: data.eventId || data.id || data.connectionId || 'call-event',
               title: data.eventTitle || data.name || 'Evento',
@@ -469,25 +411,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               time: eventTime,
               location: data.eventLocation || data.location || '',
             };
-            // Also update the ref for consistency
             setCurrentEvent(eventToPlay);
           } else {
-            // FALLBACK: Use the ref if available
-            console.log('[CallKit] Payload has no event data, trying ref...');
             eventToPlay = currentEventRef.current;
           }
           
-          console.log('[CallKit] Event to play TTS:', JSON.stringify(eventToPlay));
-          console.log('[CallKit] Event time for TTS:', eventToPlay?.time);
-          
           if (eventToPlay) {
-            console.log('[CallKit] Playing TTS for event:', eventToPlay.title, 'time:', eventToPlay.time);
-            
-            // SAVE: Mark call as answered in database
+            // Save call answered to database
             if (eventToPlay.id && eventToPlay.id !== 'call-event') {
-              console.log('[CallKit] Saving call answered to database for event:', eventToPlay.id);
               try {
-                const { error } = await supabase
+                await supabase
                   .from('events')
                   .update({ 
                     call_alert_answered: true,
@@ -495,96 +428,62 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                     call_alert_outcome: 'answered'
                   })
                   .eq('id', eventToPlay.id);
-                
-                if (error) {
-                  console.error('[CallKit] Error saving call answered:', error);
-                } else {
-                  console.log('[CallKit] ✅ Call answered saved to database');
-                }
               } catch (e) {
-                console.error('[CallKit] Exception saving call answered:', e);
+                console.error('[CallKit] Error saving call answered:', e);
               }
             }
             
-            // Wait only 300ms for audio session to stabilize (TTS is already pre-loaded)
-            console.log('[CallKit] Waiting 300ms for audio session...');
             await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Play TTS using pre-loaded audio if available
             await playTTS(eventToPlay);
-            console.log('[CallKit] TTS playback finished');
-            // Call stays active - user can hang up manually or it will timeout
-          } else {
-            console.error('[CallKit] NO EVENT DATA AVAILABLE FOR TTS!');
-            console.error('[CallKit] currentEventRef.current:', currentEventRef.current);
-            console.error('[CallKit] Payload data:', data);
           }
         });
         
-        // Listen for call started (incoming call) - PRE-LOAD TTS HERE
+        // Call started listener
         console.log('[CallKit] Setting up callStarted listener...');
         CallKitVoip.addListener('callStarted', async (data: any) => {
           console.log('[CallKit] ====== CALL STARTED ======');
-          console.log('[CallKit] Start data:', JSON.stringify(data));
           
-          // Get user ID for remote logging (set via AuthContext)
-          
-          // REMOTE LOG: Call started
           remoteLog.info('voip', 'call_started', {
             eventId: data?.eventId,
             eventTitle: data?.eventTitle,
-            eventTime: data?.eventTime,
-            hasEventData: !!data?.eventId,
           });
           
-          // FIRST: Force cleanup any previous call state to prevent bugs
-          console.log('[CallKit] Cleaning up previous call state...');
+          // Cleanup previous call state
           isCallingTTSRef.current = false;
           preloadedTTSRef.current = null;
           preloadingTTSRef.current = null;
           
-          // Stop any playing audio from previous call
           if (audioRef.current) {
             try {
               audioRef.current.pause();
               audioRef.current.src = '';
               audioRef.current.load();
-            } catch (e) {
-              console.log('[CallKit] Error cleaning up previous audio:', e);
-            }
+            } catch (e) {}
             audioRef.current = null;
           }
           
-          // Stop native TTS from previous call
           if (callKitPluginRef.current?.stopTTSAudio) {
             try {
               await callKitPluginRef.current.stopTTSAudio();
-            } catch (e) {
-              console.log('[CallKit] Error stopping previous native TTS:', e);
-            }
+            } catch (e) {}
           }
           
-          // Clear previous safety timeout
           if (safetyTimeoutRef.current) {
             clearTimeout(safetyTimeoutRef.current);
             safetyTimeoutRef.current = null;
           }
           
-          // Set safety timeout - force cleanup after 60 seconds if call gets stuck
+          // Safety timeout
           safetyTimeoutRef.current = window.setTimeout(() => {
             console.log('[CallKit] ⚠️ SAFETY TIMEOUT - forcing cleanup after 60s');
             forceCleanupAllState();
             
-            // Also try to end the CallKit call
             if (callKitPluginRef.current && currentEventRef.current) {
               const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
-              endCallFn?.({ id: currentEventRef.current.id }).catch((e: any) => {
-                console.log('[CallKit] Error ending call in safety timeout:', e);
-              });
+              endCallFn?.({ id: currentEventRef.current.id }).catch(() => {});
             }
           }, 60000);
           
-          // Store the event data from push notification
           if (data.eventId) {
             const eventData = {
               id: data.eventId,
@@ -593,19 +492,14 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               time: data.eventTime,
               location: data.eventLocation,
             };
-            console.log('[CallKit] Setting current event:', JSON.stringify(eventData));
             setCurrentEvent(eventData);
             
-            // PRE-LOAD TTS IMMEDIATELY when phone starts ringing
+            // Pre-load TTS
             console.log('[CallKit] 🚀 PRE-LOADING TTS while phone rings...');
             const language = currentLanguageRef.current;
             
             preloadingTTSRef.current = (async () => {
-              // REMOTE LOG: TTS preload started
-              remoteLog.info('voip', 'tts_preload_start', { 
-                eventId: eventData.id, 
-                eventTitle: eventData.title 
-              });
+              remoteLog.info('voip', 'tts_preload_start', { eventId: eventData.id });
               
               try {
                 const { data: ttsData, error } = await supabase.functions.invoke('text-to-speech', {
@@ -618,81 +512,57 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                 
                 if (error) {
                   console.error('[CallKit] Pre-load TTS error:', error);
-                  remoteLog.error('voip', 'tts_preload_error', { error: String(error) });
                   return null;
                 }
                 
                 if (ttsData?.audioContent) {
-                  console.log('[CallKit] ✅ TTS PRE-LOADED! Length:', ttsData.audioContent.length);
+                  console.log('[CallKit] ✅ TTS PRE-LOADED!');
                   preloadedTTSRef.current = ttsData.audioContent;
-                  remoteLog.info('voip', 'tts_preload_success', { audioLength: ttsData.audioContent.length });
                   return ttsData.audioContent;
                 }
                 return null;
               } catch (e) {
                 console.error('[CallKit] Pre-load TTS exception:', e);
-                remoteLog.error('voip', 'tts_preload_exception', { error: String(e) });
                 return null;
               }
             })();
-          } else {
-            console.warn('[CallKit] No eventId in callStarted data');
           }
         });
         
-        // Listen for call ended
+        // Call ended listener
         console.log('[CallKit] Setting up callEnded listener...');
         CallKitVoip.addListener('callEnded', async (data: any) => {
           console.log('[CallKit] ====== CALL ENDED ======');
-          console.log('[CallKit] End data:', JSON.stringify(data));
           
-          // REMOTE LOG: Call ended
-          remoteLog.info('voip', 'call_ended', {
-            eventId: data?.eventId,
-            wasAnswered: isCallingTTSRef.current,
-          });
+          remoteLog.info('voip', 'call_ended', { eventId: data?.eventId });
           
-          // Clear safety timeout immediately
           if (safetyTimeoutRef.current) {
             clearTimeout(safetyTimeoutRef.current);
             safetyTimeoutRef.current = null;
           }
           
-          // Check if call was answered (TTS was playing means it was answered)
           const wasAnswered = isCallingTTSRef.current;
-          
-          // IMPORTANT: Stop TTS immediately when call ends
           isCallingTTSRef.current = false;
           
-          // Stop native TTS playback
           if (callKitPluginRef.current?.stopTTSAudio) {
             try {
               await callKitPluginRef.current.stopTTSAudio();
-              console.log('[CallKit] Native TTS stopped');
-            } catch (e) {
-              console.log('[CallKit] Error stopping native TTS:', e);
-            }
+            } catch (e) {}
           }
           
-          // Stop audio completely - clear source first to stop all playback
           if (audioRef.current) {
-            console.log('[CallKit] Stopping audio playback...');
             try {
               audioRef.current.pause();
-              audioRef.current.src = ''; // Clear source to fully stop
-              audioRef.current.load(); // Reset audio element
-            } catch (e) {
-              console.log('[CallKit] Error stopping audio:', e);
-            }
+              audioRef.current.src = '';
+              audioRef.current.load();
+            } catch (e) {}
             audioRef.current = null;
           }
           
-          // If call was NOT answered (missed/declined), update database
+          // Mark as missed if not answered
           const eventId = data?.eventId || currentEventRef.current?.id;
           if (eventId && eventId !== 'call-event' && !wasAnswered) {
-            console.log('[CallKit] Call was NOT answered, marking as missed for event:', eventId);
             try {
-              // Check current outcome first - don't overwrite 'answered'
               const { data: eventData } = await supabase
                 .from('events')
                 .select('call_alert_outcome')
@@ -700,170 +570,97 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                 .maybeSingle();
               
               if (eventData?.call_alert_outcome !== 'answered') {
-                const { error } = await supabase
+                await supabase
                   .from('events')
                   .update({ call_alert_outcome: 'missed' })
                   .eq('id', eventId);
-                
-                if (error) {
-                  console.error('[CallKit] Error saving call missed:', error);
-                } else {
-                  console.log('[CallKit] ✅ Call marked as missed in database');
-                }
               }
-            } catch (e) {
-              console.error('[CallKit] Exception saving call missed:', e);
-            }
+            } catch (e) {}
           }
           
-          // Use force cleanup to ensure everything is reset
           forceCleanupAllState();
         });
         
         console.log('[CallKit] ====== CALLKIT INIT COMPLETE ======');
-        console.log('[CallKit] All listeners are now active');
         
       } catch (error) {
-        console.error('[CallKit] ====== INIT FAILED ======');
-        console.error('[CallKit] Error type:', typeof error);
-        console.error('[CallKit] Error:', error);
-        console.error('[CallKit] Error message:', (error as any)?.message);
-        console.error('[CallKit] Error stack:', (error as any)?.stack);
+        console.error('[CallKit] ====== INIT FAILED ======', error);
       }
     };
 
     initCallKit();
 
     return () => {
-      // Clear safety timeout on unmount
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current);
         safetyTimeoutRef.current = null;
       }
       
       if (callKitPluginRef.current) {
-        console.log('[CallKit] Cleanup: Removing all listeners');
         callKitPluginRef.current.removeAllListeners?.();
       }
       
-      // Reset initialization flag on unmount
       hasInitializedRef.current = false;
     };
   }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
-  // Listen for auth state changes to register VoIP token when user logs in
-  // Handles both SIGNED_IN (new login) and INITIAL_SESSION (session recovered from storage)
+  // ✅ NEW: Listen for auth state changes to ASSOCIATE device with user
   useEffect(() => {
     if (!isIOSNative()) return;
 
-    const checkAndRegisterVoIPToken = async (userId: string) => {
-      console.log('[CallKit] ====== PROACTIVE VOIP TOKEN CHECK (NEW LOGIC) ======');
+    const associateDeviceWithUser = async (userId: string) => {
+      console.log('[CallKit] ====== ASSOCIATING DEVICE WITH USER (NEW LOGIC) ======');
       console.log('[CallKit] User logged in:', userId.substring(0, 8));
       
-      // REMOTE LOG: Proactive check start
-      remoteLog.info('voip', 'proactive_check_start_v2', {
+      remoteLog.info('voip', 'associate_device_with_user', {
         userId: userId.substring(0, 8) + '...',
         hasPendingToken: !!pendingTokenRef.current,
-        pendingTokenLength: pendingTokenRef.current?.length,
       });
       
-      // ✅ NEW LOGIC: Token is tied to DEVICE, not user
-      // We must ALWAYS associate the current device's token with the logged-in user
+      // Get device_id
+      const deviceId = deviceIdRef.current || await getOrCreateDeviceId();
+      deviceIdRef.current = deviceId;
       
-      // 1. Get the current token from this device (from pendingTokenRef or force registration)
-      let deviceToken = pendingTokenRef.current;
-      
-      if (!deviceToken) {
-        console.log('[CallKit] No pending token, forcing registration to get device token...');
-        remoteLog.info('voip', 'forcing_registration_for_token');
+      // If we have a pending token, save it now with the user_id
+      if (pendingTokenRef.current) {
+        console.log('[CallKit] Saving pending token with user association...');
+        await saveVoIPToken(pendingTokenRef.current);
+      } else {
+        // Just update user_id on existing device record
+        console.log('[CallKit] Updating device user_id association...');
+        const { error } = await supabase
+          .from('devices')
+          .update({ 
+            user_id: userId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('device_id', deviceId);
         
-        hasRegisteredRef.current = false;
-        await attemptVoIPRegistration();
-        
-        // Wait for iOS callback
-        console.log('[CallKit] Waiting 3s for iOS token callback...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        deviceToken = pendingTokenRef.current;
-        
-        if (!deviceToken) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          deviceToken = pendingTokenRef.current;
-        }
-      }
-      
-      if (!deviceToken) {
-        console.log('[CallKit] ❌ No device token available');
-        remoteLog.error('voip', 'no_device_token_available');
-        return;
-      }
-      
-      console.log('[CallKit] Device token available:', deviceToken.substring(0, 20) + '...');
-      
-      // 2. Check if this token is currently assigned to ANOTHER user (conflict resolution)
-      const { data: conflictingUser, error: conflictError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('voip_token', deviceToken)
-        .neq('id', userId)
-        .maybeSingle();
-      
-      if (conflictError) {
-        console.error('[CallKit] Error checking for conflicting user:', conflictError);
-        remoteLog.error('voip', 'conflict_check_error', { error: conflictError.message });
-      }
-      
-      if (conflictingUser) {
-        console.log('[CallKit] ⚠️ Token is assigned to another user, clearing it...');
-        console.log('[CallKit] Clearing token from user:', conflictingUser.id.substring(0, 8));
-        
-        remoteLog.warn('voip', 'token_conflict_detected', {
-          currentUserId: userId.substring(0, 8),
-          conflictingUserId: conflictingUser.id.substring(0, 8),
-        });
-        
-        // Clear token from the previous user
-        const { error: clearError } = await supabase
-          .from('profiles')
-          .update({ voip_token: null })
-          .eq('id', conflictingUser.id);
-        
-        if (clearError) {
-          console.error('[CallKit] Failed to clear conflicting token:', clearError);
-          remoteLog.error('voip', 'conflict_clear_failed', { error: clearError.message });
+        if (error) {
+          console.log('[CallKit] No existing device record, triggering registration...');
+          hasRegisteredRef.current = false;
+          await attemptVoIPRegistration();
         } else {
-          console.log('[CallKit] ✅ Cleared token from previous user');
-          remoteLog.info('voip', 'conflict_resolved', {
-            clearedFrom: conflictingUser.id.substring(0, 8),
-            assigningTo: userId.substring(0, 8),
+          console.log('[CallKit] ✅ Device associated with user');
+          remoteLog.info('voip', 'device_user_associated', {
+            deviceId: deviceId.substring(0, 8),
+            userId: userId.substring(0, 8),
           });
         }
       }
-      
-      // 3. Save token to current user (ALWAYS, even if they already had one in DB)
-      console.log('[CallKit] Saving device token to current user...');
-      await saveVoIPToken(deviceToken);
-      
-      remoteLog.info('voip', 'token_assigned_to_user', {
-        userId: userId.substring(0, 8),
-        tokenLength: deviceToken.length,
-      });
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[CallKit] Auth state changed:', event, '- User:', session?.user?.id?.substring(0, 8) || 'none');
+      console.log('[CallKit] Auth state changed:', event);
       
-      // REMOTE LOG: Auth state change
       remoteLog.info('voip', 'auth_state_changed', {
         event,
         hasSession: !!session,
         userId: session?.user?.id?.substring(0, 8) + '...',
       });
       
-      // Handle both SIGNED_IN (new login) and INITIAL_SESSION (recovered session)
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        console.log('[CallKit] User authenticated via', event, '- triggering proactive check');
-        remoteLog.info('voip', 'triggering_proactive_check', { event });
-        await checkAndRegisterVoIPToken(session.user.id);
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user?.id) {
+        await associateDeviceWithUser(session.user.id);
       }
     });
 
@@ -872,62 +669,41 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     };
   }, [saveVoIPToken, attemptVoIPRegistration]);
 
-
-  // Register for VoIP (called manually if needed) - returns status
+  // Manual registration function
   const registerVoIPToken = useCallback(async (): Promise<{ success: boolean; message: string }> => {
-    console.log('[CallKit] ====== MANUAL REGISTRATION ======');
-    console.log('[CallKit] Is iOS native:', isIOSNative());
-    console.log('[CallKit] Plugin loaded:', !!callKitPluginRef.current);
+    console.log('[CallKit] ====== MANUAL REGISTRATION REQUESTED ======');
+    
+    remoteLog.info('voip', 'manual_registration_requested');
     
     if (!isIOSNative()) {
-      console.log('[CallKit] Not on iOS native, skipping manual registration');
-      return { success: false, message: 'Disponível apenas em dispositivos iOS' };
-    }
-    
-    // Check if user is logged in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log('[CallKit] No user logged in');
-      return { success: false, message: 'Usuário não logado' };
+      console.log('[CallKit] Not on iOS native');
+      return { success: false, message: 'Disponível apenas no iOS' };
     }
     
     if (!callKitPluginRef.current) {
-      console.log('[CallKit] Plugin not loaded, trying to load...');
       try {
         const { CallKitVoip } = await import('capacitor-plugin-callkit-voip');
         callKitPluginRef.current = CallKitVoip;
-        console.log('[CallKit] Plugin loaded dynamically');
       } catch (e) {
-        console.error('[CallKit] Failed to load plugin:', e);
         return { success: false, message: 'Plugin CallKit não disponível' };
       }
     }
     
     try {
-      console.log('[CallKit] Calling register()...');
-      const result = await callKitPluginRef.current.register();
-      console.log('[CallKit] Manual registration result:', JSON.stringify(result));
-      console.log('[CallKit] Manual registration triggered - waiting for token callback...');
-      
-      // Token will be saved via the 'registration' listener
+      await callKitPluginRef.current.register();
       return { success: true, message: 'Registro iniciado. Aguardando token do iOS...' };
     } catch (error) {
-      console.error('[CallKit] Manual registration failed:', error);
       return { success: false, message: `Erro: ${(error as Error).message}` };
     }
   }, []);
 
   // Cleanup call state
   const cleanupCall = useCallback(() => {
-    console.log('[CallKit] cleanupCall called');
-    
-    // Clear safety timeout
     if (safetyTimeoutRef.current) {
       clearTimeout(safetyTimeoutRef.current);
       safetyTimeoutRef.current = null;
     }
     
-    // Clear preloaded TTS
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
     
@@ -936,9 +712,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         audioRef.current.pause();
         audioRef.current.src = '';
         audioRef.current.load();
-      } catch (e) {
-        console.log('[CallKit] Error cleaning audio in cleanupCall:', e);
-      }
+      } catch (e) {}
       audioRef.current = null;
     }
     
@@ -948,50 +722,37 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     setCurrentEvent(null);
   }, []);
 
-  // Play TTS after call is answered - max 15 seconds with loop
-  // Play TTS via native Swift (AVAudioPlayer) - works during CallKit call
+  // Play TTS
   const playTTS = useCallback(async (event: CallKitEvent) => {
     if (isCallingTTSRef.current) {
       console.log('[CallKit] TTS already in progress');
-      remoteLog.warn('voip', 'tts_already_in_progress', { eventId: event.id });
       return;
     }
     
-    // REMOTE LOG: TTS play attempt started
     remoteLog.info('voip', 'tts_play_started', { 
       eventId: event.id,
       eventTitle: event.title,
-      eventTime: event.time,
       preloadedTTSAvailable: !!preloadedTTSRef.current,
-      preloadingTTSPending: !!preloadingTTSRef.current,
     });
     
     isCallingTTSRef.current = true;
     setIsPlaying(true);
     
-    const MAX_CALL_DURATION = 20000; // 20 segundos máximo
+    const MAX_CALL_DURATION = 20000;
     let callTimeoutId: NodeJS.Timeout | null = null;
     
-    // Função para encerrar chamada
     const endCallAndCleanup = async () => {
-      console.log('[CallKit] Ending call after timeout or completion');
-      
       if (callTimeoutId) {
         clearTimeout(callTimeoutId);
         callTimeoutId = null;
       }
       
-      // Stop native TTS playback
       if (isIOSNative() && callKitPluginRef.current?.stopTTSAudio) {
         try {
           await callKitPluginRef.current.stopTTSAudio();
-          console.log('[CallKit] Native TTS stopped');
-        } catch (e) {
-          console.log('[CallKit] Error stopping native TTS:', e);
-        }
+        } catch (e) {}
       }
       
-      // Also stop web audio fallback if used
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -1000,43 +761,32 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       setIsPlaying(false);
       isCallingTTSRef.current = false;
       
-      // End CallKit call using endCallFromJS
       if (callKitPluginRef.current && currentEventRef.current) {
         const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
         if (endCallFn) {
-          console.log('[CallKit] Calling endCallFromJS to end call after TTS');
           try {
             await endCallFn({ id: currentEventRef.current.id });
-          } catch (e) {
-            console.log('[CallKit] Error ending call:', e);
-          }
+          } catch (e) {}
         }
       }
       
-      setTimeout(() => {
-        cleanupCall();
-      }, 500);
+      setTimeout(cleanupCall, 500);
     };
     
     try {
       const language = currentLanguageRef.current;
       
-      console.log('[CallKit] Requesting TTS for:', event.title, 'time:', event.time);
-      
-      // Check if TTS was pre-loaded during callStarted
       let base64Audio: string | null = preloadedTTSRef.current;
       
       if (base64Audio) {
         console.log('[CallKit] ✅ Using PRE-LOADED TTS audio!');
       } else if (preloadingTTSRef.current) {
-        // TTS is still loading, wait for it
-        console.log('[CallKit] ⏳ Waiting for pre-loading TTS to finish...');
+        console.log('[CallKit] ⏳ Waiting for pre-loading TTS...');
         base64Audio = await preloadingTTSRef.current;
       }
       
-      // Fallback: fetch TTS if not pre-loaded
       if (!base64Audio) {
-        console.log('[CallKit] 📥 Fetching TTS (not pre-loaded)...');
+        console.log('[CallKit] 📥 Fetching TTS...');
         const { data, error } = await supabase.functions.invoke('text-to-speech', {
           body: { 
             titulo: event.title,
@@ -1045,59 +795,36 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           }
         });
 
-        if (error) {
-          console.error('[CallKit] TTS error:', error);
-          throw error;
-        }
-        
+        if (error) throw error;
         base64Audio = data?.audioContent || null;
       }
 
       if (base64Audio) {
-        console.log('[CallKit] TTS audio received, base64 length:', base64Audio.length);
-        
-        // Timeout máximo de 20 segundos
         callTimeoutId = setTimeout(() => {
           console.log('[CallKit] Max call duration reached (20s)');
           endCallAndCleanup();
         }, MAX_CALL_DURATION);
         
-        // Try to play via native Swift AVAudioPlayer (works during CallKit call)
         if (isIOSNative() && callKitPluginRef.current?.playTTSAudio) {
-          console.log('[CallKit] Playing TTS via native Swift AVAudioPlayer');
-          console.log('[CallKit] playTTSAudio available:', !!callKitPluginRef.current?.playTTSAudio);
-          console.log('[CallKit] preloadedTTS was available:', !!preloadedTTSRef.current);
-          
-          // Try with retries
           let retries = 0;
           const maxRetries = 2;
           
           const tryNativePlayback = async (): Promise<boolean> => {
             try {
-              console.log(`[CallKit] Native TTS attempt ${retries + 1}/${maxRetries + 1}`);
               const result = await callKitPluginRef.current.playTTSAudio({ audio: base64Audio });
-              console.log('[CallKit] Native TTS playback result:', JSON.stringify(result));
-              
               if (result?.playing) {
-                console.log('[CallKit] ✅ Native TTS is playing!');
                 remoteLog.info('voip', 'tts_native_success', { attempt: retries + 1 });
                 return true;
-              } else {
-                console.warn('[CallKit] ⚠️ Native TTS did NOT start playing');
-                if (retries < maxRetries) {
-                  retries++;
-                  console.log(`[CallKit] Retrying in 500ms...`);
-                  await new Promise(r => setTimeout(r, 500));
-                  return tryNativePlayback();
-                }
-                return false;
               }
-            } catch (e) {
-              console.error('[CallKit] Native TTS error:', e);
-              remoteLog.error('voip', 'tts_native_error', { error: String(e), attempt: retries + 1 });
               if (retries < maxRetries) {
                 retries++;
-                console.log(`[CallKit] Retrying after error in 500ms...`);
+                await new Promise(r => setTimeout(r, 500));
+                return tryNativePlayback();
+              }
+              return false;
+            } catch (e) {
+              if (retries < maxRetries) {
+                retries++;
                 await new Promise(r => setTimeout(r, 500));
                 return tryNativePlayback();
               }
@@ -1106,18 +833,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           };
           
           const playbackStarted = await tryNativePlayback();
-          if (playbackStarted) {
-            // Let it play until timeout, native player handles loops
-            return;
-          }
-          
-          console.warn('[CallKit] All native TTS attempts failed, trying web fallback...');
-          remoteLog.warn('voip', 'tts_native_all_failed', { fallbackToWeb: true });
+          if (playbackStarted) return;
         }
         
-        // FALLBACK: Web Audio API (may not work during CallKit call)
-        console.log('[CallKit] Using web audio fallback');
-        remoteLog.info('voip', 'tts_web_fallback_started', { audioLength: base64Audio.length });
+        // Web audio fallback
+        remoteLog.info('voip', 'tts_web_fallback_started');
         const binaryString = atob(base64Audio);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -1127,91 +847,69 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        // Loop infinito do TTS até o timeout
         const playAudioLoop = () => {
-          if (!isCallingTTSRef.current || !audioUrl) {
-            return;
-          }
+          if (!isCallingTTSRef.current || !audioUrl) return;
           
           audioRef.current = new Audio(audioUrl);
           
           audioRef.current.onended = () => {
             if (isCallingTTSRef.current) {
               setTimeout(() => {
-                if (isCallingTTSRef.current) {
-                  playAudioLoop();
-                }
+                if (isCallingTTSRef.current) playAudioLoop();
               }, 800);
             }
           };
           
           audioRef.current.onerror = () => {
-            console.error('[CallKit] Audio playback error');
             URL.revokeObjectURL(audioUrl);
             endCallAndCleanup();
           };
           
-          audioRef.current.play().catch(err => {
-            console.error('[CallKit] Failed to play audio:', err);
-          });
+          audioRef.current.play().catch(() => {});
         };
         
         playAudioLoop();
       }
     } catch (error) {
       console.error('[CallKit] Failed to play TTS:', error);
-      remoteLog.error('voip', 'tts_play_error', { error: String(error) });
       setIsPlaying(false);
       isCallingTTSRef.current = false;
       setTimeout(cleanupCall, 3000);
     }
   }, [cleanupCall]);
 
-  // Show call (for web fallback or manual trigger)
   const showCall = useCallback((event: CallKitEvent, language: string = 'pt-BR') => {
     currentLanguageRef.current = language;
     setCurrentEvent(event);
     
     if (isIOSNative() && callKitPluginRef.current) {
-      // On iOS, we typically receive calls via VoIP push
-      // But this can be used to simulate/test
       console.log('[CallKit] showCall called - on iOS this should come via VoIP push');
       setIsCallVisible(true);
     } else {
-      // Non-iOS: use the fallback call screen
       setIsCallVisible(true);
     }
   }, []);
 
-  // Handle answer (called from UI or CallKit)
   const handleAnswer = useCallback(() => {
-    if (isCallingTTSRef.current) {
-      console.log('[CallKit] Already processing answer');
-      return;
-    }
-    
+    if (isCallingTTSRef.current) return;
     if (currentEventRef.current) {
       playTTS(currentEventRef.current);
     }
   }, [playTTS]);
 
-  // Handle decline
   const handleDecline = useCallback(() => {
     if (callKitPluginRef.current && currentEventRef.current) {
-      // Use endCallFromJS (forked plugin) or fallback to endCall
       const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
       endCallFn?.({ id: currentEventRef.current.id });
     }
     cleanupCall();
   }, [cleanupCall]);
 
-  // Handle snooze (remind in 10 minutes)
   const handleSnooze = useCallback(() => {
     const event = currentEventRef.current;
     const language = currentLanguageRef.current;
     
     if (callKitPluginRef.current && event) {
-      // Use endCallFromJS (forked plugin) or fallback to endCall
       const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
       endCallFn?.({ id: event.id });
     }
@@ -1219,7 +917,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     cleanupCall();
     
     if (event) {
-      // Schedule reminder in 10 minutes
       setTimeout(() => {
         showCall(event, language);
       }, 10 * 60 * 1000);

@@ -136,34 +136,34 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log(`[send-voip-push] Fetching VoIP token for user: ${user_id}`);
+    console.log(`[send-voip-push] Fetching VoIP token from devices table for user: ${user_id}`);
     
-    // Fetch user's VoIP token
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('voip_token, display_name')
-      .eq('id', user_id)
+    // ✅ NEW: Fetch VoIP token from devices table (device-based, not user-based)
+    const { data: device, error: deviceError } = await supabase
+      .from('devices')
+      .select('voip_token')
+      .eq('user_id', user_id)
+      .limit(1)
       .maybeSingle();
     
-    if (profileError) {
-      console.error('[send-voip-push] Error fetching profile:', profileError);
+    if (deviceError) {
+      console.error('[send-voip-push] Error fetching device:', deviceError);
       return new Response(
-        JSON.stringify({ success: false, error: `Profile fetch error: ${profileError.message}` }),
+        JSON.stringify({ success: false, error: `Device fetch error: ${deviceError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
-    const voipToken = profile?.voip_token;
+    const voipToken = device?.voip_token;
     
-    console.log(`[send-voip-push] Profile data:`, {
-      hasProfile: !!profile,
+    console.log(`[send-voip-push] Device data:`, {
+      hasDevice: !!device,
       hasVoipToken: !!voipToken,
       voipTokenPreview: voipToken ? `${voipToken.substring(0, 20)}...` : 'NULL',
-      displayName: profile?.display_name || 'NOT SET'
     });
     
     if (!voipToken) {
-      console.log(`[send-voip-push] User ${user_id} has no VoIP token - CANNOT SEND`);
+      console.log(`[send-voip-push] User ${user_id} has no device with VoIP token - CANNOT SEND`);
       return new Response(
         JSON.stringify({ success: false, error: 'No VoIP token', user_id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
