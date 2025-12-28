@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import horahLogo from "@/assets/horah-logo.png";
 import horahLogoDark from "@/assets/horah-logo-dark.png";
 import { useTheme } from "next-themes";
+import { getOrCreateDeviceId } from "@/hooks/useDeviceId";
 
 interface Event {
   id: string;
@@ -45,7 +46,12 @@ const MainApp = () => {
   const dateLocale = getDateLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const settingsParamProcessed = useRef(false);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   
+  // Load device ID on mount
+  useEffect(() => {
+    getOrCreateDeviceId().then(setDeviceId);
+  }, []);
   
   // Check if settings should be open from URL param
   const shouldOpenSettings = searchParams.get('settings') === 'open';
@@ -282,8 +288,8 @@ const MainApp = () => {
           {/* Botão para ENVIAR VoIP push - DEBUG */}
           <button
             onClick={async () => {
-              if (!user) {
-                toast({ title: 'Erro', description: 'Usuário não autenticado', variant: 'destructive' });
+              if (!deviceId) {
+                toast({ title: 'Aguarde', description: 'Carregando device ID...', variant: 'destructive' });
                 return;
               }
               
@@ -292,7 +298,8 @@ const MainApp = () => {
               try {
                 const { data, error } = await supabase.functions.invoke('send-voip-push', {
                   body: {
-                    user_id: user.id,
+                    device_id: deviceId,
+                    user_id: user?.id,
                     event_id: 'test-' + Date.now(),
                     event_title: 'Teste VoIP',
                     event_time: format(new Date(), 'HH:mm'),
