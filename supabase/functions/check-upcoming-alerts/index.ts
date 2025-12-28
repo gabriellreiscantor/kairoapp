@@ -316,36 +316,61 @@ Deno.serve(async (req) => {
         let voipFailureReason: string | null = null;
 
         // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
-        // DEVICE-CENTRIC: Use device_id from event, not user_id lookup
+        // DEVICE-CENTRIC: Use device_id from event, with fallback to user_id lookup for legacy events
         if (criticalAlertsEnabled) {
-          // Check if event has device_id (new architecture)
-          if (!event.device_id) {
-            console.log(`[VoIP] Event ${event.id} has no device_id - cannot send VoIP (legacy event?)`);
+          // Determine target device_id - fallback to user lookup if event has no device_id
+          let targetDeviceId = event.device_id;
+          
+          if (!targetDeviceId && event.user_id) {
+            // FALLBACK: Legacy event without device_id - try to find a device by user_id
+            console.log(`[VoIP FALLBACK] Event ${event.id} has no device_id, trying to find device by user_id ${event.user_id}...`);
+            
+            const { data: userDevice, error: userDeviceError } = await supabase
+              .from('devices')
+              .select('device_id, voip_token')
+              .eq('user_id', event.user_id)
+              .not('voip_token', 'is', null)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            if (userDeviceError) {
+              console.error(`[VoIP FALLBACK] Error finding device for user ${event.user_id}:`, userDeviceError);
+            } else if (userDevice?.device_id) {
+              targetDeviceId = userDevice.device_id;
+              console.log(`[VoIP FALLBACK] Found device ${targetDeviceId} for user ${event.user_id} - using as fallback`);
+            } else {
+              console.log(`[VoIP FALLBACK] No device with VoIP token found for user ${event.user_id}`);
+            }
+          }
+          
+          if (!targetDeviceId) {
+            console.log(`[VoIP] Event ${event.id} has no device_id and fallback failed - cannot send VoIP`);
             voipFailureReason = 'no_device_id';
           } else {
-            console.log(`[VoIP PRE-CHECK] Checking devices table for device ${event.device_id}...`);
+            console.log(`[VoIP PRE-CHECK] Checking devices table for device ${targetDeviceId}...`);
             
             // ✅ DEVICE-CENTRIC: Check devices table by device_id
             const { data: deviceData, error: deviceError } = await supabase
               .from('devices')
               .select('voip_token')
-              .eq('device_id', event.device_id)
+              .eq('device_id', targetDeviceId)
               .maybeSingle();
             
             if (deviceError) {
-              console.error(`[VoIP] Error fetching device ${event.device_id}:`, deviceError);
+              console.error(`[VoIP] Error fetching device ${targetDeviceId}:`, deviceError);
               voipFailureReason = 'device_fetch_error';
             } else if (!deviceData?.voip_token) {
-              console.log(`[VoIP] Device ${event.device_id} has NO voip_token - cannot send VoIP call`);
+              console.log(`[VoIP] Device ${targetDeviceId} has NO voip_token - cannot send VoIP call`);
               voipFailureReason = 'no_voip_token';
             } else {
-              console.log(`[VoIP] Device ${event.device_id} has voip_token (${deviceData.voip_token.substring(0, 20)}...)`);
-              console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})`);
+              console.log(`[VoIP] Device ${targetDeviceId} has voip_token (${deviceData.voip_token.substring(0, 20)}...)`);
+              console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})${event.device_id ? '' : ' [FALLBACK]'}`);
               
               try {
-                // DEVICE-CENTRIC payload - device_id is the primary key
+                // DEVICE-CENTRIC payload - targetDeviceId may come from event or fallback lookup
                 const voipPayload = {
-                  device_id: event.device_id,
+                  device_id: targetDeviceId,
                   user_id: event.user_id, // For logging only
                   event_id: event.id,
                   event_title: event.title,
