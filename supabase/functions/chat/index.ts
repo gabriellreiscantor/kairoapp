@@ -1698,7 +1698,8 @@ async function executeAction(
   userId: string, 
   action: KairoAction,
   profile: UserProfile,
-  timezone?: string // User's device timezone
+  timezone?: string, // User's device timezone
+  device_id?: string // Device ID for VoIP push (device-centric architecture)
 ): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
   console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
@@ -1808,7 +1809,9 @@ async function executeAction(
             alerts: [{ time: bestAlertTime }],
             // CRITICAL: Pre-calculate scheduled times to avoid race conditions with cron
             call_alert_scheduled_at: callAlertScheduledAt,
-            notification_scheduled_at: notificationScheduledAt
+            notification_scheduled_at: notificationScheduledAt,
+            // DEVICE-CENTRIC: Save device_id for VoIP push targeting
+            device_id: device_id || null
           })
           .select()
           .single();
@@ -1938,7 +1941,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, imageAnalysis, isOnboarding, onboardingStep, timezone, language: requestLanguage } = body;
+    const { messages, imageAnalysis, isOnboarding, onboardingStep, timezone, language: requestLanguage, device_id } = body;
     
     // Use user's timezone or fallback to America/Sao_Paulo
     const userTimezone = timezone || 'America/Sao_Paulo';
@@ -3245,7 +3248,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
-      executionResult = await executeAction(supabase, userId, action, userProfile, userTimezone);
+      executionResult = await executeAction(supabase, userId, action, userProfile, userTimezone, device_id);
       console.log('Execution result:', executionResult);
       
       // Handle past date error - change action to data_passada

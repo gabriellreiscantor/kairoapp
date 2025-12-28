@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useImageCapture } from "@/hooks/useImageCapture";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { getOrCreateDeviceId } from "@/hooks/useDeviceId";
 import horahHeader from "@/assets/horah-header.png";
 import horahHeaderDark from "@/assets/horah-logo-dark.png";
 import horahAvatar from "@/assets/horah-logo-light.png";
@@ -224,6 +225,19 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   // Get user display name for personalized messages
   const [displayName, setDisplayName] = useState<string>('');
+  
+  // Device ID for VoIP push (device-centric architecture)
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  
+  // Load device ID on mount
+  useEffect(() => {
+    const loadDeviceId = async () => {
+      const id = await getOrCreateDeviceId();
+      setDeviceId(id);
+      console.log('[ChatPage] Device ID loaded:', id.substring(0, 8) + '...');
+    };
+    loadDeviceId();
+  }, []);
   
   useEffect(() => {
     const loadDisplayName = async () => {
@@ -698,6 +712,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           onboardingStep,
           timezone: userTimezone,
           language: language,
+          device_id: deviceId, // For VoIP push (device-centric architecture)
         }),
       });
 
