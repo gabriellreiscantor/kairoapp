@@ -143,9 +143,10 @@ Deno.serve(async (req) => {
     
     // Query 1: Events with call_alert_scheduled_at set (normal flow)
     // CRITICAL FIX: Use now.toISOString() instead of targetTimeMaxUTC to only process events whose scheduled time has arrived
+    // Include device_id for device-centric VoIP push
     const { data: eventsWithSchedule, error: eventsError1 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -159,9 +160,10 @@ Deno.serve(async (req) => {
 
     // Query 2: Events WITHOUT call_alert_scheduled_at (fallback - legacy events or toggle on frontend)
     // These need dynamic calculation based on event time
+    // Include device_id for device-centric VoIP push
     const { data: eventsWithoutSchedule, error: eventsError2 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -314,42 +316,49 @@ Deno.serve(async (req) => {
         let voipFailureReason: string | null = null;
 
         // Send VoIP push for iOS CallKit (primary) - only if critical alerts enabled
+        // DEVICE-CENTRIC: Use device_id from event, not user_id lookup
         if (criticalAlertsEnabled) {
-          console.log(`[VoIP PRE-CHECK] Checking devices table for user ${event.user_id}...`);
-          
-          // ✅ NEW: Check devices table instead of profiles
-          const { data: deviceData, error: deviceError } = await supabase
-            .from('devices')
-            .select('voip_token')
-            .eq('user_id', event.user_id)
-            .limit(1)
-            .maybeSingle();
-          
-          if (deviceError) {
-            console.error(`[VoIP] Error fetching device for user ${event.user_id}:`, deviceError);
-            voipFailureReason = 'device_fetch_error';
-          } else if (!deviceData?.voip_token) {
-            console.log(`[VoIP] User ${event.user_id} has NO device with voip_token - cannot send VoIP call`);
-            voipFailureReason = 'no_voip_token';
+          // Check if event has device_id (new architecture)
+          if (!event.device_id) {
+            console.log(`[VoIP] Event ${event.id} has no device_id - cannot send VoIP (legacy event?)`);
+            voipFailureReason = 'no_device_id';
           } else {
-            console.log(`[VoIP] User ${event.user_id} has voip_token (${deviceData.voip_token.substring(0, 20)}...)`);
-            console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})`);
+            console.log(`[VoIP PRE-CHECK] Checking devices table for device ${event.device_id}...`);
             
-            try {
-              const voipPayload = {
-                user_id: event.user_id,
-                event_id: event.id,
-                event_title: event.title,
-                event_time: event.event_time,
-                event_location: event.location || '',
-                event_emoji: event.emoji || '📅',
-              };
+            // ✅ DEVICE-CENTRIC: Check devices table by device_id
+            const { data: deviceData, error: deviceError } = await supabase
+              .from('devices')
+              .select('voip_token')
+              .eq('device_id', event.device_id)
+              .maybeSingle();
+            
+            if (deviceError) {
+              console.error(`[VoIP] Error fetching device ${event.device_id}:`, deviceError);
+              voipFailureReason = 'device_fetch_error';
+            } else if (!deviceData?.voip_token) {
+              console.log(`[VoIP] Device ${event.device_id} has NO voip_token - cannot send VoIP call`);
+              voipFailureReason = 'no_voip_token';
+            } else {
+              console.log(`[VoIP] Device ${event.device_id} has voip_token (${deviceData.voip_token.substring(0, 20)}...)`);
+              console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})`);
               
-              console.log(`[VoIP] Calling send-voip-push with payload:`, JSON.stringify(voipPayload));
-              
-              const { data: voipResponse, error: voipError } = await supabase.functions.invoke('send-voip-push', {
-                body: voipPayload,
-              });
+              try {
+                // DEVICE-CENTRIC payload - device_id is the primary key
+                const voipPayload = {
+                  device_id: event.device_id,
+                  user_id: event.user_id, // For logging only
+                  event_id: event.id,
+                  event_title: event.title,
+                  event_time: event.event_time,
+                  event_location: event.location || '',
+                  event_emoji: event.emoji || '📅',
+                };
+                
+                console.log(`[VoIP] Calling send-voip-push with payload:`, JSON.stringify(voipPayload));
+                
+                const { data: voipResponse, error: voipError } = await supabase.functions.invoke('send-voip-push', {
+                  body: voipPayload,
+                });
 
               console.log(`[VoIP] Response for ${event.id}:`, JSON.stringify(voipResponse));
               console.log(`[VoIP] Error for ${event.id}:`, voipError ? JSON.stringify(voipError) : 'null');
@@ -411,9 +420,10 @@ Deno.serve(async (req) => {
                   console.log(`Chat message inserted for call notification of event ${event.id}`);
                 }
               }
-            } catch (voipErr) {
-              console.error(`[VoIP] Exception calling send-voip-push for ${event.id}:`, voipErr);
-              voipFailureReason = `exception: ${String(voipErr)}`;
+              } catch (voipErr) {
+                console.error(`[VoIP] Exception calling send-voip-push for ${event.id}:`, voipErr);
+                voipFailureReason = `exception: ${String(voipErr)}`;
+              }
             }
           }
         } else {

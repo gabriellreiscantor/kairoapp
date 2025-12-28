@@ -6,7 +6,8 @@ const corsHeaders = {
 };
 
 interface VoIPPushRequest {
-  user_id: string;
+  device_id: string; // Primary key for VoIP lookup (device-centric architecture)
+  user_id?: string; // Optional, for logging only
   event_id: string;
   event_title: string;
   event_time?: string;
@@ -96,9 +97,17 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { user_id, event_id, event_title, event_time, event_location, event_emoji } = requestBody;
+    const { device_id, user_id, event_id, event_title, event_time, event_location, event_emoji } = requestBody;
     
-    console.log(`[send-voip-push] Processing VoIP for event: ${event_id}, user: ${user_id}, title: ${event_title}`);
+    if (!device_id) {
+      console.error('[send-voip-push] Missing device_id in request');
+      return new Response(
+        JSON.stringify({ success: false, error: 'device_id is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    console.log(`[send-voip-push] Processing VoIP for event: ${event_id}, device: ${device_id}, user: ${user_id || 'N/A'}, title: ${event_title}`);
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -136,14 +145,14 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log(`[send-voip-push] Fetching VoIP token from devices table for user: ${user_id}`);
+    console.log(`[send-voip-push] Fetching VoIP token from devices table for device: ${device_id}`);
     
-    // ✅ NEW: Fetch VoIP token from devices table (device-based, not user-based)
+    // ✅ DEVICE-CENTRIC: Fetch VoIP token by device_id, not user_id
+    // This ensures the VoIP push goes to the device that created the event
     const { data: device, error: deviceError } = await supabase
       .from('devices')
-      .select('voip_token')
-      .eq('user_id', user_id)
-      .limit(1)
+      .select('voip_token, user_id')
+      .eq('device_id', device_id)
       .maybeSingle();
     
     if (deviceError) {
@@ -159,13 +168,14 @@ Deno.serve(async (req) => {
     console.log(`[send-voip-push] Device data:`, {
       hasDevice: !!device,
       hasVoipToken: !!voipToken,
+      deviceUserId: device?.user_id || 'NULL',
       voipTokenPreview: voipToken ? `${voipToken.substring(0, 20)}...` : 'NULL',
     });
     
     if (!voipToken) {
-      console.log(`[send-voip-push] User ${user_id} has no device with VoIP token - CANNOT SEND`);
+      console.log(`[send-voip-push] Device ${device_id} has no VoIP token - CANNOT SEND`);
       return new Response(
-        JSON.stringify({ success: false, error: 'No VoIP token', user_id }),
+        JSON.stringify({ success: false, error: 'No VoIP token for device', device_id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
@@ -226,7 +236,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log(`VoIP push sent successfully to user ${user_id}`);
+    console.log(`VoIP push sent successfully to device ${device_id}`);
     
     return new Response(
       JSON.stringify({ success: true, message: 'VoIP push sent' }),

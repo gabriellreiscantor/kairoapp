@@ -117,6 +117,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           description: string | null
+          device_id: string | null
           duration_minutes: number | null
           emoji: string | null
           event_date: string
@@ -147,6 +148,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          device_id?: string | null
           duration_minutes?: number | null
           emoji?: string | null
           event_date: string
@@ -177,6 +179,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          device_id?: string | null
           duration_minutes?: number | null
           emoji?: string | null
           event_date?: string
