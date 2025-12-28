@@ -22,6 +22,7 @@ interface UseCallKitAlertReturn {
   handleSnooze: () => void;
   isPlaying: boolean;
   registerVoIPToken: () => Promise<{ success: boolean; message: string }>;
+  resetVoIPState: () => Promise<void>;
 }
 
 // Check if running on iOS native device
@@ -673,7 +674,51 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     };
   }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
-  // ✅ CRITICAL: Listen for auth state changes to FORCE ASSOCIATE device with current user
+  // ✅ CRITICAL: Listen for logout reset event from AuthContext
+  // This allows AuthContext to trigger VoIP reset without circular dependencies
+  useEffect(() => {
+    const handleResetVoIP = async () => {
+      console.log('[CallKit] Received reset-voip event from Auth');
+      
+      // We need to define resetVoIPState inline since it's not available yet
+      // Force cleanup any active calls
+      forceCleanupAllState();
+      
+      // Remove ALL plugin listeners (if plugin supports it)
+      if (callKitPluginRef.current) {
+        try {
+          console.log('[CallKit] Removing all plugin listeners via event...');
+          await callKitPluginRef.current.removeAllListeners?.();
+        } catch (e) {
+          console.log('[CallKit] Error removing listeners:', e);
+        }
+      }
+      
+      // Reset ALL refs to initial state
+      callKitPluginRef.current = null;
+      hasRegisteredRef.current = false;
+      hasInitializedRef.current = false;
+      pendingTokenRef.current = null;
+      preloadedTTSRef.current = null;
+      preloadingTTSRef.current = null;
+      currentEventRef.current = null;
+      isCallingTTSRef.current = false;
+      
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+      
+      console.log('[CallKit] VoIP state reset via event complete');
+      remoteLog.info('voip', 'reset_via_event_complete');
+    };
+    
+    window.addEventListener('horah:reset-voip', handleResetVoIP);
+    
+    return () => {
+      window.removeEventListener('horah:reset-voip', handleResetVoIP);
+    };
+  }, [forceCleanupAllState]);
   // ✅ FIX: ALWAYS reuse existing token from DB instead of trying to get new one from iOS
   useEffect(() => {
     if (!isIOSNative()) return;
@@ -1057,6 +1102,60 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     }
   }, [cleanupCall, showCall]);
 
+  // ✅ CRITICAL: Reset ALL VoIP state on logout
+  // This is essential for account switching to work on iOS
+  // Without this, PKPushRegistry/CXProvider state from first account persists
+  const resetVoIPState = useCallback(async () => {
+    console.log('[CallKit] ====== RESETTING VOIP STATE FOR LOGOUT ======');
+    
+    remoteLog.info('voip', 'reset_voip_state_start', {
+      hasPlugin: !!callKitPluginRef.current,
+      hasRegistered: hasRegisteredRef.current,
+      hasInitialized: hasInitializedRef.current,
+      hasPendingToken: !!pendingTokenRef.current,
+    });
+    
+    // Step 1: Force cleanup any active calls
+    forceCleanupAllState();
+    
+    // Step 2: Remove ALL plugin listeners (if plugin supports it)
+    if (callKitPluginRef.current) {
+      try {
+        console.log('[CallKit] Removing all plugin listeners...');
+        await callKitPluginRef.current.removeAllListeners?.();
+        console.log('[CallKit] ✅ All listeners removed');
+      } catch (e) {
+        console.log('[CallKit] Error removing listeners:', e);
+      }
+    }
+    
+    // Step 3: Reset ALL refs to initial state
+    console.log('[CallKit] Resetting all refs to initial state...');
+    callKitPluginRef.current = null;
+    hasRegisteredRef.current = false;
+    hasInitializedRef.current = false;
+    pendingTokenRef.current = null;
+    preloadedTTSRef.current = null;
+    preloadingTTSRef.current = null;
+    currentEventRef.current = null;
+    isCallingTTSRef.current = false;
+    // NOTE: deviceIdRef stays - device_id is permanent per device
+    
+    // Step 4: Clear safety timeout
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+    
+    console.log('[CallKit] ====== VOIP STATE RESET COMPLETE ======');
+    console.log('[CallKit] Next login will trigger fresh initialization');
+    
+    remoteLog.info('voip', 'reset_voip_state_complete', {
+      note: 'Plugin, listeners, and all refs reset. Ready for new account.',
+    });
+    
+  }, [forceCleanupAllState]);
+
   return {
     isCallVisible,
     currentEvent,
@@ -1066,5 +1165,6 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     handleSnooze,
     isPlaying,
     registerVoIPToken,
+    resetVoIPState,
   };
 };
