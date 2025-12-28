@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     // Include device_id for device-centric VoIP push
     const { data: eventsWithSchedule, error: eventsError1 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     // Include device_id for device-centric VoIP push
     const { data: eventsWithoutSchedule, error: eventsError2 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -259,15 +259,15 @@ Deno.serve(async (req) => {
       try {
         // ATOMIC LOCK: Use UPDATE with RETURNING to atomically acquire processing lock
         // This prevents race condition where two cron instances process the same event
-        // We use a temporary "processing" marker, then update to final value after success
-        const processingMarker = `processing_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        // We use call_alert_attempts for optimistic locking (increment atomically)
+        const currentAttempts = event.call_alert_attempts || 0;
         
         const { data: lockedEvent, error: lockError } = await supabase
           .from('events')
-          .update({ call_alert_outcome: processingMarker })
+          .update({ call_alert_attempts: currentAttempts + 1 })
           .eq('id', event.id)
           .is('call_alert_sent_at', null) // Only if not already processed
-          .or('call_alert_outcome.is.null,call_alert_outcome.not.ilike.processing_%') // Only if NULL or not being processed
+          .eq('call_alert_attempts', currentAttempts) // Optimistic lock - only if attempts unchanged
           .select('id, title, event_date, event_time, location, user_id, emoji')
           .maybeSingle();
         
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
           continue;
         }
         
-        console.log(`[ATOMIC LOCK] Acquired processing lock for event ${event.id} with marker: ${processingMarker}`);
+        console.log(`[ATOMIC LOCK] Acquired processing lock for event ${event.id} (attempts: ${currentAttempts} -> ${currentAttempts + 1})`);
 
         // Fetch user profile with notification preferences, timezone and language
         const { data: profile, error: profileError } = await supabase
@@ -427,9 +427,7 @@ Deno.serve(async (req) => {
                 const { error: lockSetError } = await supabase
                   .from('events')
                   .update({ 
-                    call_alert_sent_at: lockTime,
-                    call_alert_attempts: 1,
-                    call_alert_outcome: 'voip_sent'
+                    call_alert_sent_at: lockTime
                   })
                   .eq('id', event.id)
                   .is('call_alert_sent_at', null); // Only update if still null (atomic)
