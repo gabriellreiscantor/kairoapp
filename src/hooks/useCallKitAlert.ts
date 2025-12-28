@@ -777,12 +777,35 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             error: claimError.message,
             deviceId: deviceId.substring(0, 8),
           });
+          
+          // 🔴 Toast de erro - vermelho
+          toast({
+            title: "❌ Erro ao vincular dispositivo",
+            description: claimError.message || "Falha ao atualizar user_id no banco",
+            variant: "destructive",
+            duration: 6000,
+          });
         } else {
           console.log('[CallKit] ✅ claim-device result:', claimResult);
           remoteLog.info('voip', 'claim_device_success_v5', {
             deviceId: deviceId.substring(0, 8),
             result: claimResult,
           });
+          
+          // 🟢 Toast de sucesso - verde
+          if (claimResult?.claimed) {
+            toast({
+              title: "✅ Dispositivo vinculado!",
+              description: `user_id atualizado para ${userId.substring(0, 8)}...`,
+              duration: 5000,
+            });
+          } else if (claimResult?.already_owned) {
+            toast({
+              title: "ℹ️ Dispositivo já vinculado",
+              description: `Já pertence a ${userId.substring(0, 8)}...`,
+              duration: 4000,
+            });
+          }
           
           // If device was claimed and has token, we're done
           if (claimResult?.claimed && claimResult?.has_token) {
