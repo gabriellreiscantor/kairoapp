@@ -35,6 +35,20 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
+    // During Vite HMR, context may be temporarily undefined
+    // Return a loading state instead of throwing to prevent crashes
+    if (import.meta.hot) {
+      return {
+        user: null,
+        session: null,
+        profile: null,
+        isLoading: true,
+        signIn: async () => ({ error: new Error('Context not ready') }),
+        signUp: async () => ({ error: new Error('Context not ready') }),
+        signOut: async () => {},
+        refreshProfile: async () => {},
+      } as AuthContextType;
+    }
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
