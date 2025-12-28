@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
 import { ChevronRight, Droplets, Wind, MapPin, Thermometer, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useWeatherPhrase } from "@/hooks/useWeatherPhrase";
+import { useAuth } from "@/contexts/AuthContext";
 interface WeatherData {
   temperature: number;
   temperatureMax: number;
@@ -130,24 +131,24 @@ const getWeatherDescription = (code: number, lang: string): string => {
 
 const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onClick }) => {
   const { language } = useLanguage();
+  const { profile } = useAuth();
+  const [displayCity, setDisplayCity] = useState(weather.city);
   
-  // Get personalized weather phrase with refresh capability
-  const { phrase, refreshPhrase } = useWeatherPhrase({
+  // Busca a cidade atualizada do perfil do usuário
+  useEffect(() => {
+    if (profile?.user_city) {
+      setDisplayCity(profile.user_city);
+    }
+  }, [profile?.user_city]);
+  
+  // Get personalized weather phrase (sem auto-refresh - frase fixa)
+  const { phrase } = useWeatherPhrase({
     weatherCode: weather.weatherCode,
     temperature: weather.temperature,
     language,
-    city: weather.city,
+    city: displayCity,
     enabled: true,
   });
-
-  // Auto-refresh silencioso a cada 5 segundos
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      refreshPhrase();
-    }, 5000);
-
-    return () => clearInterval(refreshInterval);
-  }, [refreshPhrase]);
   
   const getLocale = () => {
     switch (language) {
@@ -200,7 +201,7 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
             </div>
             <div className="flex items-center gap-1 text-white/80 text-sm">
               <MapPin className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[120px]">{weather.city}</span>
+              <span className="truncate max-w-[120px]">{displayCity}</span>
             </div>
           </div>
           
