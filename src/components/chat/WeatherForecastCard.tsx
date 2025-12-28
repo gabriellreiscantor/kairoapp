@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR, enUS, es, fr, ja, ko, zhCN } from "date-fns/locale";
-import { ChevronRight, Droplets, Wind, MapPin, Thermometer, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog } from "lucide-react";
+import { ChevronRight, Droplets, Wind, MapPin, Thermometer, Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useWeatherPhrase } from "@/hooks/useWeatherPhrase";
 interface WeatherData {
@@ -130,15 +130,35 @@ const getWeatherDescription = (code: number, lang: string): string => {
 
 const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onClick }) => {
   const { language } = useLanguage();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [countdown, setCountdown] = useState(5);
   
-  // Get personalized weather phrase
-  const { phrase } = useWeatherPhrase({
+  // Get personalized weather phrase with refresh capability
+  const { phrase, refreshPhrase } = useWeatherPhrase({
     weatherCode: weather.weatherCode,
     temperature: weather.temperature,
     language,
     city: weather.city,
     enabled: true,
   });
+
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger refresh
+          setIsRefreshing(true);
+          refreshPhrase();
+          setTimeout(() => setIsRefreshing(false), 800);
+          return 5;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, [refreshPhrase]);
   
   const getLocale = () => {
     switch (language) {
@@ -188,10 +208,15 @@ const WeatherForecastCard: React.FC<WeatherForecastCardProps> = ({ weather, onCl
               <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
                 {getWeatherEmoji(weather.weatherCode)} {language === 'en-US' ? 'Weather' : 'Clima'}
               </span>
+              {/* Refresh indicator */}
+              <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-2 py-1">
+                <RefreshCw className={`w-3 h-3 text-white/70 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="text-white/60 text-[10px] font-medium tabular-nums">{countdown}s</span>
+              </div>
             </div>
             <div className="flex items-center gap-1 text-white/80 text-sm">
               <MapPin className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[100px]">{weather.city}</span>
+              <span className="truncate max-w-[120px]">{weather.city}</span>
             </div>
           </div>
           
