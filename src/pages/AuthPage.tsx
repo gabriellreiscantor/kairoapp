@@ -52,7 +52,7 @@ const AuthPage = () => {
             setErrorMessage(error.message);
           }
         } else {
-          localStorage.setItem("kairo-logged-in", "true");
+          localStorage.setItem("horah-logged-in", "true");
           navigate("/");
         }
       } else {
@@ -64,7 +64,7 @@ const AuthPage = () => {
             setErrorMessage(error.message);
           }
         } else {
-          localStorage.setItem("kairo-logged-in", "true");
+          localStorage.setItem("horah-logged-in", "true");
           navigate("/");
         }
       }
@@ -96,7 +96,7 @@ const AuthPage = () => {
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-foreground mb-1 tracking-tight">Kairo</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-1 tracking-tight">Horah</h1>
         <p className="text-muted-foreground text-sm mb-8">
           {isLogin ? "Entre na sua conta" : "Crie sua conta"}
         </p>

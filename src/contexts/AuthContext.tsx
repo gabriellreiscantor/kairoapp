@@ -273,7 +273,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     await supabase.auth.signOut();
-    localStorage.removeItem("kairo-logged-in");
+    localStorage.removeItem("horah-logged-in");
     setUser(null);
     setSession(null);
     setProfile(null);
