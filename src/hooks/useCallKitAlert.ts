@@ -93,34 +93,59 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   // CRITICAL: voip_token is the PRIMARY identifier since iOS preserves it across reinstalls
   // The device_id in the database becomes the source of truth - we recover it from there
   const saveVoIPToken = useCallback(async (token: string): Promise<boolean> => {
-    console.log('[CallKit] ====== SAVING VOIP TOKEN (VOIP_TOKEN AS PRIMARY KEY) ======');
-    console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
+    console.log('[CallKit] ========================================');
+    console.log('[CallKit] ====== SAVE VOIP TOKEN STARTED v5 ======');
+    console.log('[CallKit] ========================================');
+    console.log('[CallKit] Token (first 30):', token?.substring(0, 30));
+    console.log('[CallKit] Token length:', token?.length);
+    console.log('[CallKit] Timestamp:', new Date().toISOString());
     
-    remoteLog.info('voip', 'token_save_attempt_v4', {
+    remoteLog.info('voip', 'save_voip_token_started_v5', {
       tokenLength: token?.length,
       tokenPreview: token?.substring(0, 20) + '...',
+      timestamp: new Date().toISOString(),
     });
     
     try {
       // Store token in memory for immediate use
       pendingTokenRef.current = token;
+      console.log('[CallKit] Step 1: Token stored in memory');
       
       // Get current user (may be null if not logged in)
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || null;
-      console.log('[CallKit] Current user:', userId ? userId.substring(0, 8) + '...' : 'NOT LOGGED IN');
+      console.log('[CallKit] Step 2: Got user -', userId ? userId : 'NOT LOGGED IN');
+      
+      remoteLog.info('voip', 'save_voip_got_user', {
+        userId: userId?.substring(0, 8) || 'null',
+        isLoggedIn: !!userId,
+      });
       
       // ✅ PRIORITY 1: Check if this voip_token already exists in the database
       // This is the KEY to surviving app reinstalls - voip_token is preserved by iOS!
-      console.log('[CallKit] 🔍 Checking if voip_token already exists in database...');
+      console.log('[CallKit] Step 3: Querying database for existing voip_token...');
       const { data: existingDevice, error: lookupError } = await supabase
         .from('devices')
         .select('device_id, user_id')
         .eq('voip_token', token)
         .maybeSingle();
       
+      console.log('[CallKit] Step 4: Query result -', {
+        found: !!existingDevice,
+        error: lookupError?.message || 'none',
+        deviceId: existingDevice?.device_id?.substring(0, 8) || 'null',
+        existingUserId: existingDevice?.user_id?.substring(0, 8) || 'null',
+      });
+      
+      remoteLog.info('voip', 'save_voip_lookup_result', {
+        found: !!existingDevice,
+        error: lookupError?.message || null,
+        deviceId: existingDevice?.device_id?.substring(0, 8) || null,
+        existingUserId: existingDevice?.user_id?.substring(0, 8) || null,
+      });
+      
       if (lookupError) {
-        console.error('[CallKit] Error looking up existing device:', lookupError);
+        console.error('[CallKit] ERROR looking up existing device:', lookupError);
         remoteLog.error('voip', 'token_lookup_failed', { error: lookupError.message });
       }
       
