@@ -89,20 +89,21 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   }, []);
 
   // ✅ NEW: Save VoIP token to devices table (device-based, not user-based)
+  // CRITICAL: This uses the NATIVE IDFV and REPLACES any old JS-generated device_id
   const saveVoIPToken = useCallback(async (token: string): Promise<boolean> => {
     console.log('[CallKit] ====== SAVING VOIP TOKEN (DEVICE-BASED) ======');
     console.log('[CallKit] Token to save (first 30 chars):', token?.substring(0, 30));
     
-    remoteLog.info('voip', 'token_save_attempt_v2', {
+    remoteLog.info('voip', 'token_save_attempt_v3', {
       tokenLength: token?.length,
       tokenPreview: token?.substring(0, 20) + '...',
     });
     
     try {
-      // Get or create device_id
-      const deviceId = await getOrCreateDeviceId();
-      deviceIdRef.current = deviceId;
-      console.log('[CallKit] Device ID:', deviceId.substring(0, 8) + '...');
+      // Get NATIVE device_id (IDFV on iOS - permanent identifier)
+      const nativeDeviceId = await getOrCreateDeviceId();
+      deviceIdRef.current = nativeDeviceId;
+      console.log('[CallKit] Native Device ID (IDFV):', nativeDeviceId.substring(0, 8) + '...');
       
       // Get current user (may be null if not logged in)
       const { data: { user } } = await supabase.auth.getUser();
@@ -112,12 +113,80 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       // Store token in memory for immediate use
       pendingTokenRef.current = token;
       
-      // UPSERT into devices table - works even without login!
-      console.log('[CallKit] Upserting to devices table...');
+      // ✅ CRITICAL FIX: First, check if this EXACT token exists with a DIFFERENT device_id
+      // This handles the migration from old JS-generated UUID to native IDFV
+      console.log('[CallKit] Checking if token exists with old device_id...');
+      const { data: existingByToken } = await supabase
+        .from('devices')
+        .select('device_id, user_id')
+        .eq('voip_token', token)
+        .maybeSingle();
+      
+      if (existingByToken && existingByToken.device_id !== nativeDeviceId) {
+        // Token exists with OLD device_id - MIGRATE IT!
+        console.log('[CallKit] ⚠️ MIGRATION DETECTED: Token exists with old device_id');
+        console.log('[CallKit] Old device_id:', existingByToken.device_id.substring(0, 8) + '...');
+        console.log('[CallKit] New device_id (IDFV):', nativeDeviceId.substring(0, 8) + '...');
+        
+        remoteLog.info('voip', 'token_migration_detected_v3', {
+          oldDeviceId: existingByToken.device_id.substring(0, 8),
+          newDeviceId: nativeDeviceId.substring(0, 8),
+          tokenLength: token.length,
+        });
+        
+        // Update the device_id to the new native IDFV
+        const { error: migrationError } = await supabase
+          .from('devices')
+          .update({
+            device_id: nativeDeviceId,
+            user_id: userId || existingByToken.user_id, // Keep existing user if no current user
+            updated_at: new Date().toISOString(),
+          })
+          .eq('voip_token', token);
+        
+        if (migrationError) {
+          console.error('[CallKit] Migration failed:', migrationError);
+          remoteLog.error('voip', 'token_migration_failed_v3', { error: migrationError.message });
+          
+          // If update failed (maybe constraint), try delete + insert
+          console.log('[CallKit] Trying delete + insert approach...');
+          await supabase.from('devices').delete().eq('voip_token', token);
+          const { error: insertError } = await supabase
+            .from('devices')
+            .insert({
+              device_id: nativeDeviceId,
+              voip_token: token,
+              user_id: userId,
+              platform: 'ios',
+              updated_at: new Date().toISOString(),
+            });
+          
+          if (insertError) {
+            console.error('[CallKit] Insert after delete also failed:', insertError);
+            return false;
+          }
+        }
+        
+        console.log('[CallKit] ✅ TOKEN MIGRATED TO NATIVE IDFV!');
+        remoteLog.info('voip', 'token_migration_success_v3', {
+          newDeviceId: nativeDeviceId.substring(0, 8),
+        });
+        
+        toast({
+          title: "Me Ligue ativado",
+          description: "Você receberá chamadas nativas para seus lembretes",
+          duration: 3000,
+        });
+        
+        return true;
+      }
+      
+      // Normal upsert - token doesn't exist or already has correct device_id
+      console.log('[CallKit] Upserting to devices table with native IDFV...');
       const { error, data } = await supabase
         .from('devices')
         .upsert({
-          device_id: deviceId,
+          device_id: nativeDeviceId,
           voip_token: token,
           user_id: userId,
           platform: 'ios',
@@ -129,18 +198,18 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       
       if (error) {
         console.error('[CallKit] Failed to save VoIP token:', error);
-        remoteLog.error('voip', 'token_save_failed_v2', { 
+        remoteLog.error('voip', 'token_save_failed_v3', { 
           error: error.message,
           code: error.code,
-          deviceId: deviceId.substring(0, 8) + '...',
+          deviceId: nativeDeviceId.substring(0, 8) + '...',
         });
         return false;
       }
       
-      console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY (DEVICE-BASED) ======');
+      console.log('[CallKit] ====== TOKEN SAVED SUCCESSFULLY (NATIVE IDFV) ======');
       console.log('[CallKit] Saved device record:', JSON.stringify(data));
-      remoteLog.info('voip', 'token_saved_success_v2', {
-        deviceId: deviceId.substring(0, 8) + '...',
+      remoteLog.info('voip', 'token_saved_success_v3', {
+        deviceId: nativeDeviceId.substring(0, 8) + '...',
         userId: userId ? userId.substring(0, 8) + '...' : 'none',
         tokenLength: token?.length,
       });
@@ -154,7 +223,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       return true;
     } catch (error) {
       console.error('[CallKit] Error saving VoIP token:', error);
-      remoteLog.error('voip', 'token_save_exception_v2', { 
+      remoteLog.error('voip', 'token_save_exception_v3', { 
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -788,15 +857,26 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           return;
         }
         
-        // ✅ STEP 4: No token anywhere! Need to register with iOS (first time setup)
-        console.log('[CallKit] ⚠️ No token in DB or memory. First time registration needed...');
-        remoteLog.warn('voip', 'no_token_anywhere_registering_v4', {
+        // ✅ STEP 4: No token for this device_id! Force iOS to re-send the token
+        // This will trigger the 'registration' listener, which calls saveVoIPToken
+        // saveVoIPToken will detect if the token exists with an OLD device_id and migrate it
+        console.log('[CallKit] ⚠️ No token for native IDFV. Forcing iOS to re-send token...');
+        remoteLog.warn('voip', 'no_token_forcing_register_v5', {
           deviceId: deviceId.substring(0, 8),
           userId: userId.substring(0, 8),
+          reason: 'Token exists with old JS-UUID, need iOS to resend so saveVoIPToken can migrate',
         });
         
+        // Force a fresh registration - iOS will ALWAYS return the current token
         hasRegisteredRef.current = false;
-        await attemptVoIPRegistration();
+        if (callKitPluginRef.current) {
+          console.log('[CallKit] Calling register() to trigger token callback...');
+          await callKitPluginRef.current.register();
+          console.log('[CallKit] register() completed - token callback should fire');
+        } else {
+          console.log('[CallKit] Plugin not loaded, using attemptVoIPRegistration...');
+          await attemptVoIPRegistration();
+        }
         
       } catch (error) {
         console.error('[CallKit] Error in forceAssociateDeviceWithUser:', error);
