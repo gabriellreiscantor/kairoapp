@@ -136,7 +136,7 @@ const SubscriptionPage = () => {
                   <li>Abra o app <strong className="text-foreground">Ajustes</strong> do iPhone</li>
                   <li>Toque no seu <strong className="text-foreground">nome</strong> no topo</li>
                   <li>Toque em <strong className="text-foreground">Assinaturas</strong></li>
-                  <li>Selecione <strong className="text-foreground">Kairo</strong></li>
+                  <li>Selecione <strong className="text-foreground">Horah</strong></li>
                   <li>Toque em <strong className="text-foreground">Cancelar Assinatura</strong></li>
                 </ol>
                 <p className="text-xs text-muted-foreground/70 mt-2">
@@ -167,10 +167,10 @@ const SubscriptionPage = () => {
                 </p>
                 <div className="bg-muted/30 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground">
-                    <strong>iOS:</strong> Ajustes → seu nome → Assinaturas → Kairo
+                    <strong>iOS:</strong> Ajustes → seu nome → Assinaturas → Horah
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    <strong>Android:</strong> Use o botão no app Kairo
+                    <strong>Android:</strong> Use o botão no app Horah
                   </p>
                 </div>
               </div>
