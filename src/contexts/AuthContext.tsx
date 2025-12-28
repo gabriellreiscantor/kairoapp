@@ -49,45 +49,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     remoteLog.debug('auth', 'fetch_profile_start', { userId: userId.substring(0, 8) });
     
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    
-    if (error) {
-      remoteLog.error('auth', 'fetch_profile_error', { error: error.message });
-    }
-    
-    if (!error && data) {
-      setProfile(data as Profile);
-      remoteLog.info('auth', 'profile_loaded', { 
-        hasDisplayName: !!data.display_name,
-        hasAvatar: !!data.avatar_url,
-      });
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
       
-      // Automatically update timezone on every login/session restore
-      const currentTimezone = getUserTimezone();
-      if (data.timezone !== currentTimezone) {
-        supabase
-          .from("profiles")
-          .update({ timezone: currentTimezone })
-          .eq("id", userId)
-          .then(({ error: tzError }) => {
-            if (tzError) {
-              console.error('Error updating timezone:', tzError);
-              remoteLog.error('auth', 'timezone_update_error', { error: tzError.message });
-            } else {
-              console.log(`Timezone updated: ${currentTimezone}`);
-              remoteLog.info('auth', 'timezone_updated', { timezone: currentTimezone });
-            }
+      if (error) {
+        remoteLog.error('auth', 'fetch_profile_error', { error: error.message });
+        return; // Sair cedo se houver erro
+      }
+      
+      if (data) {
+        setProfile(data as Profile);
+        remoteLog.info('auth', 'profile_loaded', { 
+          hasDisplayName: !!data.display_name,
+          hasAvatar: !!data.avatar_url,
+        });
+        
+        // Automatically update timezone on every login/session restore
+        const currentTimezone = getUserTimezone();
+        if (data.timezone !== currentTimezone) {
+          supabase
+            .from("profiles")
+            .update({ timezone: currentTimezone })
+            .eq("id", userId)
+            .then(({ error: tzError }) => {
+              if (tzError) {
+                console.error('Error updating timezone:', tzError);
+                remoteLog.error('auth', 'timezone_update_error', { error: tzError.message });
+              } else {
+                console.log(`Timezone updated: ${currentTimezone}`);
+                remoteLog.info('auth', 'timezone_updated', { timezone: currentTimezone });
+              }
+            });
+        }
+        
+        // Auto-update location if weather forecast is enabled (for travelers)
+        // Fire and forget com proteção extra
+        if (data.weather_forecast_enabled) {
+          updateLocationSilently(userId, data.user_city).catch((err) => {
+            remoteLog.debug('geolocation', 'location_update_catch', { 
+              error: err instanceof Error ? err.message : 'unknown' 
+            });
           });
+        }
       }
-      
-      // Auto-update location if weather forecast is enabled (for travelers)
-      if (data.weather_forecast_enabled) {
-        updateLocationSilently(userId, data.user_city);
-      }
+    } catch (err) {
+      remoteLog.error('auth', 'fetch_profile_exception', { 
+        error: err instanceof Error ? err.message : 'unknown',
+        userId: userId.substring(0, 8)
+      });
     }
   };
 
