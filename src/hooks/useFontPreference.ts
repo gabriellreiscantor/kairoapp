@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { AuthContext } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Capacitor } from '@capacitor/core';
 
@@ -90,7 +90,8 @@ export const FONT_OPTIONS: FontConfig[] = [
 ];
 
 export function useFontPreference() {
-  const { user } = useAuth();
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user ?? null;
   const { subscription } = useSubscription();
   const [currentFont, setCurrentFont] = useState<FontOption>('system');
   const [loading, setLoading] = useState(true);
