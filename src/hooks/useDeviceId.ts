@@ -2,6 +2,19 @@ import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 
 const DEVICE_ID_KEY = 'horah_device_id';
+const DEVICE_ID_TIMEOUT_MS = 5000;
+
+/**
+ * Helper to add timeout to any promise
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(errorMsg)), ms)
+    )
+  ]);
+}
 
 /**
  * Gets the native device identifier
@@ -9,7 +22,7 @@ const DEVICE_ID_KEY = 'horah_device_id';
  * - Android: ANDROID_ID - unique per app + user + device
  * - Web: localStorage fallback with UUID
  * 
- * NEVER generates random IDs on native - always uses the OS-provided identifier
+ * Has a 5 second timeout - falls back to localStorage if native call hangs
  */
 export async function getOrCreateDeviceId(): Promise<string> {
   const platform = Capacitor.getPlatform();
@@ -19,39 +32,40 @@ export async function getOrCreateDeviceId(): Promise<string> {
   console.log('[DeviceId] Platform:', platform);
   console.log('[DeviceId] isNativePlatform():', isNative);
   
-  // On native platforms, ALWAYS use the native identifier (IDFV on iOS)
+  // On native platforms, try to use the native identifier (IDFV on iOS)
   if (isNative) {
     console.log('[DeviceId] ✅ Native platform detected, getting OS identifier...');
+    console.log('[DeviceId] Calling Device.getId() with', DEVICE_ID_TIMEOUT_MS, 'ms timeout...');
+    
     try {
-      const deviceInfo = await Device.getId();
+      const deviceInfo = await withTimeout(
+        Device.getId(),
+        DEVICE_ID_TIMEOUT_MS,
+        'Device.getId() timeout after ' + DEVICE_ID_TIMEOUT_MS + 'ms'
+      );
       const identifier = deviceInfo.identifier;
       console.log('[DeviceId] ✅ Native IDFV obtained:', identifier.substring(0, 8) + '...');
       console.log('[DeviceId] Full IDFV length:', identifier.length);
       
-      // Also store in localStorage for debugging/comparison
-      const storedId = localStorage.getItem(DEVICE_ID_KEY);
-      if (storedId && storedId !== identifier) {
-        console.log('[DeviceId] ⚠️ localStorage has DIFFERENT ID:', storedId.substring(0, 8) + '...');
-        console.log('[DeviceId] This is expected - localStorage had old JS-UUID, now using native IDFV');
-      }
-      
-      // Update localStorage to match native ID (for consistency in debugging)
+      // Store in localStorage for fallback
       localStorage.setItem(DEVICE_ID_KEY, identifier);
       
       return identifier;
     } catch (error) {
-      console.error('[DeviceId] ❌ CRITICAL: Failed to get native ID:', error);
-      console.error('[DeviceId] This should NOT happen on native platforms!');
-      // This is a critical error on native - log it but still try localStorage
-      // DO NOT generate a random ID here - fallback to localStorage only
+      console.warn('[DeviceId] ⚠️ Device.getId() failed or timed out:', error);
+      
+      // Fallback to localStorage
       const fallbackId = localStorage.getItem(DEVICE_ID_KEY);
       if (fallbackId) {
-        console.log('[DeviceId] Using localStorage fallback:', fallbackId.substring(0, 8) + '...');
+        console.log('[DeviceId] 🔄 Using localStorage fallback:', fallbackId.substring(0, 8) + '...');
         return fallbackId;
       }
-      // Last resort - should never happen
-      console.error('[DeviceId] No localStorage fallback either!');
-      throw new Error('Failed to get device ID on native platform');
+      
+      // Last resort: generate new UUID (only if localStorage is empty)
+      const newId = crypto.randomUUID();
+      localStorage.setItem(DEVICE_ID_KEY, newId);
+      console.log('[DeviceId] 🆕 Generated fallback UUID:', newId.substring(0, 8) + '...');
+      return newId;
     }
   }
   
