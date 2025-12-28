@@ -139,6 +139,30 @@ Deno.serve(async (req) => {
     console.log(`Server time (UTC): ${nowUTC}`);
     console.log(`Checking for events with call_alert_scheduled_at <= ${nowUTC} (only events whose time has ARRIVED)`);
 
+    // ===== AUTO-EXPIRE OLD STUCK EVENTS =====
+    // Mark events as 'expired' if their call_alert_scheduled_at is more than 30 minutes in the past
+    // and they haven't been processed yet. This prevents the queue from getting stuck.
+    const expireThreshold = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+    
+    const { data: expiredEvents, error: expireError } = await supabase
+      .from('events')
+      .update({ 
+        call_alert_outcome: 'expired',
+        call_alert_sent_at: nowUTC
+      })
+      .eq('call_alert_enabled', true)
+      .is('call_alert_sent_at', null)
+      .not('call_alert_outcome', 'ilike', 'processing_%')
+      .lt('call_alert_scheduled_at', expireThreshold)
+      .select('id, title');
+    
+    if (expireError) {
+      console.error('Error auto-expiring old events:', expireError);
+    } else if (expiredEvents && expiredEvents.length > 0) {
+      console.log(`[AUTO-EXPIRE] Marked ${expiredEvents.length} old events as expired:`, 
+        expiredEvents.map(e => `${e.title} (${e.id})`).join(', '));
+    }
+
     // ===== PART 1: ME LIGUE (Call Alerts) =====
     
     // Query 1: Events with call_alert_scheduled_at set (normal flow)
