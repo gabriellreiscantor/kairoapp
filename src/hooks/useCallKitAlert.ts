@@ -628,16 +628,28 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       } else {
         // Just update user_id on existing device record
         console.log('[CallKit] Updating device user_id association...');
-        const { error } = await supabase
+        const { data: updateResult, error } = await supabase
           .from('devices')
           .update({ 
             user_id: userId,
             updated_at: new Date().toISOString()
           })
-          .eq('device_id', deviceId);
+          .eq('device_id', deviceId)
+          .select();
         
         if (error) {
-          console.log('[CallKit] No existing device record, triggering registration...');
+          console.log('[CallKit] Update error, triggering registration...');
+          remoteLog.warn('voip', 'device_update_error', { error: error.message });
+          hasRegisteredRef.current = false;
+          await attemptVoIPRegistration();
+        } else if (!updateResult || updateResult.length === 0) {
+          // ✅ CRITICAL: No rows updated = device_id doesn't exist in table
+          // This happens when device_id changed or never registered
+          console.log('[CallKit] ⚠️ No device record found for this device_id, forcing re-registration...');
+          remoteLog.warn('voip', 'device_not_found_forcing_reregister', {
+            deviceId: deviceId.substring(0, 8),
+            userId: userId.substring(0, 8),
+          });
           hasRegisteredRef.current = false;
           await attemptVoIPRegistration();
         } else {
