@@ -7,11 +7,11 @@ import BackButton from "@/components/BackButton";
 const FAQ = [
   {
     question: "Como criar um evento via WhatsApp?",
-    answer: "Basta enviar uma mensagem para o número do Kairo descrevendo seu compromisso em linguagem natural, como 'Reunião amanhã às 14h'."
+    answer: "Basta enviar uma mensagem para o número do Horah descrevendo seu compromisso em linguagem natural, como 'Reunião amanhã às 14h'."
   },
   {
     question: "O que é o recurso 'Me Ligue'?",
-    answer: "É uma chamada simulada que o Kairo faz para você quando um evento importante está prestes a começar, garantindo que você não perca."
+    answer: "É uma chamada simulada que o Horah faz para você quando um evento importante está prestes a começar, garantindo que você não perca."
   },
   {
     question: "Como funcionam os alertas críticos?",
@@ -23,18 +23,18 @@ const FAQ = [
   },
   {
     question: "Como cancelar minha assinatura no iOS?",
-    answer: "Para cancelar sua assinatura no iPhone, vá em Ajustes > seu nome > Assinaturas > Kairo e toque em 'Cancelar Assinatura'. A assinatura permanecerá ativa até o fim do período atual."
+    answer: "Para cancelar sua assinatura no iPhone, vá em Ajustes > seu nome > Assinaturas > Horah e toque em 'Cancelar Assinatura'. A assinatura permanecerá ativa até o fim do período atual."
   },
   {
     question: "Como cancelar minha assinatura no Android?",
-    answer: "No app Kairo, vá em Configurações > Assinatura e toque no botão 'Cancelar Assinatura'. Você também pode gerenciar assinaturas pela Google Play Store."
+    answer: "No app Horah, vá em Configurações > Assinatura e toque no botão 'Cancelar Assinatura'. Você também pode gerenciar assinaturas pela Google Play Store."
   },
   {
     question: "Quais são os planos disponíveis?",
     answer: "Oferecemos três planos: Grátis (14 eventos/semana), Plus (50 eventos/semana, R$ 14,90/mês) e Super (280 eventos/semana, R$ 29,90/mês). Os planos pagos incluem Me Ligue ilimitado e alertas críticos."
   },
   {
-    question: "O Kairo funciona offline?",
+    question: "O Horah funciona offline?",
     answer: "Você pode visualizar seus eventos salvos offline, mas a criação via chat e sincronização com outros calendários requerem conexão com a internet."
   },
 ];
@@ -66,7 +66,7 @@ const HelpPage = () => {
           />
           <h2 className="text-lg font-semibold text-foreground mb-2">Como podemos ajudar?</h2>
           <p className="text-sm text-muted-foreground">
-            Estamos aqui para garantir a melhor experiência com o Kairo
+            Estamos aqui para garantir a melhor experiência com o Horah
           </p>
         </div>
 
@@ -124,7 +124,7 @@ const HelpPage = () => {
 
             {/* Email - Available for all */}
             <a 
-              href="mailto:suporte@kairo.app?subject=Ajuda%20-%20Kairo%20App"
+              href="mailto:contato@horah.app?subject=Ajuda%20-%20Horah%20App"
               className="w-full bg-kairo-surface-2 rounded-2xl p-4 flex items-center justify-between group hover:bg-kairo-surface-3 transition-all"
             >
               <div className="flex items-center gap-4">
@@ -133,7 +133,7 @@ const HelpPage = () => {
                 </div>
                 <div className="text-left">
                   <p className="text-foreground font-medium">E-mail</p>
-                  <p className="text-xs text-muted-foreground">suporte@kairo.app</p>
+                  <p className="text-xs text-muted-foreground">contato@horah.app</p>
                 </div>
               </div>
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -199,7 +199,7 @@ const HelpPage = () => {
             Não encontrou o que procurava?
           </p>
           <a 
-            href="mailto:suporte@kairo.app?subject=Dúvida%20-%20Kairo%20App"
+            href="mailto:contato@horah.app?subject=Dúvida%20-%20Horah%20App"
             className="text-primary text-sm font-medium mt-1 hover:underline"
           >
             Envie sua dúvida
