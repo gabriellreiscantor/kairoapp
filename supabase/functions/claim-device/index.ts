@@ -83,46 +83,109 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log(`[claim-device] User: ${user.id.substring(0, 8)}..., Device: ${device_id.substring(0, 8)}...`);
+  console.log(`[claim-device] User: ${user.id.substring(0, 8)}..., Device: ${device_id.substring(0, 8)}...`);
+  
+  // Create admin client with SERVICE_ROLE to bypass RLS
+  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Check current state of this device by device_id
+  const { data: existingDevice, error: fetchError } = await adminClient
+    .from('devices')
+    .select('device_id, user_id, voip_token')
+    .eq('device_id', device_id)
+    .maybeSingle();
+  
+  if (fetchError) {
+    console.error('[claim-device] Error fetching device:', fetchError);
+    return new Response(
+      JSON.stringify({ success: false, error: `Fetch error: ${fetchError.message}` }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+  
+  console.log('[claim-device] Existing device state (by device_id):', {
+    exists: !!existingDevice,
+    hasToken: !!existingDevice?.voip_token,
+    currentUserId: existingDevice?.user_id?.substring(0, 8) || 'none',
+    newUserId: user.id.substring(0, 8),
+  });
+  
+  // ✅ FALLBACK: If device not found by device_id, check if there's a device with user_id
+  // This handles cases where the device_id changed (e.g., old JS-UUID vs new native IDFV)
+  if (!existingDevice) {
+    console.log('[claim-device] Device not found by device_id. Checking for devices owned by this user...');
     
-    // Create admin client with SERVICE_ROLE to bypass RLS
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Check current state of this device
-    const { data: existingDevice, error: fetchError } = await adminClient
+    const { data: userDevices, error: userDevicesError } = await adminClient
       .from('devices')
-      .select('device_id, user_id, voip_token')
-      .eq('device_id', device_id)
-      .maybeSingle();
+      .select('device_id, user_id, voip_token, platform')
+      .eq('user_id', user.id)
+      .eq('platform', 'ios');
     
-    if (fetchError) {
-      console.error('[claim-device] Error fetching device:', fetchError);
-      return new Response(
-        JSON.stringify({ success: false, error: `Fetch error: ${fetchError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    if (userDevicesError) {
+      console.error('[claim-device] Error fetching user devices:', userDevicesError);
+    } else if (userDevices && userDevices.length > 0) {
+      console.log(`[claim-device] Found ${userDevices.length} iOS device(s) for this user`);
+      
+      // If we find devices with OLD device_id but same user, migrate them to new device_id
+      for (const oldDevice of userDevices) {
+        if (oldDevice.device_id !== device_id && oldDevice.voip_token) {
+          console.log('[claim-device] 🔄 MIGRATING device from old device_id to new native IDFV');
+          console.log('[claim-device] Old device_id:', oldDevice.device_id.substring(0, 8) + '...');
+          console.log('[claim-device] New device_id (IDFV):', device_id.substring(0, 8) + '...');
+          
+          // Delete old record and insert new one with correct device_id
+          const { error: deleteError } = await adminClient
+            .from('devices')
+            .delete()
+            .eq('device_id', oldDevice.device_id);
+          
+          if (deleteError) {
+            console.error('[claim-device] Error deleting old device:', deleteError);
+          } else {
+            const { error: insertError, data: insertedData } = await adminClient
+              .from('devices')
+              .insert({
+                device_id: device_id,
+                voip_token: oldDevice.voip_token,
+                user_id: user.id,
+                platform: 'ios',
+                updated_at: new Date().toISOString(),
+              })
+              .select();
+            
+            if (insertError) {
+              console.error('[claim-device] Error inserting migrated device:', insertError);
+            } else {
+              console.log('[claim-device] ✅ Device migrated successfully!', insertedData);
+              return new Response(
+                JSON.stringify({ 
+                  success: true, 
+                  message: 'Device migrated to new native IDFV',
+                  claimed: true,
+                  device_id,
+                  migrated_from: oldDevice.device_id.substring(0, 8) + '...',
+                  has_token: true,
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+              );
+            }
+          }
+        }
+      }
     }
     
-    console.log('[claim-device] Existing device state:', {
-      exists: !!existingDevice,
-      hasToken: !!existingDevice?.voip_token,
-      currentUserId: existingDevice?.user_id?.substring(0, 8) || 'none',
-      newUserId: user.id.substring(0, 8),
-    });
-    
-    if (!existingDevice) {
-      // Device doesn't exist yet - nothing to claim
-      console.log('[claim-device] Device not found in DB, nothing to claim');
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Device not registered yet',
-          claimed: false,
-          device_id,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
+    // Device still doesn't exist after migration attempt - nothing to claim
+    console.log('[claim-device] Device not found in DB, nothing to claim');
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Device not registered yet',
+        claimed: false,
+        device_id,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  }
     
     if (existingDevice.user_id === user.id) {
       // Already claimed by this user
