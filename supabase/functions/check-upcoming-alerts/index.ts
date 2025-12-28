@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
           .update({ call_alert_outcome: processingMarker })
           .eq('id', event.id)
           .is('call_alert_sent_at', null) // Only if not already processed
-          .not('call_alert_outcome', 'ilike', 'processing_%') // Only if not being processed by another instance
+          .or('call_alert_outcome.is.null,call_alert_outcome.not.ilike.processing_%') // Only if NULL or not being processed
           .select('id, title, event_date, event_time, location, user_id, emoji')
           .maybeSingle();
         
