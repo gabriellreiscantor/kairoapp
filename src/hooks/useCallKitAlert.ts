@@ -605,6 +605,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   }, [saveVoIPToken, attemptVoIPRegistration, forceCleanupAllState, toast]);
 
   // ✅ CRITICAL: Listen for auth state changes to FORCE ASSOCIATE device with current user
+  // ✅ FIX: ALWAYS reuse existing token from DB instead of trying to get new one from iOS
   useEffect(() => {
     if (!isIOSNative()) return;
 
@@ -613,7 +614,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       console.log('[CallKit] Event:', eventType);
       console.log('[CallKit] User ID:', userId.substring(0, 8));
       
-      remoteLog.info('voip', 'force_associate_device_start', {
+      remoteLog.info('voip', 'force_associate_device_start_v3', {
         event: eventType,
         userId: userId.substring(0, 8) + '...',
         hasPendingToken: !!pendingTokenRef.current,
@@ -627,82 +628,123 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         
         console.log('[CallKit] Device ID:', deviceId.substring(0, 8));
         
-        // First, check current state of device in database
+        // ✅ STEP 1: Check if this device_id already has a token in the database
         const { data: existingDevice } = await supabase
           .from('devices')
           .select('user_id, voip_token')
           .eq('device_id', deviceId)
           .maybeSingle();
         
-        console.log('[CallKit] Existing device in DB:', existingDevice ? {
-          currentUserId: existingDevice.user_id?.substring(0, 8),
-          hasToken: !!existingDevice.voip_token,
-        } : 'NOT FOUND');
+        const hasExistingToken = !!(existingDevice?.voip_token);
+        const currentDbUserId = existingDevice?.user_id;
         
-        remoteLog.info('voip', 'device_db_state_before_update', {
-          deviceId: deviceId.substring(0, 8),
-          existingUserId: existingDevice?.user_id?.substring(0, 8) || 'none',
-          hasToken: !!existingDevice?.voip_token,
-          newUserId: userId.substring(0, 8),
+        console.log('[CallKit] DB State:', {
+          hasExistingToken,
+          existingTokenLength: existingDevice?.voip_token?.length || 0,
+          currentDbUserId: currentDbUserId?.substring(0, 8) || 'none',
+          needsUpdate: currentDbUserId !== userId,
         });
         
-        // If device exists with different user_id, we need to FORCE update
-        const needsUpdate = !existingDevice || existingDevice.user_id !== userId;
+        remoteLog.info('voip', 'db_state_check_v3', {
+          deviceId: deviceId.substring(0, 8),
+          hasExistingToken,
+          tokenLength: existingDevice?.voip_token?.length || 0,
+          currentDbUserId: currentDbUserId?.substring(0, 8) || 'none',
+          newUserId: userId.substring(0, 8),
+          needsUpdate: currentDbUserId !== userId,
+        });
         
-        if (needsUpdate) {
-          console.log('[CallKit] 🔄 Device needs user_id update (current:', existingDevice?.user_id?.substring(0, 8) || 'none', '→ new:', userId.substring(0, 8), ')');
+        // ✅ STEP 2: If token already exists in DB, just UPDATE the user_id - DON'T try to get new token!
+        if (hasExistingToken) {
+          console.log('[CallKit] ✅ TOKEN ALREADY EXISTS IN DB! Just updating user_id association...');
           
-          if (pendingTokenRef.current || existingDevice?.voip_token) {
-            // UPSERT with new user_id - this ALWAYS works
-            const tokenToUse = pendingTokenRef.current || existingDevice?.voip_token || '';
-            
-            console.log('[CallKit] Upserting device with new user_id...');
-            const { error: upsertError, data: upsertData } = await supabase
-              .from('devices')
-              .upsert({
-                device_id: deviceId,
-                user_id: userId,
-                voip_token: tokenToUse,
-                platform: 'ios',
-                updated_at: new Date().toISOString(),
-              }, {
-                onConflict: 'device_id'
-              })
-              .select();
-            
-            if (upsertError) {
-              console.error('[CallKit] Upsert failed:', upsertError);
-              remoteLog.error('voip', 'device_upsert_failed', { 
-                error: upsertError.message,
-                deviceId: deviceId.substring(0, 8),
-              });
-            } else {
-              console.log('[CallKit] ✅ Device UPSERTED successfully!', upsertData);
-              remoteLog.info('voip', 'device_upserted_success', {
-                deviceId: deviceId.substring(0, 8),
-                userId: userId.substring(0, 8),
-              });
-            }
-          } else {
-            // No token available, need to re-register
-            console.log('[CallKit] ⚠️ No token available, forcing re-registration...');
-            remoteLog.warn('voip', 'no_token_forcing_reregister', {
+          // Store token in memory for immediate use
+          pendingTokenRef.current = existingDevice.voip_token;
+          
+          if (currentDbUserId === userId) {
+            console.log('[CallKit] ✅ Device already correctly associated with this user');
+            remoteLog.info('voip', 'device_already_correct_user_v3', {
               deviceId: deviceId.substring(0, 8),
               userId: userId.substring(0, 8),
             });
-            hasRegisteredRef.current = false;
-            await attemptVoIPRegistration();
+            return; // Nothing to do!
           }
-        } else {
-          console.log('[CallKit] ✅ Device already associated with correct user');
-          remoteLog.info('voip', 'device_already_correct_user', {
-            deviceId: deviceId.substring(0, 8),
-            userId: userId.substring(0, 8),
-          });
+          
+          // Update user_id only - keep existing token
+          console.log('[CallKit] 🔄 Updating user_id from', currentDbUserId?.substring(0, 8) || 'none', '→', userId.substring(0, 8));
+          
+          const { error: updateError, data: updateData } = await supabase
+            .from('devices')
+            .update({
+              user_id: userId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('device_id', deviceId)
+            .select();
+          
+          if (updateError) {
+            console.error('[CallKit] ❌ Update user_id failed:', updateError);
+            remoteLog.error('voip', 'update_user_id_failed_v3', { 
+              error: updateError.message,
+              deviceId: deviceId.substring(0, 8),
+            });
+          } else {
+            console.log('[CallKit] ✅ USER_ID UPDATED SUCCESSFULLY!', updateData);
+            remoteLog.info('voip', 'user_id_updated_success_v3', {
+              deviceId: deviceId.substring(0, 8),
+              oldUserId: currentDbUserId?.substring(0, 8) || 'none',
+              newUserId: userId.substring(0, 8),
+              tokenPreserved: true,
+            });
+          }
+          return;
         }
+        
+        // ✅ STEP 3: No token in DB for this device_id. Check if we have one in memory.
+        if (pendingTokenRef.current) {
+          console.log('[CallKit] Token in memory, saving to DB with new user_id...');
+          
+          const { error: upsertError, data: upsertData } = await supabase
+            .from('devices')
+            .upsert({
+              device_id: deviceId,
+              user_id: userId,
+              voip_token: pendingTokenRef.current,
+              platform: 'ios',
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'device_id'
+            })
+            .select();
+          
+          if (upsertError) {
+            console.error('[CallKit] Upsert failed:', upsertError);
+            remoteLog.error('voip', 'upsert_from_memory_failed_v3', { 
+              error: upsertError.message,
+            });
+          } else {
+            console.log('[CallKit] ✅ Token from memory saved!', upsertData);
+            remoteLog.info('voip', 'upsert_from_memory_success_v3', {
+              deviceId: deviceId.substring(0, 8),
+              userId: userId.substring(0, 8),
+            });
+          }
+          return;
+        }
+        
+        // ✅ STEP 4: No token anywhere! Need to register with iOS (first time setup)
+        console.log('[CallKit] ⚠️ No token in DB or memory. First time registration needed...');
+        remoteLog.warn('voip', 'no_token_anywhere_registering_v3', {
+          deviceId: deviceId.substring(0, 8),
+          userId: userId.substring(0, 8),
+        });
+        
+        hasRegisteredRef.current = false;
+        await attemptVoIPRegistration();
+        
       } catch (error) {
         console.error('[CallKit] Error in forceAssociateDeviceWithUser:', error);
-        remoteLog.error('voip', 'force_associate_exception', {
+        remoteLog.error('voip', 'force_associate_exception_v3', {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -711,7 +753,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[CallKit] Auth state changed:', event);
       
-      remoteLog.info('voip', 'auth_state_changed', {
+      remoteLog.info('voip', 'auth_state_changed_v3', {
         event,
         hasSession: !!session,
         userId: session?.user?.id?.substring(0, 8) || 'none',
