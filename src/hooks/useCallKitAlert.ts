@@ -408,10 +408,34 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           methods: Object.keys(CallKitVoip || {}).join(','),
         });
         
-        // Debug listener
+        // Debug listener - Enhanced for TTS stages
         console.log('[CallKit] Setting up DEBUG listener...');
         (CallKitVoip as any).addListener('debug', (data: any) => {
           console.log('[CallKit DEBUG]', data.stage, JSON.stringify(data, null, 2));
+          
+          // Log all TTS-related stages to remote
+          const ttsStages = [
+            'tts_play_called', 'tts_silence_check', 'tts_audio_decoded', 
+            'tts_audio_session_ready', 'tts_player_created', 'tts_play_result', 
+            'tts_finished', 'tts_decode_error', 'tts_exception'
+          ];
+          
+          if (ttsStages.includes(data.stage)) {
+            remoteLog.info('voip', `swift_${data.stage}`, data);
+            
+            // ✅ CRITICAL: Emit custom event when TTS finishes so playTTS can react
+            if (data.stage === 'tts_finished') {
+              console.log('[CallKit] 🎵 TTS FINISHED event received from Swift!');
+              window.dispatchEvent(new CustomEvent('horah:tts-finished', { detail: data }));
+            }
+            
+            // Log play result for debugging
+            if (data.stage === 'tts_play_result') {
+              console.log('[CallKit] 🎵 TTS play() result:', data.didPlay ? 'SUCCESS ✅' : 'FAILED ❌');
+              console.log('[CallKit] 🎵 Output route:', data.outputPort || 'unknown');
+              console.log('[CallKit] 🎵 Duration:', data.duration, 'seconds');
+            }
+          }
           
           if (data.stage === 'push_received') {
             toast({
@@ -1198,7 +1222,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         // Step 2: Try native audio playback first (for native call screen)
         if (isIOSNative() && callKitPluginRef.current?.playTTSAudio) {
           console.log('[CallKit] 📱 Attempting native TTS playback...');
-          remoteLog.info('voip', 'tts_native_attempt_start');
+          remoteLog.info('voip', 'tts_native_attempt_start', {
+            audioLength: base64Audio.length,
+          });
           
           let retries = 0;
           const maxRetries = 2;
@@ -1214,12 +1240,31 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                 console.log('[CallKit] ✅ Native TTS playback started!');
                 remoteLog.info('voip', 'tts_native_success', { attempt: retries + 1 });
                 
-                // Wait for audio to finish (estimate based on audio length)
-                // Base64 audio for a ~5 second clip is about 50-100KB
-                const estimatedDuration = Math.max(5000, Math.min(15000, base64Audio.length / 10));
-                console.log(`[CallKit] Waiting ${estimatedDuration}ms for TTS to finish...`);
+                // ✅ CRITICAL: Wait for REAL tts_finished event from Swift instead of estimated timeout
+                console.log('[CallKit] ⏳ Waiting for tts_finished event from Swift...');
                 
-                await new Promise(resolve => setTimeout(resolve, estimatedDuration));
+                await new Promise<void>((resolve) => {
+                  const MAX_WAIT = 20000; // 20 seconds max safety timeout
+                  
+                  // Safety timeout in case Swift doesn't emit the event
+                  const safetyTimeout = setTimeout(() => {
+                    console.log('[CallKit] ⚠️ Safety timeout - no tts_finished received in 20s');
+                    remoteLog.warn('voip', 'tts_finished_safety_timeout');
+                    window.removeEventListener('horah:tts-finished', onTTSFinished);
+                    resolve();
+                  }, MAX_WAIT);
+                  
+                  // Listen for the real tts_finished event
+                  const onTTSFinished = () => {
+                    console.log('[CallKit] ✅ tts_finished event received! Ending call...');
+                    remoteLog.info('voip', 'tts_finished_event_received');
+                    clearTimeout(safetyTimeout);
+                    window.removeEventListener('horah:tts-finished', onTTSFinished);
+                    resolve();
+                  };
+                  
+                  window.addEventListener('horah:tts-finished', onTTSFinished);
+                });
                 
                 // End call after TTS finishes
                 console.log('[CallKit] TTS finished, ending call...');
@@ -1230,6 +1275,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               
               if (result?.error) {
                 console.log('[CallKit] Native playback error:', result.error);
+                remoteLog.error('voip', 'tts_native_play_error', { error: result.error });
               }
               
               if (retries < maxRetries) {
