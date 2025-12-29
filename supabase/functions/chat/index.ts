@@ -2373,11 +2373,35 @@ SEMPRE crie o evento primeiro. Usuario corrige depois se precisar.
 
 === INTERPRETACAO DE TEMPO ===
 
+Hora atual: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone })}
+
 Quando o usuario menciona hora SEM data:
 - Assuma HOJE se a hora ainda nao passou
 - Assuma AMANHA se a hora ja passou
 
-Hora atual: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone })}
+=== TEMPO RELATIVO (CRITICO) ===
+
+Quando usuario usar expressoes de tempo relativo, CALCULE o horario exato somando ao horario atual.
+
+Exemplos (baseado no horario atual acima):
+- "daqui 5 minutos" → some 5 minutos ao horario atual
+- "em 10 minutos" → some 10 minutos ao horario atual
+- "daqui meia hora" → some 30 minutos ao horario atual
+- "daqui uma hora" → some 60 minutos ao horario atual
+- "em uma hora" → some 60 minutos ao horario atual
+- "daqui 2 horas" → some 120 minutos ao horario atual
+
+REGRAS ABSOLUTAS para tempo relativo:
+1. NUNCA use "dia inteiro" (hora=null) para tempo relativo
+2. SEMPRE calcule o horario exato no formato HH:MM
+3. Se o calculo passar da meia-noite, use o dia seguinte (${tomorrowISO})
+4. Tempo relativo SEMPRE tem um horario especifico
+
+Exemplo pratico:
+Se hora atual = 09:16 e usuario diz "daqui 5 minutos escovar os dentes":
+- Calcule: 09:16 + 5 = 09:21
+- hora = "09:21" (NAO null, NAO dia inteiro)
+- data = "${todayISO}"
 
 Exemplos:
 "as tres da tarde vou na barbearia" (enviado as 14:00) → HOJE as 15:00
@@ -2588,7 +2612,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             properties: {
               titulo: { type: "string", description: "Nome da atividade exatamente como usuario falou" },
               data: { type: "string", description: `Data YYYY-MM-DD. Padrao: ${todayISO} (hoje)` },
-              hora: { type: ["string", "null"], description: "SOMENTE formato HH:MM (ex: '14:30', '09:00'). NUNCA use formato ISO com data. Para dia inteiro, use null." },
+              hora: { type: ["string", "null"], description: "SOMENTE formato HH:MM (ex: '14:30', '09:00'). Para tempo relativo como 'daqui X minutos', CALCULE o horario exato somando ao horario atual e use o resultado (ex: se agora sao 09:16 e usuario disse 'daqui 5 minutos', hora='09:21'). Para dia inteiro SEM hora especificada, use null." },
               local: { type: ["string", "null"], description: "Local se mencionado, senao null" },
               prioridade: { type: "string", enum: ["low", "medium", "high"], description: "low=lazer, medium=trabalho, high=saude/urgente" },
               categoria: { type: "string", description: "pessoal, trabalho, saude, lazer" },

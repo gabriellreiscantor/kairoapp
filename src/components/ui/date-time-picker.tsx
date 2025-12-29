@@ -66,7 +66,7 @@ export function TimePicker({ time, onTimeChange, className }: TimePickerProps) {
   
   // Generate hours and minutes options
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-  const minutes = ['00', '15', '30', '45'];
+  const minutes = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
   
   const [selectedHour, selectedMinute] = time.split(':');
 
