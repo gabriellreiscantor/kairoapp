@@ -35,8 +35,8 @@ index 1234567..abcdefg 100644
 + *  MODIFIED BY HORAH: TTS plays on native call screen, call ends only after TTS finishes
 + *  v2: Added SILENCE AUDIO ANCHOR to keep call active while TTS loads
   */
- @objc(CallKitVoipPlugin)
- public class CallKitVoipPlugin: CAPPlugin {
+@objc(CallKitVoipPlugin)
+ public class CallKitVoipPlugin: CAPPlugin, AVAudioPlayerDelegate {
  
      private var provider: CXProvider?
      private let voipRegistry = PKPushRegistry(queue: nil)
@@ -289,13 +289,19 @@ index 1234567..abcdefg 100644
 +    
 +    // NEW: Play TTS audio during call
 +    @objc func playTTSAudio(_ call: CAPPluginCall) {
++        // 1️⃣ Log CHAMADA do método
++        print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
++        
 +        guard let base64Audio = call.getString("audio") else {
 +            print("[CallKit-Swift] ❌ No audio data provided")
 +            call.resolve(["playing": false, "error": "no_audio_data"])
 +            return
 +        }
 +        
-+        print("[CallKit-Swift] 🎵 Playing TTS audio (length: \(base64Audio.count))")
++        print("[CallKit-Swift] 🎵 Base64 audio length: \(base64Audio.count)")
++        
++        // 6️⃣ Log se silencePlayer está tocando
++        print("[CallKit-Swift] 🔇 Silence player isPlaying: \(silencePlayer?.isPlaying ?? false)")
 +        
 +        // Stop silence anchor when TTS starts
 +        stopSilenceAnchor()
@@ -306,6 +312,8 @@ index 1234567..abcdefg 100644
 +            return
 +        }
 +        
++        print("[CallKit-Swift] 📦 Audio data decoded: \(audioData.count) bytes")
++        
 +        do {
 +            // Configure audio session
 +            let audioSession = AVAudioSession.sharedInstance()
@@ -314,18 +322,51 @@ index 1234567..abcdefg 100644
 +            // FORCE speaker output - critical for TTS to be heard
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
++            // 4️⃣ Log rota de áudio ANTES de tocar
++            let route = audioSession.currentRoute
++            print("[CallKit-Swift] 🔈 Audio route outputs: \(route.outputs)")
++            for output in route.outputs {
++                print("[CallKit-Swift] 🔈 Output: \(output.portName) (\(output.portType.rawValue))")
++            }
++            
 +            // Create and play audio
 +            audioPlayer = try AVAudioPlayer(data: audioData)
++            
++            // 5️⃣ Set delegate para capturar erros
++            audioPlayer?.delegate = self
++            
++            // 2️⃣ Log duração do áudio
++            print("[CallKit-Swift] ⏱️ TTS audio duration: \(audioPlayer?.duration ?? -1) seconds")
++            
 +            audioPlayer?.volume = 1.0  // Maximum volume
 +            audioPlayer?.prepareToPlay()
-+            audioPlayer?.play()
 +            
-+            print("[CallKit-Swift] ✅ TTS audio playing on SPEAKER (volume: 1.0)")
-+            call.resolve(["playing": true])
++            // 3️⃣ Capturar retorno do play()
++            let didPlay = audioPlayer?.play() ?? false
++            print("[CallKit-Swift] ▶️ TTS play() returned: \(didPlay)")
++            
++            // 7️⃣ Confirmação final
++            print("[CallKit-Swift] ====== TTS PLAYBACK SUMMARY ======")
++            print("[CallKit-Swift] playTTSAudio CALLED: ✅")
++            print("[CallKit-Swift] play() returned: \(didPlay)")
++            print("[CallKit-Swift] audio route: \(route.outputs.first?.portType.rawValue ?? "unknown")")
++            print("[CallKit-Swift] duration: \(audioPlayer?.duration ?? -1)s")
++            print("[CallKit-Swift] ===================================")
++            
++            call.resolve(["playing": didPlay, "duration": audioPlayer?.duration ?? 0])
 +        } catch {
-+            print("[CallKit-Swift] ❌ Audio playback error: \(error)")
++            print("[CallKit-Swift] ❌ Audio playback error: \(error.localizedDescription)")
 +            call.resolve(["playing": false, "error": error.localizedDescription])
 +        }
++    }
++    
++    // 5️⃣ Audio player delegate - capture decode errors
++    public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
++        print("[CallKit-Swift] ❌ Audio decode error: \(error?.localizedDescription ?? "nil")")
++    }
++    
++    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
++        print("[CallKit-Swift] ✅ Audio finished playing, success: \(flag)")
 +    }
 +    
 +    // NEW: Stop TTS audio
