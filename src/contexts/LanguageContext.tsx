@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ptBR, enUS, es, fr, de, it, ja, ko, zhCN, Locale } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 export type LanguageCode = 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE' | 'it-IT' | 'ja-JP' | 'ko-KR' | 'zh-CN';
 
@@ -1018,10 +1019,24 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     document.documentElement.lang = language;
   }, [language]);
 
-  const setLanguage = (lang: LanguageCode) => {
+  const setLanguage = async (lang: LanguageCode) => {
     setLanguageState(lang);
     localStorage.setItem('kairo-language', lang);
     document.documentElement.lang = lang;
+    
+    // ✅ Sync language to database for MeLig/TTS to use
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ language: lang })
+          .eq('id', user.id);
+        console.log('[Language] Synced to database:', lang);
+      }
+    } catch (e) {
+      console.error('[Language] Failed to sync to database:', e);
+    }
   };
 
   const t = (key: string): string => {

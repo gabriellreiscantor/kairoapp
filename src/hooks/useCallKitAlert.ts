@@ -639,6 +639,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           const eventTitle = data?.eventTitle || data?.name || 'Evento';
           const eventTime = data?.eventTime || data?.duration || '';
           
+          // ✅ Extract language from VoIP push payload (synced from backend)
+          const pushLanguage = data?.language;
+          if (pushLanguage) {
+            console.log('[CallKit] 🌐 Language from VoIP push:', pushLanguage);
+            currentLanguageRef.current = pushLanguage;
+          }
+          
           if (eventId || eventTitle) {
             const eventData = {
               id: eventId || 'call-event',
@@ -658,11 +665,14 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             const language = currentLanguageRef.current;
             const preloadStartTime = Date.now();
             
+            console.log('[CallKit] 🌐 Using language for TTS:', language);
+            
             remoteLog.info('voip', 'tts_preload_start_immediate', { 
               eventId: eventData.id,
               eventTitle: eventData.title,
               eventTime: eventData.time,
               language,
+              languageSource: pushLanguage ? 'voip_push' : 'current_ref',
               startTime: preloadStartTime,
             });
             
