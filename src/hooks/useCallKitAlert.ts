@@ -582,14 +582,20 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           }
         });
         
-        // Call started listener
+        // Call started listener - TRIGGERED BY VOIP PUSH (before user answers!)
+        // This is the PERFECT time to pre-load TTS
         console.log('[CallKit] Setting up callStarted listener...');
         CallKitVoip.addListener('callStarted', async (data: any) => {
-          console.log('[CallKit] ====== CALL STARTED ======');
+          const receivedAt = new Date().toISOString();
+          console.log('[CallKit] ====== CALL STARTED (VoIP Push Received) ======');
+          console.log('[CallKit] Received at:', receivedAt);
+          console.log('[CallKit] Data:', JSON.stringify(data));
           
-          remoteLog.info('voip', 'call_started', {
+          remoteLog.info('voip', 'call_started_voip_push', {
+            receivedAt,
             eventId: data?.eventId,
             eventTitle: data?.eventTitle,
+            eventTime: data?.eventTime,
           });
           
           // Cleanup previous call state
@@ -617,35 +623,54 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
             safetyTimeoutRef.current = null;
           }
           
-          // Safety timeout
+          // Safety timeout (longer now since we have silence anchor)
           safetyTimeoutRef.current = window.setTimeout(() => {
-            console.log('[CallKit] ⚠️ SAFETY TIMEOUT - forcing cleanup after 60s');
+            console.log('[CallKit] ⚠️ SAFETY TIMEOUT - forcing cleanup after 90s');
             forceCleanupAllState();
             
             if (callKitPluginRef.current && currentEventRef.current) {
               const endCallFn = callKitPluginRef.current.endCallFromJS || callKitPluginRef.current.endCall;
               endCallFn?.({ id: currentEventRef.current.id }).catch(() => {});
             }
-          }, 60000);
+          }, 90000); // Increased to 90s since we have silence anchor
           
-          if (data.eventId) {
+          // Extract event data from payload
+          const eventId = data?.eventId || data?.id;
+          const eventTitle = data?.eventTitle || data?.name || 'Evento';
+          const eventTime = data?.eventTime || data?.duration || '';
+          
+          if (eventId || eventTitle) {
             const eventData = {
-              id: data.eventId,
-              title: data.eventTitle || data.name || 'Evento',
-              emoji: data.eventEmoji || '📅',
-              time: data.eventTime,
-              location: data.eventLocation,
+              id: eventId || 'call-event',
+              title: eventTitle,
+              emoji: data?.eventEmoji || '📅',
+              time: eventTime,
+              location: data?.eventLocation || '',
             };
             setCurrentEvent(eventData);
+            currentEventRef.current = eventData;
             
-            // Pre-load TTS
-            console.log('[CallKit] 🚀 PRE-LOADING TTS while phone rings...');
+            // ✅ CRITICAL: Pre-load TTS IMMEDIATELY when call arrives
+            // User hasn't answered yet, so we have time to load TTS
+            console.log('[CallKit] 🚀🚀🚀 PRE-LOADING TTS IMMEDIATELY (before user answers!)');
+            console.log('[CallKit] Event:', eventData.title, 'Time:', eventData.time);
+            
             const language = currentLanguageRef.current;
+            const preloadStartTime = Date.now();
             
+            remoteLog.info('voip', 'tts_preload_start_immediate', { 
+              eventId: eventData.id,
+              eventTitle: eventData.title,
+              eventTime: eventData.time,
+              language,
+              startTime: preloadStartTime,
+            });
+            
+            // Start pre-loading TTS in background
             preloadingTTSRef.current = (async () => {
-              remoteLog.info('voip', 'tts_preload_start', { eventId: eventData.id });
-              
               try {
+                console.log('[CallKit] 📥 Calling text-to-speech edge function...');
+                
                 const { data: ttsData, error } = await supabase.functions.invoke('text-to-speech', {
                   body: { 
                     titulo: eventData.title,
@@ -654,22 +679,48 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                   }
                 });
                 
+                const loadTime = Date.now() - preloadStartTime;
+                
                 if (error) {
-                  console.error('[CallKit] Pre-load TTS error:', error);
+                  console.error('[CallKit] ❌ Pre-load TTS error:', error);
+                  remoteLog.error('voip', 'tts_preload_error', { 
+                    error: error.message,
+                    loadTimeMs: loadTime,
+                  });
                   return null;
                 }
                 
                 if (ttsData?.audioContent) {
-                  console.log('[CallKit] ✅ TTS PRE-LOADED!');
+                  console.log(`[CallKit] ✅✅✅ TTS PRE-LOADED in ${loadTime}ms! (${ttsData.audioContent.length} bytes)`);
                   preloadedTTSRef.current = ttsData.audioContent;
+                  
+                  remoteLog.info('voip', 'tts_preload_success', { 
+                    loadTimeMs: loadTime,
+                    audioLength: ttsData.audioContent.length,
+                    eventId: eventData.id,
+                  });
+                  
                   return ttsData.audioContent;
                 }
+                
+                console.log('[CallKit] ⚠️ TTS response has no audioContent');
+                remoteLog.warn('voip', 'tts_preload_no_content', { loadTimeMs: loadTime });
                 return null;
               } catch (e) {
-                console.error('[CallKit] Pre-load TTS exception:', e);
+                const loadTime = Date.now() - preloadStartTime;
+                console.error('[CallKit] ❌ Pre-load TTS exception:', e);
+                remoteLog.error('voip', 'tts_preload_exception', { 
+                  error: e instanceof Error ? e.message : String(e),
+                  loadTimeMs: loadTime,
+                });
                 return null;
               }
             })();
+          } else {
+            console.log('[CallKit] ⚠️ No event data in callStarted payload');
+            remoteLog.warn('voip', 'call_started_no_event_data', {
+              dataKeys: Object.keys(data || {}).join(','),
+            });
           }
         });
         

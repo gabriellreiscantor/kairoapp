@@ -22,7 +22,7 @@ diff --git a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPl
 index 1234567..abcdefg 100644
 --- a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.swift
 +++ b/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.swift
-@@ -1,200 +1,328 @@
+@@ -1,200 +1,400 @@
  import Foundation
  import Capacitor
  import UIKit
@@ -33,6 +33,7 @@ index 1234567..abcdefg 100644
  /**
   *  CallKit Voip Plugin provides native PushKit functionality with apple CallKit to capacitor
 + *  MODIFIED BY HORAH: TTS plays on native call screen, call ends only after TTS finishes
++ *  v2: Added SILENCE AUDIO ANCHOR to keep call active while TTS loads
   */
  @objc(CallKitVoipPlugin)
  public class CallKitVoipPlugin: CAPPlugin {
@@ -42,6 +43,8 @@ index 1234567..abcdefg 100644
      private var connectionIdRegistry: [UUID: CallConfig] = [:]
 +    private var activeCallUUID: UUID?  // Track the active call
 +    private var audioPlayer: AVAudioPlayer?  // For TTS playback
++    private var silencePlayer: AVAudioPlayer?  // ANCHOR: Keeps call active
++    private var silenceTimer: Timer?  // Timer to loop silence
  
      @objc func register(_ call: CAPPluginCall) {
          voipRegistry.delegate = self
@@ -59,7 +62,7 @@ index 1234567..abcdefg 100644
          provider?.setDelegate(self, queue: DispatchQueue.main)
          call.resolve()
      }
- 
+
      public func notifyEvent(eventName: String, uuid: UUID) {
          if let config = connectionIdRegistry[uuid] {
              notifyListeners(eventName, data: [
@@ -73,7 +76,7 @@ index 1234567..abcdefg 100644
 +            // DON'T remove from registry here - we need it for endCallFromJS
          }
      }
- 
+
      public func incomingCall(id: String, media: String, name: String, duration: String) {
          let update = CXCallUpdate()
          update.remoteHandle = CXHandle(type: .generic, value: name)
@@ -99,7 +102,133 @@ index 1234567..abcdefg 100644
              }
          })
      }
- 
+
++    // ========== SILENCE AUDIO ANCHOR ==========
++    // This keeps the call active while waiting for TTS to load
++    // Without audio activity, iOS terminates the call after ~5-6 seconds
++    
++    private func startSilenceAnchor() {
++        print("[CallKit-Swift] 🔇 Starting silence audio anchor...")
++        
++        // Stop any existing silence player
++        stopSilenceAnchor()
++        
++        do {
++            let audioSession = AVAudioSession.sharedInstance()
++            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
++            try audioSession.setActive(true)
++            print("[CallKit-Swift] ✅ Audio session configured for silence anchor")
++        } catch {
++            print("[CallKit-Swift] ⚠️ Audio session error for silence: \(error)")
++        }
++        
++        // Try to use silence.caf if it exists
++        if let silenceURL = Bundle.main.url(forResource: "silence", withExtension: "caf") {
++            do {
++                silencePlayer = try AVAudioPlayer(contentsOf: silenceURL)
++                silencePlayer?.numberOfLoops = -1 // Loop indefinitely
++                silencePlayer?.volume = 0.01 // Nearly silent
++                silencePlayer?.prepareToPlay()
++                silencePlayer?.play()
++                print("[CallKit-Swift] ✅ Silence anchor started (silence.caf)")
++                return
++            } catch {
++                print("[CallKit-Swift] ⚠️ Could not play silence.caf: \(error)")
++            }
++        }
++        
++        // Fallback: Generate minimal audio data programmatically
++        print("[CallKit-Swift] 📝 Generating synthetic silence audio...")
++        generateAndPlaySyntheticSilence()
++    }
++    
++    private func generateAndPlaySyntheticSilence() {
++        // Create minimal PCM silence data (1 second of silence at 8000Hz mono)
++        let sampleRate: Double = 8000
++        let duration: Double = 1.0
++        let numSamples = Int(sampleRate * duration)
++        
++        // Create silent audio buffer
++        var silenceData = Data()
++        let silentSample: Int16 = 0
++        for _ in 0..<numSamples {
++            var sample = silentSample
++            silenceData.append(Data(bytes: &sample, count: 2))
++        }
++        
++        // Create WAV header
++        let wavData = createWAVData(pcmData: silenceData, sampleRate: Int(sampleRate))
++        
++        do {
++            silencePlayer = try AVAudioPlayer(data: wavData)
++            silencePlayer?.numberOfLoops = -1
++            silencePlayer?.volume = 0.01
++            silencePlayer?.prepareToPlay()
++            silencePlayer?.play()
++            print("[CallKit-Swift] ✅ Synthetic silence anchor started")
++        } catch {
++            print("[CallKit-Swift] ❌ Could not play synthetic silence: \(error)")
++            // Last resort: use timer to periodically ping audio session
++            startSilenceTimer()
++        }
++    }
++    
++    private func createWAVData(pcmData: Data, sampleRate: Int) -> Data {
++        var wavData = Data()
++        
++        // RIFF header
++        wavData.append("RIFF".data(using: .ascii)!)
++        var fileSize = UInt32(36 + pcmData.count)
++        wavData.append(Data(bytes: &fileSize, count: 4))
++        wavData.append("WAVE".data(using: .ascii)!)
++        
++        // fmt chunk
++        wavData.append("fmt ".data(using: .ascii)!)
++        var fmtSize: UInt32 = 16
++        wavData.append(Data(bytes: &fmtSize, count: 4))
++        var audioFormat: UInt16 = 1 // PCM
++        wavData.append(Data(bytes: &audioFormat, count: 2))
++        var numChannels: UInt16 = 1 // Mono
++        wavData.append(Data(bytes: &numChannels, count: 2))
++        var sampleRateVal: UInt32 = UInt32(sampleRate)
++        wavData.append(Data(bytes: &sampleRateVal, count: 4))
++        var byteRate: UInt32 = UInt32(sampleRate * 2)
++        wavData.append(Data(bytes: &byteRate, count: 4))
++        var blockAlign: UInt16 = 2
++        wavData.append(Data(bytes: &blockAlign, count: 2))
++        var bitsPerSample: UInt16 = 16
++        wavData.append(Data(bytes: &bitsPerSample, count: 2))
++        
++        // data chunk
++        wavData.append("data".data(using: .ascii)!)
++        var dataSize = UInt32(pcmData.count)
++        wavData.append(Data(bytes: &dataSize, count: 4))
++        wavData.append(pcmData)
++        
++        return wavData
++    }
++    
++    private func startSilenceTimer() {
++        print("[CallKit-Swift] ⏱️ Starting silence timer fallback...")
++        silenceTimer?.invalidate()
++        silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
++            // Keep audio session active
++            do {
++                try AVAudioSession.sharedInstance().setActive(true)
++            } catch {}
++        }
++    }
++    
++    private func stopSilenceAnchor() {
++        print("[CallKit-Swift] 🔇 Stopping silence anchor...")
++        silencePlayer?.stop()
++        silencePlayer = nil
++        silenceTimer?.invalidate()
++        silenceTimer = nil
++    }
++    
++    // ========== END SILENCE AUDIO ANCHOR ==========
+
 +    // REMOVED: Don't end call automatically
      public func endCall(uuid: UUID) {
          let controller = CXCallController()
@@ -117,6 +246,7 @@ index 1234567..abcdefg 100644
 +        self.activeCallUUID = nil
 +        self.connectionIdRegistry[uuid] = nil
 +        self.stopAudio()
++        self.stopSilenceAnchor()
 +    }
 +    
 +    // NEW: End call from JavaScript (after TTS finishes)
@@ -163,6 +293,9 @@ index 1234567..abcdefg 100644
 +        
 +        print("[CallKit-Swift] 🎵 Playing TTS audio (length: \(base64Audio.count))")
 +        
++        // Stop silence anchor when TTS starts
++        stopSilenceAnchor()
++        
 +        guard let audioData = Data(base64Encoded: base64Audio) else {
 +            print("[CallKit-Swift] ❌ Invalid base64 audio")
 +            call.resolve(["playing": false, "error": "invalid_base64"])
@@ -200,25 +333,30 @@ index 1234567..abcdefg 100644
 +        audioPlayer = nil
      }
  }
- 
- 
+
+
  // MARK: CallKit events handler
- 
+
  extension CallKitVoipPlugin: CXProviderDelegate {
- 
+
      public func providerDidReset(_ provider: CXProvider) {
 -        print("providerDidReset")
 +        print("[CallKit-Swift] Provider reset")
 +        activeCallUUID = nil
 +        connectionIdRegistry.removeAll()
 +        stopAudio()
++        stopSilenceAnchor()
      }
- 
+
      public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
 -        print("CXAnswerCallAction answers an incoming call")
 +        // User answered the call
 +        print("[CallKit-Swift] ====== CALL ANSWERED ======")
 +        print("[CallKit-Swift] UUID: \(action.callUUID)")
++        
++        // ✅ CRITICAL: Start silence anchor IMMEDIATELY
++        // This keeps the call active while waiting for TTS to load
++        startSilenceAnchor()
 +        
 +        // Notify JavaScript that call was answered
          notifyEvent(eventName: "callAnswered", uuid: action.callUUID)
@@ -228,19 +366,9 @@ index 1234567..abcdefg 100644
 +        // The call stays active so TTS can play on the native screen.
 +        // JavaScript will call endCallFromJS() after TTS finishes.
 +        
-+        // Configure audio session for TTS playback
-+        do {
-+            let audioSession = AVAudioSession.sharedInstance()
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
-+            try audioSession.setActive(true)
-+            print("[CallKit-Swift] ✅ Audio session ready for TTS")
-+        } catch {
-+            print("[CallKit-Swift] ⚠️ Audio session setup error: \(error)")
-+        }
-+        
          action.fulfill()
      }
- 
+
      public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
 -        print("CXEndCallAction end an incoming call")
 +        // Call ended (either by user or by endCallFromJS)
@@ -253,10 +381,11 @@ index 1234567..abcdefg 100644
 +            activeCallUUID = nil
 +        }
 +        stopAudio()
++        stopSilenceAnchor()
 +        
          action.fulfill()
      }
- 
+
      public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
 -        print("CXStartCallAction end an outgoing call")
 +        // Outgoing call started
@@ -265,20 +394,25 @@ index 1234567..abcdefg 100644
          action.fulfill()
      }
 +    
-+    // Handle audio session interruptions
++    // Handle audio session activation - CRITICAL for keeping call alive
 +    public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-+        print("[CallKit-Swift] 🔊 Audio session activated")
++        print("[CallKit-Swift] 🔊 Audio session activated by CallKit")
++        // Start silence anchor here as backup
++        if silencePlayer == nil {
++            startSilenceAnchor()
++        }
 +    }
 +    
 +    public func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
 +        print("[CallKit-Swift] 🔇 Audio session deactivated")
 +        stopAudio()
++        stopSilenceAnchor()
 +    }
  }
- 
+
  // MARK: PushKit events handler
  extension CallKitVoipPlugin: PKPushRegistryDelegate {
- 
+
      public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
          let parts = pushCredentials.token.map { String(format: "%02.2hhx", $0) }
          let token = parts.joined()
@@ -286,7 +420,7 @@ index 1234567..abcdefg 100644
 +        print("[CallKit-Swift] 📲 VoIP Token: \(token.prefix(20))...")
          notifyListeners("registration", data: ["value": token])
      }
- 
+
      public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
 -        print("didReceiveIncomingPushWith: \(type.rawValue)")
 -        print("didReceiveIncomingPushWith payload: \(payload.dictionaryPayload)")
@@ -319,7 +453,7 @@ index 1234567..abcdefg 100644
          completion()
      }
  }
- 
+
  extension CallKitVoipPlugin {
      struct CallConfig {
          let id: String
