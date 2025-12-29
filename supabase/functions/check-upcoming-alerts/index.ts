@@ -287,20 +287,13 @@ Deno.serve(async (req) => {
         // Fetch user profile with notification preferences, timezone and language
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled, timezone, font_preference')
+          .select('fcm_token, display_name, push_enabled, call_enabled, critical_alerts_enabled, timezone, font_preference, language')
           .eq('id', event.user_id)
           .maybeSingle();
         
-        // Get user language from chat_messages or use default
-        const { data: lastMessage } = await supabase
-          .from('chat_messages')
-          .select('metadata')
-          .eq('user_id', event.user_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        const userLanguage = (lastMessage?.metadata as any)?.language || 'pt-BR';
+        // ✅ Use language from profiles table (synced from frontend)
+        const userLanguage = (profile as any)?.language || 'pt-BR';
+        console.log(`[MeLig] User ${event.user_id} language: ${userLanguage}`);
 
         if (profileError) {
           console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
@@ -393,6 +386,7 @@ Deno.serve(async (req) => {
               
               try {
                 // DEVICE-CENTRIC payload - targetDeviceId may come from event or fallback lookup
+                // ✅ Include language for multilingual TTS
                 const voipPayload = {
                   device_id: targetDeviceId,
                   user_id: event.user_id, // For logging only
@@ -401,6 +395,7 @@ Deno.serve(async (req) => {
                   event_time: event.event_time,
                   event_location: event.location || '',
                   event_emoji: event.emoji || '📅',
+                  language: userLanguage, // ✅ Pass user's language for TTS
                 };
                 
                 console.log(`[VoIP] Calling send-voip-push with payload:`, JSON.stringify(voipPayload));

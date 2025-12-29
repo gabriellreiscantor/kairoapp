@@ -256,6 +256,7 @@ export type Database = {
           first_event_created: boolean | null
           font_preference: string | null
           id: string
+          language: string | null
           last_weather_forecast_at: string | null
           last_weekly_report_at: string | null
           learn_patterns_enabled: boolean | null
@@ -293,6 +294,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id: string
+          language?: string | null
           last_weather_forecast_at?: string | null
           last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null
@@ -330,6 +332,7 @@ export type Database = {
           first_event_created?: boolean | null
           font_preference?: string | null
           id?: string
+          language?: string | null
           last_weather_forecast_at?: string | null
           last_weekly_report_at?: string | null
           learn_patterns_enabled?: boolean | null

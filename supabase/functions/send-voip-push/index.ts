@@ -13,6 +13,7 @@ interface VoIPPushRequest {
   event_time?: string;
   event_location?: string;
   event_emoji?: string;
+  language?: string; // ✅ User's language for TTS
 }
 
 // Convert base64 to Uint8Array for JWT signing
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { device_id, user_id, event_id, event_title, event_time, event_location, event_emoji } = requestBody;
+    const { device_id, user_id, event_id, event_title, event_time, event_location, event_emoji, language } = requestBody;
     
     if (!device_id) {
       console.error('[send-voip-push] Missing device_id in request');
@@ -203,6 +204,7 @@ Deno.serve(async (req) => {
       eventTime: event_time || '',
       eventLocation: event_location || '',
       eventEmoji: event_emoji || '📅',
+      language: language || 'pt-BR', // ✅ Pass language for TTS
     };
     
     console.log(`[VoIP] Sending payload:`, JSON.stringify(payload));
