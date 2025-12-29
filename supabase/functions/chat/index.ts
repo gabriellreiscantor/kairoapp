@@ -1829,6 +1829,319 @@ function getCategoryEmoji(category: string, title?: string): string {
       '荷物受け取り': '📦', '宅配受取': '📦',
       '택배 수령': '📦', '택배 받기': '📦',
       '取件': '📦', '收快递': '📦',
+      
+      // ============================================
+      // FASE 8: RELACIONAMENTOS, FAMÍLIA & AMOR (NOVAS KEYWORDS ÚNICAS)
+      // ============================================
+      
+      // --- FILME / MOVIE / CINEMA (variantes únicas) ---
+      'ver filme': '🎬', 'noite de filme': '🎬', 'pipoca e filme': '🎬', 'maratona de filmes': '🎬',
+      'watch a movie': '🎬', 'movie night': '🎬', 'popcorn and movie': '🎬',
+      'ver una pelicula': '🎬', 'noche de cine': '🎬', 'noche de peliculas': '🎬',
+      'regarder un film': '🎬', 'soirée film': '🎬', 'soirée cinéma': '🎬',
+      'einen film schauen': '🎬', 'filmabend': '🎬',
+      'vedere un film': '🎬', 'serata film': '🎬', 'serata cinema': '🎬',
+      '映画を見る': '🎬', '映画鑑賞': '🎬',
+      '영화 보러가기': '🎬', '영화 감상': '🎬',
+      '看一部电影': '🎬', '电影之夜': '🎬',
+      
+      // --- AMOR / NAMORO (variantes únicas) ---
+      'ver meu amor': '❤️', 'tempo a dois': '❤️', 'dia romantico': '❤️', 'momento romantico': '❤️',
+      'quality time': '❤️', 'couple time': '❤️', 'romantic day': '❤️', 'love time': '❤️',
+      'tiempo en pareja': '❤️', 'dia romantico es': '❤️', 'momento de pareja': '❤️',
+      'temps en couple': '❤️', 'journée romantique': '❤️', 'moment à deux': '❤️',
+      'zeit zu zweit': '❤️', 'romantischer tag': '❤️', 'paarzeit': '❤️',
+      'tempo insieme': '❤️', 'giornata romantica': '❤️', 'momento romantico it': '❤️',
+      '恋人との時間': '❤️', 'ふたりの時間': '❤️',
+      '연인과의 시간': '❤️', '커플 시간': '❤️',
+      '情侣时光': '❤️', '两人时间': '❤️',
+      
+      // --- VER NAMORADO(A) / SEE PARTNER ---
+      'ver namorado': '💑', 'ver namorada': '💑', 'visitar namorado': '💑', 'visitar namorada': '💑',
+      'see boyfriend': '💑', 'see girlfriend': '💑', 'visit partner': '💑', 'meet partner': '💑',
+      'ver novio': '💑', 'ver novia': '💑', 'visitar novio': '💑', 'visitar novia': '💑',
+      'voir petit ami': '💑', 'voir petite amie': '💑', 'voir mon copain': '💑', 'voir ma copine': '💑',
+      'freund treffen': '💑', 'freundin treffen': '💑', 'meinen freund sehen': '💑',
+      'vedere fidanzato': '💑', 'vedere fidanzata': '💑', 'vedere il ragazzo': '💑',
+      '彼氏に会う': '💑', '彼女に会う': '💑', 'かれしにあう': '💑',
+      '남자친구 만나기': '💑', '여자친구 만나기': '💑', '애인 만나기': '💑',
+      '见男朋友': '💑', '见女朋友': '💑', '去见对象': '💑',
+      
+      // --- FILHOS / CHILDREN (variantes únicas) ---
+      'levar filho escola': '👶', 'buscar filho escola': '👶', 'cuidar dos filhos': '👶', 'levar crianca': '👶',
+      'pick up kids school': '👶', 'drop off kids school': '👶', 'take care of kids': '👶', 'watch the kids': '👶',
+      'llevar hijo escuela': '👶', 'buscar hijo escuela': '👶', 'cuidar de los hijos': '👶',
+      'emmener enfant ecole': '👶', 'chercher enfant ecole': '👶', 'garder les enfants': '👶',
+      'kind zur schule bringen': '👶', 'kind von schule abholen': '👶', 'auf die kinder aufpassen': '👶',
+      'portare figlio a scuola': '👶', 'prendere figlio a scuola': '👶', 'badare ai figli': '👶',
+      '子供を学校に送る': '👶', '子供を学校から迎える': '👶', '子供の世話': '👶',
+      '아이 학교 데려다주기': '👶', '아이 학교 데리러가기': '👶', '아이 돌보기': '👶',
+      '送孩子上学': '👶', '接孩子放学': '👶', '照顾孩子': '👶',
+      
+      // --- PAIS / PARENTS (variantes únicas) ---
+      'visitar meus pais': '👴', 'ligar para mae': '👴', 'ligar para pai': '👴', 'almocar com pais': '👴',
+      'call mom': '👴', 'call dad': '👴', 'lunch with parents': '👴', 'dinner with parents': '👴',
+      'llamar a mama': '👴', 'llamar a papa': '👴', 'comer con los padres': '👴', 'almorzar con padres': '👴',
+      'appeler maman': '👴', 'appeler papa': '👴', 'diner chez les parents': '👴', 'dejeuner parents': '👴',
+      'mama anrufen': '👴', 'papa anrufen': '👴', 'mit eltern essen': '👴', 'bei eltern essen': '👴',
+      'chiamare mamma': '👴', 'chiamare papa': '👴', 'pranzo con genitori': '👴', 'cena con genitori': '👴',
+      'お母さんに電話': '👴', 'お父さんに電話': '👴', '両親と食事': '👴',
+      '엄마한테 전화': '👴', '아빠한테 전화': '👴', '부모님과 식사': '👴',
+      '给妈妈打电话': '👴', '给爸爸打电话': '👴', '和父母吃饭': '👴',
+      
+      // --- PARENTES / RELATIVES (variantes únicas) ---
+      'ver tio': '👥', 'ver tia': '👥', 'ver primo': '👥', 'casa do tio': '👥', 'casa da tia': '👥',
+      "visit uncle": '👥', "visit aunt": '👥', "see cousin": '👥', "uncle's house": '👥',
+      'visitar tio': '👥', 'visitar tia': '👥', 'ver al primo': '👥', 'casa del tio': '👥',
+      "voir l'oncle": '👥', 'voir la tante': '👥', 'voir le cousin': '👥', "chez l'oncle": '👥',
+      'onkel besuchen': '👥', 'tante besuchen': '👥', 'cousin sehen': '👥', 'beim onkel': '👥',
+      'vedere lo zio': '👥', 'vedere la zia': '👥', 'vedere il cugino': '👥', 'a casa dello zio': '👥',
+      'おじさんに会う': '👥', 'おばさんに会う': '👥', 'いとこに会う': '👥',
+      '삼촌 방문': '👥', '이모 방문': '👥', '사촌 만나기': '👥',
+      '看叔叔': '👥', '看阿姨': '👥', '见表哥': '👥',
+      
+      // --- AMIGOS / FRIENDS (variantes únicas) ---
+      'encontro com amigos': '👯', 'sair com amigo': '👯', 'bar com amigos': '👯', 'jantar amigos': '👯',
+      'friends hangout': '👯', 'drinks with friends': '👯', 'dinner with friends': '👯', 'hang with friends': '👯',
+      'salir con amigo': '👯', 'cena con amigos': '👯', 'tomar algo con amigos': '👯',
+      'sortie avec amis': '👯', 'boire un verre amis': '👯', 'diner entre amis': '👯',
+      'treffen mit freunden': '👯', 'mit freunden ausgehen': '👯', 'abendessen mit freunden': '👯',
+      'uscire con amici': '👯', 'bere con amici': '👯', 'cena con amici': '👯',
+      '友達とご飯': '👯', '友達と飲み': '👯', '友達と遊ぶ': '👯',
+      '친구랑 밥': '👯', '친구랑 술': '👯', '친구랑 놀기': '👯',
+      '和朋友吃饭': '👯', '和朋友喝酒': '👯', '和朋友玩': '👯',
+      
+      // ============================================
+      // FASE 9: EDUCAÇÃO, TRABALHO & PROVAS (NOVAS KEYWORDS ÚNICAS)
+      // ============================================
+      
+      // --- FACULDADE / UNIVERSITY (variantes únicas) ---
+      'aula na facul': '🎓', 'ir pra facul': '🎓', 'voltar pra faculdade': '🎓', 'aula na universidade': '🎓',
+      'go to college': '🎓', 'attend university': '🎓', 'college class': '🎓', 'university lecture': '🎓',
+      'ir a la facultad': '🎓', 'clase en la universidad': '🎓', 'ir a la uni': '🎓',
+      'aller a la fac': '🎓', 'cours a la fac': '🎓', 'universite cours': '🎓',
+      'zur uni gehen': '🎓', 'vorlesung': '🎓', 'seminar': '🎓',
+      'andare all universita': '🎓', 'lezione universita': '🎓', 'corso universitario': '🎓',
+      '大学に行く': '🎓', '大学の授業': '🎓', '講義': '🎓',
+      '대학교 가기': '🎓', '대학 수업': '🎓', '강의': '🎓',
+      '去大学': '🎓', '大学课': '🎓', '上课': '🎓',
+      
+      // --- PROVA / EXAM (variantes únicas) ---
+      'estudar para prova': '📝', 'dia da prova': '📝', 'semana de provas': '📝', 'prova de matematica': '📝',
+      'study for exam': '📝', 'exam day': '📝', 'finals week': '📝', 'math test': '📝',
+      'estudiar para examen': '📝', 'dia del examen': '📝', 'semana de examenes': '📝',
+      'reviser pour examen': '📝', 'jour dexamen': '📝', 'semaine dexamens': '📝',
+      'fur prufung lernen': '📝', 'prufungstag': '📝', 'prufungswoche': '📝',
+      'studiare per esame': '📝', 'giorno esame': '📝', 'settimana esami': '📝',
+      '試験勉強する': '📝', '試験日': '📝', '試験週間': '📝',
+      '시험 공부하다': '📝', '시험 날': '📝', '시험 기간': '📝',
+      '准备考试': '📝', '考试日': '📝', '考试周': '📝',
+      
+      // --- TRABALHO / WORK (variantes únicas) ---
+      'dia de trabalho': '💼', 'voltar ao trabalho': '💼', 'trabalho remoto': '💼', 'home office': '💼',
+      'work day': '💼', 'back to work': '💼', 'remote work': '💼', 'wfh': '💼',
+      'dia de trabajo': '💼', 'volver al trabajo': '💼', 'trabajo remoto': '💼', 'teletrabajo': '💼',
+      'jour de travail': '💼', 'retour au travail': '💼', 'télétravail': '💼', 'teletravail': '💼',
+      'arbeitstag': '💼', 'zuruck zur arbeit': '💼', 'homeoffice': '💼', 'fernarbeit': '💼',
+      'giorno di lavoro': '💼', 'tornare al lavoro': '💼', 'lavoro da casa': '💼', 'smart working': '💼',
+      '仕事の日': '💼', '仕事に戻る': '💼', 'リモートワーク': '💼', '在宅勤務': '💼',
+      '출근하는 날': '💼', '일 복귀': '💼', '재택근무': '💼', '원격근무': '💼',
+      '工作日': '💼', '回去上班': '💼', '远程工作': '💼', '在家办公': '💼',
+      
+      // --- REUNIÃO / MEETING (variantes únicas) ---
+      'reuniao com chefe': '🤝', 'reuniao de equipe': '🤝', 'standup': '🤝', 'daily': '🤝',
+      'meeting with boss': '🤝', 'team meeting': '🤝', 'standup meeting': '🤝', 'daily standup': '🤝',
+      'junta con jefe': '🤝', 'reunion de equipo': '🤝', 'reunion diaria': '🤝',
+      'reunion avec chef': '🤝', 'reunion equipe': '🤝', 'point quotidien': '🤝',
+      'meeting mit chef': '🤝', 'team besprechung': '🤝', 'tagliche besprechung': '🤝',
+      'riunione con capo': '🤝', 'riunione di team': '🤝', 'daily meeting': '🤝',
+      '上司とのミーティング': '🤝', 'チームミーティング': '🤝', '朝会': '🤝',
+      '상사와 미팅': '🤝', '팀 미팅': '🤝', '데일리 미팅': '🤝',
+      '和老板开会': '🤝', '团队会议': '🤝', '每日站会': '🤝',
+      
+      // ============================================
+      // FASE 10: ESPORTES, LAZER & VIAGENS (NOVAS KEYWORDS ÚNICAS)
+      // ============================================
+      
+      // --- ACADEMIA / GYM (variantes únicas) ---
+      'treino de academia': '🏋️', 'dia de perna': '🏋️', 'dia de braco': '🏋️', 'treino pesado': '🏋️',
+      'gym workout': '🏋️', 'leg day': '🏋️', 'arm day': '🏋️', 'heavy workout': '🏋️',
+      'entrenamiento gimnasio': '🏋️', 'dia de pierna': '🏋️', 'dia de brazo': '🏋️',
+      'seance de muscu': '🏋️', 'jour des jambes': '🏋️', 'jour des bras': '🏋️',
+      'fitnesstraining': '🏋️', 'beintag': '🏋️', 'armtag': '🏋️',
+      'allenamento palestra': '🏋️', 'giorno gambe': '🏋️', 'giorno braccia': '🏋️',
+      'ジムトレーニング': '🏋️', '脚の日': '🏋️', '腕の日': '🏋️',
+      '헬스 운동': '🏋️', '하체 운동': '🏋️', '상체 운동': '🏋️',
+      '健身训练': '🏋️', '练腿日': '🏋️', '练臂日': '🏋️',
+      
+      // --- IOGA / YOGA (variantes únicas) ---
+      'praticar yoga': '🧘', 'aula de ioga': '🧘', 'sessao de yoga': '🧘', 'yoga matinal': '🧘',
+      'practice yoga': '🧘', 'yoga session': '🧘', 'morning yoga': '🧘', 'yoga practice': '🧘',
+      'practicar yoga': '🧘', 'sesion de yoga': '🧘', 'yoga matutino': '🧘',
+      'pratiquer yoga': '🧘', 'seance de yoga': '🧘', 'yoga matinal fr': '🧘',
+      'yoga praktizieren': '🧘', 'yoga sitzung': '🧘', 'morgenyoga': '🧘',
+      'praticare yoga': '🧘', 'sessione di yoga': '🧘', 'yoga mattutino': '🧘',
+      'ヨガをする': '🧘', 'ヨガレッスン': '🧘', '朝ヨガ': '🧘',
+      '요가하기': '🧘', '요가 세션': '🧘', '아침 요가': '🧘',
+      '练瑜伽': '🧘', '瑜伽练习': '🧘', '早晨瑜伽': '🧘',
+      
+      // --- MÚSICA / MUSIC (variantes únicas) ---
+      'aula de violao': '🎵', 'aula de piano': '🎵', 'ensaio de banda': '🎵', 'ir no show': '🎵',
+      'guitar lesson': '🎵', 'piano lesson': '🎵', 'band practice': '🎵', 'go to concert': '🎵',
+      'clase de guitarra': '🎵', 'clase de piano': '🎵', 'ensayo de banda': '🎵', 'ir al concierto': '🎵',
+      'cours de guitare': '🎵', 'cours de piano': '🎵', 'repetition groupe': '🎵', 'aller au concert': '🎵',
+      'gitarrenunterricht': '🎵', 'klavierunterricht': '🎵', 'bandprobe': '🎵', 'zum konzert gehen': '🎵',
+      'lezione di chitarra': '🎵', 'lezione di piano': '🎵', 'prova della band': '🎵', 'andare al concerto': '🎵',
+      'ギターレッスン': '🎵', 'ピアノレッスン': '🎵', 'バンド練習': '🎵', 'コンサートに行く': '🎵',
+      '기타 레슨': '🎵', '피아노 레슨': '🎵', '밴드 연습': '🎵', '콘서트 가기': '🎵',
+      '吉他课': '🎵', '钢琴课': '🎵', '乐队排练': '🎵', '去看演唱会': '🎵',
+      
+      // --- VIAGEM / TRAVEL (variantes únicas) ---
+      'fazer as malas': '✈️', 'planejar viagem': '✈️', 'passagem aerea': '✈️', 'reservar hotel': '✈️',
+      'pack bags': '✈️', 'plan trip': '✈️', 'book flight': '✈️', 'book hotel': '✈️',
+      'hacer las maletas': '✈️', 'planear viaje': '✈️', 'reservar vuelo': '✈️', 'reservar hotel es': '✈️',
+      'faire les valises': '✈️', 'planifier voyage': '✈️', 'reserver vol': '✈️', 'reserver hotel': '✈️',
+      'koffer packen': '✈️', 'reise planen': '✈️', 'flug buchen': '✈️', 'hotel buchen': '✈️',
+      'fare le valigie': '✈️', 'pianificare viaggio': '✈️', 'prenotare volo': '✈️', 'prenotare hotel': '✈️',
+      '荷造り': '✈️', '旅行計画': '✈️', 'フライト予約': '✈️', 'ホテル予約': '✈️',
+      '짐 싸기': '✈️', '여행 계획': '✈️', '비행기 예약': '✈️', '호텔 예약': '✈️',
+      '收拾行李': '✈️', '计划旅行': '✈️', '订机票': '✈️', '订酒店': '✈️',
+      
+      // --- PRAIA / BEACH (variantes únicas) ---
+      'curtir a praia': '🏖️', 'banho de mar': '🏖️', 'praia com amigos': '🏖️', 'tomar sol': '🏖️',
+      'enjoy the beach': '🏖️', 'ocean swim': '🏖️', 'beach with friends': '🏖️', 'sunbathe': '🏖️',
+      'disfrutar playa': '🏖️', 'banarse en mar': '🏖️', 'playa con amigos': '🏖️', 'tomar el sol': '🏖️',
+      'profiter de la plage': '🏖️', 'baignade mer': '🏖️', 'plage entre amis': '🏖️', 'bronzer': '🏖️',
+      'strand geniessen': '🏖️', 'im meer baden': '🏖️', 'strand mit freunden': '🏖️', 'sonnenbaden': '🏖️',
+      'godersi la spiaggia': '🏖️', 'bagno in mare': '🏖️', 'spiaggia con amici': '🏖️', 'prendere il sole': '🏖️',
+      '海を楽しむ': '🏖️', '海水浴': '🏖️', '友達とビーチ': '🏖️', '日光浴': '🏖️',
+      '해변 즐기기': '🏖️', '바다 수영': '🏖️', '친구랑 해변': '🏖️', '일광욕': '🏖️',
+      '享受海滩': '🏖️', '海水浴 zh': '🏖️', '和朋友去海边': '🏖️', '晒太阳': '🏖️',
+      
+      // --- PISCINA / POOL (variantes únicas) ---
+      'nadar na piscina': '🏊', 'piscina do predio': '🏊', 'aula de natacao': '🏊', 'treino natacao': '🏊',
+      'swim in pool': '🏊', 'apartment pool': '🏊', 'swimming lesson': '🏊', 'swim practice': '🏊',
+      'nadar en piscina': '🏊', 'piscina del edificio': '🏊', 'clase de natacion': '🏊', 'entrenamiento natacion': '🏊',
+      'nager a la piscine': '🏊', 'piscine de immeuble': '🏊', 'lecon de natation': '🏊', 'entrainement natation': '🏊',
+      'im pool schwimmen': '🏊', 'schwimmunterricht': '🏊', 'schwimmtraining': '🏊',
+      'nuotare in piscina': '🏊', 'piscina condominiale': '🏊', 'lezione di nuoto': '🏊', 'allenamento nuoto': '🏊',
+      'プールで泳ぐ': '🏊', 'マンションプール': '🏊', '水泳レッスン': '🏊', '水泳練習': '🏊',
+      '수영장에서 수영': '🏊', '아파트 수영장': '🏊', '수영 레슨': '🏊', '수영 연습': '🏊',
+      '在泳池游泳': '🏊', '小区游泳池': '🏊', '游泳课': '🏊', '游泳训练': '🏊',
+      
+      // --- PASSEIO / OUTING (variantes únicas) ---
+      'passear no parque': '🚶', 'caminhar no parque': '🚶', 'andar na praca': '🚶', 'volta no bairro': '🚶',
+      'walk in park': '🚶', 'stroll in park': '🚶', 'walk around neighborhood': '🚶', 'evening walk': '🚶',
+      'pasear por parque': '🚶', 'caminar por parque': '🚶', 'vuelta por barrio': '🚶', 'paseo nocturno': '🚶',
+      'marcher au parc': '🚶', 'promenade au parc': '🚶', 'tour du quartier': '🚶', 'balade du soir': '🚶',
+      'spaziergang im park': '🚶', 'im park spazieren': '🚶', 'abendspaziergang': '🚶',
+      'passeggiata al parco': '🚶', 'camminare al parco': '🚶', 'giro del quartiere': '🚶', 'passeggiata serale': '🚶',
+      '公園を散歩': '🚶', '公園で歩く': '🚶', '近所を歩く': '🚶', '夕方の散歩': '🚶',
+      '공원 산책': '🚶', '공원에서 걷기': '🚶', '동네 한바퀴': '🚶', '저녁 산책': '🚶',
+      '在公园散步': '🚶', '公园走走': '🚶', '小区转转': '🚶', '晚间散步': '🚶',
+      
+      // --- ANDAR DE CARRO / DRIVE (variantes únicas) ---
+      'dar uma volta de carro': '🚙', 'viagem de carro': '🚙', 'ir de carro': '🚙', 'carona': '🚙',
+      'go for a ride': '🚙', 'car trip': '🚙', 'drive around': '🚙', 'give a ride': '🚙',
+      'dar vuelta en carro': '🚙', 'viaje en carro': '🚙', 'ir en coche': '🚙', 'llevar en carro': '🚙',
+      'faire un tour en voiture': '🚙', 'voyage en voiture': '🚙', 'aller en voiture': '🚙', 'donner un tour': '🚙',
+      'mit dem auto fahren': '🚙', 'autofahrt': '🚙', 'spritztour': '🚙', 'jemanden fahren': '🚙',
+      'fare un giro in auto': '🚙', 'viaggio in auto': '🚙', 'andare in macchina': '🚙', 'dare un passaggio': '🚙',
+      '車で出かける': '🚙', '車の旅': '🚙', '車で行く': '🚙', '送り迎え': '🚙',
+      '차로 드라이브': '🚙', '차 여행': '🚙', '차로 가기': '🚙', '태워주기': '🚙',
+      '开车兜风': '🚙', '自驾游': '🚙', '开车去': '🚙', '顺路带': '🚙',
+      
+      // --- CONFRATERNIZAÇÃO / GATHERING (variantes únicas) ---
+      'festa da empresa': '🥳', 'festa de fim de ano': '🥳', 'happy hour trabalho': '🥳', 'comemoracao equipe': '🥳',
+      'company party': '🥳', 'year end party': '🥳', 'work happy hour': '🥳', 'team celebration': '🥳',
+      'fiesta de empresa': '🥳', 'fiesta de fin de ano': '🥳', 'after office': '🥳', 'celebracion equipo': '🥳',
+      'fete dentreprise': '🥳', 'fete de fin dannee': '🥳', 'afterwork': '🥳', 'celebration equipe': '🥳',
+      'firmenfest': '🥳', 'jahresabschlussfeier': '🥳', 'feierabendbier': '🥳', 'teamfeier de': '🥳',
+      'festa aziendale it': '🥳', 'festa di fine anno': '🥳', 'aperitivo lavoro': '🥳', 'festeggiamento team': '🥳',
+      '会社の飲み会': '🥳', '忘年会': '🥳', '仕事後の飲み': '🥳', 'チームのお祝い': '🥳',
+      '회사 회식': '🥳', '송년회 ko': '🥳', '퇴근 후 술': '🥳', '팀 축하': '🥳',
+      '公司聚会': '🥳', '年终聚会': '🥳', '下班后喝酒': '🥳', '团队庆祝': '🥳',
+      
+      // ============================================
+      // FASE 11: CASA & COMPRAS (NOVAS KEYWORDS ÚNICAS)
+      // ============================================
+      
+      // --- COMPRAS / SHOPPING (variantes únicas) ---
+      'ir ao mercado': '🛒', 'lista de compras': '🛒', 'comprar mantimentos': '🛒', 'feira livre': '🛒',
+      'go to market': '🛒', 'shopping list': '🛒', 'buy groceries': '🛒', 'farmers market': '🛒',
+      'ir al mercado': '🛒', 'lista de compras es': '🛒', 'comprar provisiones': '🛒', 'mercado de agricultores': '🛒',
+      'aller au marche': '🛒', 'liste de courses': '🛒', 'acheter provisions': '🛒', 'marche fermier': '🛒',
+      'zum markt gehen': '🛒', 'einkaufsliste': '🛒', 'lebensmittel kaufen': '🛒', 'wochenmarkt': '🛒',
+      'andare al mercato': '🛒', 'lista della spesa': '🛒', 'comprare provviste': '🛒', 'mercato contadino': '🛒',
+      '市場に行く': '🛒', '買い物リスト': '🛒', '食料品を買う': '🛒', 'ファーマーズマーケット': '🛒',
+      '시장 가기': '🛒', '쇼핑 리스트': '🛒', '식료품 사기': '🛒', '농산물 시장': '🛒',
+      '去市场': '🛒', '购物清单': '🛒', '买食品': '🛒', '农贸市场': '🛒',
+      
+      // --- VENDER / SELL (variantes únicas) ---
+      'vender online': '💰', 'anunciar para venda': '💰', 'negociar venda': '💰', 'fechar negocio': '💰',
+      'sell online': '💰', 'list for sale': '💰', 'negotiate sale': '💰', 'close deal': '💰',
+      'vender en linea': '💰', 'publicar para venta': '💰', 'negociar venta es': '💰', 'cerrar trato': '💰',
+      'vendre en ligne': '💰', 'mettre en vente': '💰', 'negocier vente': '💰', 'conclure affaire': '💰',
+      'online verkaufen': '💰', 'zum verkauf anbieten': '💰', 'verkauf verhandeln': '💰', 'geschaft abschliessen': '💰',
+      'vendere online': '💰', 'mettere in vendita': '💰', 'negoziare vendita': '💰', 'chiudere affare': '💰',
+      'オンラインで売る': '💰', '売りに出す': '💰', '売却交渉': '💰', '取引成立': '💰',
+      '온라인 판매': '💰', '판매 올리기': '💰', '판매 협상': '💰', '거래 성사': '💰',
+      '网上卖': '💰', '挂出出售': '💰', '谈判出售': '💰', '成交': '💰',
+      
+      // --- COMPRAR CASA / BUY HOUSE (variantes únicas) ---
+      'ver imovel para comprar': '🏠', 'visita ao imovel': '🏠', 'financiamento casa': '🏠', 'assinar contrato imovel': '🏠',
+      'view house for sale': '🏠', 'property viewing': '🏠', 'house mortgage': '🏠', 'sign property contract': '🏠',
+      'ver casa para comprar': '🏠', 'visita a propiedad': '🏠', 'hipoteca casa': '🏠', 'firmar contrato inmueble': '🏠',
+      'visiter maison a acheter': '🏠', 'visite immobiliere': '🏠', 'pret immobilier': '🏠', 'signer contrat immobilier': '🏠',
+      'haus zur besichtigung': '🏠', 'immobilienbesichtigung': '🏠', 'hausfinanzierung': '🏠', 'immobilienvertrag unterschreiben': '🏠',
+      'vedere casa da comprare': '🏠', 'visita immobiliare': '🏠', 'mutuo casa': '🏠', 'firmare contratto immobile': '🏠',
+      '家を見に行く': '🏠', '物件見学': '🏠', '住宅ローン': '🏠', '契約書にサイン': '🏠',
+      '집 보러가기': '🏠', '부동산 방문': '🏠', '주택 대출': '🏠', '계약서 서명': '🏠',
+      '看待买的房': '🏠', '看房子': '🏠', '房贷': '🏠', '签房产合同': '🏠',
+      
+      // --- LAVANDERIA / LAUNDRY (variantes únicas) ---
+      'lavar as roupas': '🧺', 'dia de lavar roupa': '🧺', 'estender roupa': '🧺', 'dobrar roupa': '🧺',
+      'do the laundry': '🧺', 'laundry day': '🧺', 'hang clothes': '🧺', 'fold clothes': '🧺',
+      'lavar la ropa': '🧺', 'dia de lavanderia': '🧺', 'tender ropa': '🧺', 'doblar ropa': '🧺',
+      'faire la lessive fr': '🧺', 'jour de lessive': '🧺', 'etendre le linge': '🧺', 'plier le linge': '🧺',
+      'wasche waschen de': '🧺', 'waschtag': '🧺', 'wasche aufhangen': '🧺', 'wasche falten': '🧺',
+      'fare il bucato it': '🧺', 'giorno del bucato': '🧺', 'stendere i panni': '🧺', 'piegare i vestiti': '🧺',
+      '洗濯する': '🧺', '洗濯の日': '🧺', '洗濯物を干す': '🧺', '洗濯物を畳む': '🧺',
+      '빨래하기': '🧺', '빨래하는 날': '🧺', '빨래 널기': '🧺', '빨래 개기': '🧺',
+      '洗衣服 zh': '🧺', '洗衣日': '🧺', '晾衣服': '🧺', '叠衣服': '🧺',
+      
+      // --- LIMPAR CASA / CLEAN HOUSE (variantes únicas) ---
+      'fazer faxina': '🧹', 'limpeza geral': '🧹', 'organizar casa': '🧹', 'dia de limpeza': '🧹',
+      'do housework': '🧹', 'deep clean': '🧹', 'organize home': '🧹', 'cleaning day': '🧹',
+      'hacer limpieza': '🧹', 'limpieza general': '🧹', 'organizar la casa': '🧹', 'dia de limpieza es': '🧹',
+      'faire le grand menage': '🧹', 'grand nettoyage': '🧹', 'organiser la maison': '🧹', 'jour de nettoyage': '🧹',
+      'grossputz': '🧹', 'grundreinigung': '🧹', 'haus organisieren': '🧹', 'putztag': '🧹',
+      'fare le pulizie': '🧹', 'pulizia generale': '🧹', 'organizzare casa': '🧹', 'giorno di pulizia': '🧹',
+      '大掃除': '🧹', '家を整理': '🧹', '掃除の日': '🧹',
+      '대청소': '🧹', '집 정리': '🧹', '청소하는 날': '🧹',
+      '大扫除': '🧹', '整理房间': '🧹', '打扫日': '🧹',
+      
+      // --- SE ARRUMAR / GET READY (variantes únicas) ---
+      'arrumar o cabelo': '💄', 'cortar cabelo': '💄', 'fazer as unhas': '💄', 'manicure': '💄',
+      'do hair': '💄', 'get haircut': '💄', 'do nails': '💄', 'get manicure': '💄',
+      'arreglarse el pelo': '💄', 'cortar el pelo': '💄', 'hacerse las unas': '💄', 'manicura': '💄',
+      'faire les cheveux': '💄', 'couper les cheveux': '💄', 'faire les ongles': '💄', 'manucure': '💄',
+      'haare machen': '💄', 'haare schneiden': '💄', 'nagel machen': '💄', 'manikure': '💄',
+      'farsi i capelli': '💄', 'tagliare i capelli': '💄', 'farsi le unghie': '💄', 'manicure it': '💄',
+      '髪をセット': '💄', '髪を切る': '💄', 'ネイルする': '💄', 'マニキュア': '💄',
+      '머리 손질': '💄', '머리 자르기': '💄', '네일 하기': '💄', '매니큐어': '💄',
+      '做头发': '💄', '剪头发': '💄', '做指甲': '💄', '美甲': '💄',
+      
+      // --- ENCOMENDA / ORDER (variantes únicas) ---
+      'fazer encomenda': '📬', 'receber encomenda': '📬', 'rastrear encomenda': '📬', 'compra online': '📬',
+      'place an order': '📬', 'receive delivery': '📬', 'track package': '📬', 'online purchase': '📬',
+      'hacer un pedido': '📬', 'recibir pedido': '📬', 'rastrear pedido': '📬', 'compra en linea': '📬',
+      'passer une commande': '📬', 'recevoir livraison': '📬', 'suivre colis': '📬', 'achat en ligne': '📬',
+      'eine bestellung aufgeben': '📬', 'lieferung erhalten': '📬', 'paket verfolgen': '📬', 'online kauf': '📬',
+      'fare un ordine': '📬', 'ricevere consegna': '📬', 'tracciare pacco': '📬', 'acquisto online': '📬',
+      '注文する': '📬', '配達を受け取る': '📬', '荷物を追跡': '📬', 'ネット通販': '📬',
+      '주문하다': '📬', '배송 받기': '📬', '배송 추적': '📬', '온라인 구매': '📬',
+      '下订单': '📬', '收快递 zh': '📬', '查快递': '📬', '网上购物': '📬',
     };
     
     for (const [keyword, emoji] of Object.entries(titleKeywords)) {
