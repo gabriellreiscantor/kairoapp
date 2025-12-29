@@ -77,6 +77,7 @@ const SingleEventCard = ({
   onNavigateToChat,
   onClose
 }: SingleEventCardProps) => {
+  const { t } = useLanguage();
   const [callMeEnabled, setCallMeEnabled] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -382,9 +383,9 @@ const EventDetailPage = ({
 
   // Empty state - no events
   if (events.length === 0) {
-    const weekday = format(selectedDate, 'EEEE', { locale: ptBR });
-    const dayNumber = format(selectedDate, 'd', { locale: ptBR });
-    const monthYear = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
+    const weekday = format(selectedDate, 'EEEE', { locale: dateLocale });
+    const dayNumber = format(selectedDate, 'd', { locale: dateLocale });
+    const monthYear = format(selectedDate, t('event.dateFormat'), { locale: dateLocale });
     
     return (
       <div 
@@ -424,10 +425,10 @@ const EventDetailPage = ({
             >
               <div className="text-5xl mb-4">📝</div>
               <p className="text-muted-foreground">
-                Nenhum evento ainda
+                {t('calendar.noEvents')}
               </p>
               <p className="text-primary font-medium mt-1 group-hover:underline">
-                Toque para adicionar
+                {t('common.add')}
               </p>
             </button>
           </div>
@@ -436,9 +437,9 @@ const EventDetailPage = ({
     );
   }
 
-  const weekday = format(selectedDate, 'EEEE', { locale: ptBR });
-  const dayNumber = format(selectedDate, 'd', { locale: ptBR });
-  const monthYear = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
+  const weekday = format(selectedDate, 'EEEE', { locale: dateLocale });
+  const dayNumber = format(selectedDate, 'd', { locale: dateLocale });
+  const monthYear = format(selectedDate, t('event.dateFormat'), { locale: dateLocale });
 
   return (
     <div 
