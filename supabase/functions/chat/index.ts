@@ -8,6 +8,233 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============================================
+// MULTI-LANGUAGE RESPONSE TEMPLATES
+// Used for confirmation messages in all languages
+// ============================================
+const responseTemplates: Record<string, {
+  created: string;
+  createdWithEdit: string;
+  updated: string;
+  deleted: string;
+  upcomingEvents: string;
+  whatToChange: string;
+  allDay: string;
+  minBefore: string;
+  letMeCheck: string;
+  imageCreated: (title: string, date: string, time?: string | null) => string;
+  pastDateImage: string;
+  healthImage: string;
+  genericImage: string;
+  unidentifiedImage: string;
+  outOfScope: string[];
+}> = {
+  'pt-BR': {
+    created: 'Pronto!',
+    createdWithEdit: 'Pronto! Quer editar algo?',
+    updated: 'Atualizado!',
+    deleted: 'Beleza, removi o evento!',
+    upcomingEvents: 'Seus próximos compromissos:',
+    whatToChange: 'O que você quer mudar? Título, data, hora ou local?',
+    allDay: 'Dia inteiro',
+    minBefore: '30 min antes',
+    letMeCheck: 'Deixa eu verificar...',
+    imageCreated: (title, date, time) => `Pronto! Criei o evento "${title}" para ${date}${time ? ` às ${time}` : ''}. Se precisar mudar algo, é só me falar!`,
+    pastDateImage: 'Ops! Essa data e horário já passaram. Por favor, envie uma imagem com um evento no futuro.',
+    healthImage: 'Vi que parece ser algo de saúde. Quer que eu crie um lembrete de medicamento?',
+    genericImage: 'O que você quer lembrar sobre essa imagem?',
+    unidentifiedImage: 'Não consegui identificar bem a imagem. Pode me dizer o que quer agendar?',
+    outOfScope: [
+      "Ah, isso eu não sei te dizer... Mas bora agendar algo?",
+      "Pô, não é minha praia, haha. Sou o Horah, focado em te ajudar!",
+      "Opa, essa eu passo! Minha especialidade é organizar sua agenda.",
+    ]
+  },
+  'en-US': {
+    created: 'Done!',
+    createdWithEdit: 'Done! Want to edit anything?',
+    updated: 'Updated!',
+    deleted: 'Alright, I removed the event!',
+    upcomingEvents: 'Your upcoming events:',
+    whatToChange: 'What do you want to change? Title, date, time or location?',
+    allDay: 'All day',
+    minBefore: '30 min before',
+    letMeCheck: 'Let me check...',
+    imageCreated: (title, date, time) => `Done! I created the event "${title}" for ${date}${time ? ` at ${time}` : ''}. Let me know if you need any changes!`,
+    pastDateImage: 'Oops! This date and time have already passed. Please send an image with a future event.',
+    healthImage: 'I see this seems to be health-related. Want me to create a medication reminder?',
+    genericImage: 'What do you want to remember about this image?',
+    unidentifiedImage: "I couldn't quite identify the image. Can you tell me what you want to schedule?",
+    outOfScope: [
+      "Hmm, I don't know about that... But let's schedule something?",
+      "That's not really my thing, haha. I'm Horah, here to help with your agenda!",
+      "I'll pass on that one! My specialty is organizing your schedule.",
+    ]
+  },
+  'es-ES': {
+    created: '¡Listo!',
+    createdWithEdit: '¡Listo! ¿Quieres editar algo?',
+    updated: '¡Actualizado!',
+    deleted: '¡Vale, eliminé el evento!',
+    upcomingEvents: 'Tus próximos compromisos:',
+    whatToChange: '¿Qué quieres cambiar? Título, fecha, hora o lugar?',
+    allDay: 'Todo el día',
+    minBefore: '30 min antes',
+    letMeCheck: 'Déjame verificar...',
+    imageCreated: (title, date, time) => `¡Listo! Creé el evento "${title}" para ${date}${time ? ` a las ${time}` : ''}. ¡Avísame si necesitas cambiar algo!`,
+    pastDateImage: '¡Ups! Esta fecha y hora ya pasaron. Por favor, envía una imagen con un evento futuro.',
+    healthImage: 'Veo que parece ser algo de salud. ¿Quieres que cree un recordatorio de medicamento?',
+    genericImage: '¿Qué quieres recordar sobre esta imagen?',
+    unidentifiedImage: 'No pude identificar bien la imagen. ¿Puedes decirme qué quieres agendar?',
+    outOfScope: [
+      "Hmm, eso no lo sé... ¿Pero programamos algo?",
+      "Eso no es lo mío, jaja. ¡Soy Horah, aquí para ayudarte con tu agenda!",
+      "¡Esa me la salto! Mi especialidad es organizar tu agenda.",
+    ]
+  },
+  'fr-FR': {
+    created: 'C\'est fait !',
+    createdWithEdit: 'C\'est fait ! Tu veux modifier quelque chose ?',
+    updated: 'Mis à jour !',
+    deleted: 'D\'accord, j\'ai supprimé l\'événement !',
+    upcomingEvents: 'Tes prochains rendez-vous :',
+    whatToChange: 'Qu\'est-ce que tu veux changer ? Titre, date, heure ou lieu ?',
+    allDay: 'Toute la journée',
+    minBefore: '30 min avant',
+    letMeCheck: 'Laisse-moi vérifier...',
+    imageCreated: (title, date, time) => `C'est fait ! J'ai créé l'événement "${title}" pour ${date}${time ? ` à ${time}` : ''}. Dis-moi si tu veux modifier quelque chose !`,
+    pastDateImage: 'Oups ! Cette date et heure sont déjà passées. Envoie une image avec un événement futur, s\'il te plaît.',
+    healthImage: 'Je vois que ça semble être lié à la santé. Tu veux que je crée un rappel de médicament ?',
+    genericImage: 'Qu\'est-ce que tu veux te rappeler à propos de cette image ?',
+    unidentifiedImage: 'Je n\'ai pas pu bien identifier l\'image. Peux-tu me dire ce que tu veux planifier ?',
+    outOfScope: [
+      "Hmm, ça je ne sais pas... Mais on programme quelque chose ?",
+      "Ce n'est pas mon truc, haha. Je suis Horah, là pour t'aider avec ton agenda !",
+      "Celle-là je passe ! Ma spécialité c'est organiser ton agenda.",
+    ]
+  },
+  'de-DE': {
+    created: 'Fertig!',
+    createdWithEdit: 'Fertig! Möchtest du etwas bearbeiten?',
+    updated: 'Aktualisiert!',
+    deleted: 'Alles klar, ich habe das Event entfernt!',
+    upcomingEvents: 'Deine nächsten Termine:',
+    whatToChange: 'Was möchtest du ändern? Titel, Datum, Uhrzeit oder Ort?',
+    allDay: 'Ganztägig',
+    minBefore: '30 Min vorher',
+    letMeCheck: 'Lass mich nachsehen...',
+    imageCreated: (title, date, time) => `Fertig! Ich habe das Event "${title}" für ${date}${time ? ` um ${time}` : ''} erstellt. Sag mir Bescheid, wenn du etwas ändern möchtest!`,
+    pastDateImage: 'Ups! Dieses Datum und diese Uhrzeit sind bereits vorbei. Bitte sende ein Bild mit einem zukünftigen Event.',
+    healthImage: 'Ich sehe, das scheint etwas mit Gesundheit zu tun zu haben. Soll ich eine Medikamentenerinnerung erstellen?',
+    genericImage: 'Was möchtest du dir über dieses Bild merken?',
+    unidentifiedImage: 'Ich konnte das Bild nicht gut identifizieren. Kannst du mir sagen, was du planen möchtest?',
+    outOfScope: [
+      "Hmm, das weiß ich nicht... Aber lass uns etwas planen?",
+      "Das ist nicht mein Ding, haha. Ich bin Horah, hier um dir mit deinem Kalender zu helfen!",
+      "Da passe ich! Meine Spezialität ist die Organisation deines Kalenders.",
+    ]
+  },
+  'it-IT': {
+    created: 'Fatto!',
+    createdWithEdit: 'Fatto! Vuoi modificare qualcosa?',
+    updated: 'Aggiornato!',
+    deleted: 'Ok, ho rimosso l\'evento!',
+    upcomingEvents: 'I tuoi prossimi impegni:',
+    whatToChange: 'Cosa vuoi cambiare? Titolo, data, ora o luogo?',
+    allDay: 'Tutto il giorno',
+    minBefore: '30 min prima',
+    letMeCheck: 'Lasciami controllare...',
+    imageCreated: (title, date, time) => `Fatto! Ho creato l'evento "${title}" per ${date}${time ? ` alle ${time}` : ''}. Fammi sapere se vuoi modificare qualcosa!`,
+    pastDateImage: 'Ops! Questa data e ora sono già passate. Per favore, invia un\'immagine con un evento futuro.',
+    healthImage: 'Vedo che sembra essere qualcosa di salute. Vuoi che crei un promemoria per i farmaci?',
+    genericImage: 'Cosa vuoi ricordare di questa immagine?',
+    unidentifiedImage: 'Non sono riuscito a identificare bene l\'immagine. Puoi dirmi cosa vuoi programmare?',
+    outOfScope: [
+      "Hmm, questo non lo so... Ma programmiamo qualcosa?",
+      "Non è il mio forte, haha. Sono Horah, qui per aiutarti con la tua agenda!",
+      "Questa la passo! La mia specialità è organizzare la tua agenda.",
+    ]
+  },
+  'ja-JP': {
+    created: '完了！',
+    createdWithEdit: '完了！何か編集したいですか？',
+    updated: '更新しました！',
+    deleted: 'わかりました、イベントを削除しました！',
+    upcomingEvents: '今後の予定：',
+    whatToChange: '何を変更しますか？タイトル、日付、時間、場所？',
+    allDay: '終日',
+    minBefore: '30分前',
+    letMeCheck: '確認させてください...',
+    imageCreated: (title, date, time) => `完了！「${title}」のイベントを${date}${time ? ` ${time}` : ''}に作成しました。変更が必要な場合はお知らせください！`,
+    pastDateImage: 'おっと！この日時はすでに過ぎています。将来のイベントの画像を送信してください。',
+    healthImage: '健康に関連しているようです。薬のリマインダーを作成しましょうか？',
+    genericImage: 'この画像について何を覚えておきたいですか？',
+    unidentifiedImage: '画像をうまく識別できませんでした。何をスケジュールしたいか教えていただけますか？',
+    outOfScope: [
+      "うーん、それはわかりません... でも何か予定を立てましょうか？",
+      "それは私の専門外です、笑。私はHorahです、あなたの予定を手伝います！",
+      "それはパスします！私の専門はあなたのスケジュールを整理することです。",
+    ]
+  },
+  'ko-KR': {
+    created: '완료!',
+    createdWithEdit: '완료! 수정할 것이 있나요?',
+    updated: '업데이트됨!',
+    deleted: '알겠습니다, 이벤트를 삭제했습니다!',
+    upcomingEvents: '다가오는 일정:',
+    whatToChange: '무엇을 변경하시겠습니까? 제목, 날짜, 시간 또는 장소?',
+    allDay: '하루 종일',
+    minBefore: '30분 전',
+    letMeCheck: '확인해 볼게요...',
+    imageCreated: (title, date, time) => `완료! "${title}" 이벤트를 ${date}${time ? ` ${time}` : ''}에 생성했습니다. 변경이 필요하면 알려주세요!`,
+    pastDateImage: '이런! 이 날짜와 시간은 이미 지났습니다. 미래 이벤트가 있는 이미지를 보내주세요.',
+    healthImage: '건강 관련인 것 같네요. 약 복용 알림을 만들까요?',
+    genericImage: '이 이미지에 대해 무엇을 기억하고 싶으세요?',
+    unidentifiedImage: '이미지를 잘 식별하지 못했습니다. 무엇을 예약하고 싶은지 말씀해 주시겠어요?',
+    outOfScope: [
+      "음, 그건 모르겠어요... 하지만 뭔가 예약할까요?",
+      "그건 제 전문이 아니에요, ㅋㅋ. 저는 Horah입니다, 일정을 도와드려요!",
+      "그건 패스할게요! 제 전문은 일정 관리입니다.",
+    ]
+  },
+  'zh-CN': {
+    created: '完成！',
+    createdWithEdit: '完成！想要编辑什么吗？',
+    updated: '已更新！',
+    deleted: '好的，我已删除该事件！',
+    upcomingEvents: '你即将到来的安排：',
+    whatToChange: '你想更改什么？标题、日期、时间还是地点？',
+    allDay: '全天',
+    minBefore: '30分钟前',
+    letMeCheck: '让我检查一下...',
+    imageCreated: (title, date, time) => `完成！我已为${date}${time ? ` ${time}` : ''}创建了"${title}"事件。如果需要更改，请告诉我！`,
+    pastDateImage: '哎呀！这个日期和时间已经过了。请发送一张包含未来事件的图片。',
+    healthImage: '我看这似乎与健康有关。要我创建一个药物提醒吗？',
+    genericImage: '关于这张图片，你想记住什么？',
+    unidentifiedImage: '我无法很好地识别这张图片。你能告诉我你想安排什么吗？',
+    outOfScope: [
+      "嗯，这个我不知道... 但我们安排点什么吧？",
+      "这不是我的专长，哈哈。我是Horah，在这里帮助你管理日程！",
+      "这个我跳过！我的专长是整理你的日程。",
+    ]
+  },
+};
+
+// Helper function to get templates for a language
+function getResponseTemplates(language: string): typeof responseTemplates['en-US'] {
+  const normalizedLang = language.startsWith('en') ? 'en-US' :
+                         language.startsWith('es') ? 'es-ES' :
+                         language.startsWith('fr') ? 'fr-FR' :
+                         language.startsWith('de') ? 'de-DE' :
+                         language.startsWith('it') ? 'it-IT' :
+                         language.startsWith('ja') ? 'ja-JP' :
+                         language.startsWith('ko') ? 'ko-KR' :
+                         language.startsWith('zh') ? 'zh-CN' :
+                         language.startsWith('pt') ? 'pt-BR' : 'en-US';
+  
+  return responseTemplates[normalizedLang] || responseTemplates['en-US'];
+}
+
 /**
  * HORAH — ASSISTENTE DE AGENDA INTELIGENTE
  * 
@@ -2866,7 +3093,8 @@ serve(async (req) => {
       if (isDateInPast(imageAnalysis.data_detectada, imageAnalysis.hora_detectada, userTimezone)) {
         console.log('Image event date is in the past - returning warning');
         
-        const responseText = `Ops! Essa data e horário já passaram. Por favor, envie uma imagem com um evento no futuro.`;
+        const pastDateTemplates = getResponseTemplates(requestLanguage || 'pt-BR');
+        const responseText = pastDateTemplates.pastDateImage;
         
         const actionData = {
           acao: 'data_passada',
@@ -2921,8 +3149,9 @@ serve(async (req) => {
 
       console.log('Event created from image:', createdEvent);
 
-      // Build response text
-      const responseText = `Pronto! Criei o evento "${imageAnalysis.titulo}" para ${imageAnalysis.data_detectada}${imageAnalysis.hora_detectada ? ` às ${imageAnalysis.hora_detectada}` : ''}. Se precisar mudar algo, é só me falar!`;
+      // Build response text with correct language
+      const langTemplates = getResponseTemplates(requestLanguage || 'pt-BR');
+      const responseText = langTemplates.imageCreated(imageAnalysis.titulo, imageAnalysis.data_detectada, imageAnalysis.hora_detectada);
 
       // Build action with created event data
       const actionData = {
@@ -2977,14 +3206,15 @@ serve(async (req) => {
     if (imageAnalysis && imageAnalysis.tipo !== 'evento_detectado') {
       console.log('Image analysis type:', imageAnalysis.tipo);
       
-      let responseText = imageAnalysis.pergunta_usuario || 'Analisei a imagem. O que você quer lembrar sobre isso?';
+      const imgTemplates = getResponseTemplates(requestLanguage || 'pt-BR');
+      let responseText = imageAnalysis.pergunta_usuario || imgTemplates.genericImage;
       
       if (imageAnalysis.tipo === 'saude') {
-        responseText = imageAnalysis.pergunta_usuario || 'Vi que parece ser algo de saúde. Quer que eu crie um lembrete de medicamento?';
+        responseText = imageAnalysis.pergunta_usuario || imgTemplates.healthImage;
       } else if (imageAnalysis.tipo === 'generico') {
-        responseText = imageAnalysis.pergunta_usuario || 'O que você quer lembrar sobre essa imagem?';
+        responseText = imageAnalysis.pergunta_usuario || imgTemplates.genericImage;
       } else if (imageAnalysis.tipo === 'nao_identificado') {
-        responseText = imageAnalysis.pergunta_usuario || 'Não consegui identificar bem a imagem. Pode me dizer o que quer agendar?';
+        responseText = imageAnalysis.pergunta_usuario || imgTemplates.unidentifiedImage;
       }
 
       const actionData = {
@@ -3161,6 +3391,17 @@ Este e um novo usuario que esta criando seu primeiro evento.
     const languageInstruction = languageInstructions[responseLanguage] || languageInstructions['en-US'];
     console.log('Response language:', responseLanguage, '| Instruction:', languageInstruction.substring(0, 50) + '...');
 
+    // Get templates for the current language to use in system prompt examples
+    const t = getResponseTemplates(responseLanguage);
+    const langCode = responseLanguage.startsWith('en') ? 'en' :
+                     responseLanguage.startsWith('es') ? 'es' :
+                     responseLanguage.startsWith('fr') ? 'fr' :
+                     responseLanguage.startsWith('de') ? 'de' :
+                     responseLanguage.startsWith('it') ? 'it' :
+                     responseLanguage.startsWith('ja') ? 'ja' :
+                     responseLanguage.startsWith('ko') ? 'ko' :
+                     responseLanguage.startsWith('zh') ? 'zh' : 'pt';
+
     // HORAH EVENT ENGINE v2 — CRIAÇÃO OTIMISTA
     const systemPrompt = `HORAH EVENT ENGINE v2
 
@@ -3311,8 +3552,9 @@ prioridade:
 === CONFIRMACAO POS-CRIACAO (OBRIGATORIO) ===
 
 APOS criar o evento, envie confirmacao com resumo visual.
+Use a resposta_usuario no idioma configurado. Exemplo: "${t.createdWithEdit}"
 
-{"acao": "criar_evento", "titulo": "...", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "...", "data": "Hoje", "hora": "Dia inteiro", "local": "", "notificacao": "30 min antes"}, "idioma_detectado": "pt", "resposta_usuario": "Criado! Quer editar algo?"}
+{"acao": "criar_evento", "titulo": "...", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "...", "data": "Hoje", "hora": "${t.allDay}", "local": "", "notificacao": "${t.minBefore}"}, "idioma_detectado": "${langCode}", "resposta_usuario": "${t.createdWithEdit}"}
 
 === MODO EDICAO (CRITICO) ===
 
@@ -3359,33 +3601,28 @@ Na edicao: Se usuario pedir precisao, locais comerciais = nome + cidade
 === CONTRATO JSON ===
 
 SEMPRE responda APENAS com JSON valido.
+IMPORTANTE: Use resposta_usuario no idioma configurado (${responseLanguage}).
 
 Para CRIAR evento:
-{"acao": "criar_evento", "titulo": "Lanchonete", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "Lanchonete", "data": "Hoje", "hora": "Dia inteiro", "local": "", "notificacao": "30 min antes"}, "idioma_detectado": "pt", "resposta_usuario": "Criado! Quer editar algo?"}
+{"acao": "criar_evento", "titulo": "Lanchonete", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "Lanchonete", "data": "Hoje", "hora": "${t.allDay}", "local": "", "notificacao": "${t.minBefore}"}, "idioma_detectado": "${langCode}", "resposta_usuario": "${t.createdWithEdit}"}
 
 Para LISTAR eventos:
-{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "pt", "resposta_usuario": "Seus proximos compromissos:"}
+{"acao": "listar_eventos", "data": "YYYY-MM-DD ou null", "limite": 10, "idioma_detectado": "${langCode}", "resposta_usuario": "${t.upcomingEvents}"}
 
 Para EDITAR evento:
-{"acao": "editar_evento", "evento_id": "...", "titulo": "...", "data": "...", "hora": "...", "local": "...", "resumo_evento": {...}, "idioma_detectado": "pt", "resposta_usuario": "Atualizado!"}
+{"acao": "editar_evento", "evento_id": "...", "titulo": "...", "data": "...", "hora": "...", "local": "...", "resumo_evento": {...}, "idioma_detectado": "${langCode}", "resposta_usuario": "${t.updated}"}
 
 Para DELETAR evento:
-{"acao": "deletar_evento", "evento_id": "...", "idioma_detectado": "pt", "resposta_usuario": "Beleza, removi o evento!"}
+{"acao": "deletar_evento", "evento_id": "...", "idioma_detectado": "${langCode}", "resposta_usuario": "${t.deleted}"}
 
 Para CONVERSAR (saudacoes):
 ${greetingInstruction}
-{"acao": "conversar", "idioma_detectado": "pt", "resposta_usuario": "saudacao personalizada"}
+{"acao": "conversar", "idioma_detectado": "${langCode}", "resposta_usuario": "saudacao personalizada"}
 
 Para PERGUNTAS FORA DO ESCOPO (quem e voce, noticias, esportes, clima, etc):
-VARIE as respostas de forma NATURAL e HUMANA. Voce se chama Horah, um assistente de agenda.
+VARIE as respostas de forma NATURAL e HUMANA no idioma ${responseLanguage}. Voce se chama Horah, um assistente de agenda.
 Exemplos de respostas variadas (escolha uma diferente a cada vez):
-- "Ah, isso eu nao sei te dizer... Mas bora agendar algo? 📅"
-- "Po, nao e minha praia, haha. Sou o Horah, focado em te ajudar a nao esquecer das coisas!"
-- "Opa, essa eu passo! Minha especialidade e organizar sua agenda. O que quer lembrar?"
-- "Haha, queria saber! Mas sou so o Horah, seu assistente de lembretes. Bora agendar?"
-- "Nao manjo disso nao! Mas se quiser marcar algo, to aqui."
-- "Eita, foge do meu escopo! Sou seu assistente de agenda, nao um oraculo haha"
-- "Quem dera eu soubesse! Mas meu negocio e te ajudar a nao esquecer dos compromissos."
+${t.outOfScope.map(s => `- "${s}"`).join('\n')}
 NAO repita a mesma frase. Seja criativo e casual, como se fosse um amigo.
 
 === HARD RULES ===
