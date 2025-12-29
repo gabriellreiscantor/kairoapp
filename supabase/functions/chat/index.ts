@@ -1423,6 +1423,412 @@ function getCategoryEmoji(category: string, title?: string): string {
       'プレゼント': '🎁', '贈り物': '🎁', 'おくりもの': '🎁',
       '선물': '🎁',
       '礼物': '🎁', '送礼': '🎁',
+      
+      // ============================================
+      // FASE 5: VEÍCULOS, MANUTENÇÃO & SERVIÇOS (~100 emojis)
+      // ============================================
+      
+      // --- LAVAR CARRO / CAR WASH ---
+      'lavar carro': '🚗', 'lavar o carro': '🚗', 'lavagem carro': '🚗', 'lavar meu carro': '🚗',
+      'car wash': '🚗', 'wash car': '🚗', 'wash the car': '🚗', 'wash my car': '🚗',
+      'lavar auto': '🚗', 'lavar el carro': '🚗', 'lavar el coche': '🚗', 'lavado de auto': '🚗', 'lavado de carro': '🚗',
+      'laver voiture': '🚗', 'laver la voiture': '🚗', 'lavage auto': '🚗', 'lavage voiture': '🚗',
+      'auto waschen': '🚗', 'autowäsche': '🚗', 'wagen waschen': '🚗',
+      'lavare auto': '🚗', 'lavare la macchina': '🚗', 'lavaggio auto': '🚗',
+      '洗車': '🚗', 'せんしゃ': '🚗',
+      '세차': '🚗', '세차하다': '🚗',
+      '洗车': '🚗',
+      
+      // --- TROCAR ÓLEO / OIL CHANGE ---
+      'trocar oleo': '🛢️', 'troca de oleo': '🛢️', 'trocar o oleo': '🛢️',
+      'oil change': '🛢️', 'change oil': '🛢️', 'change the oil': '🛢️',
+      'cambio de aceite': '🛢️', 'cambiar aceite': '🛢️', 'cambiar el aceite': '🛢️',
+      'vidange': '🛢️', 'changer lhuile': '🛢️', 'faire la vidange': '🛢️',
+      'ölwechsel': '🛢️', 'oelwechsel': '🛢️',
+      'cambio olio': '🛢️', 'cambiare olio': '🛢️',
+      'オイル交換': '🛢️', 'オイルこうかん': '🛢️',
+      '오일교환': '🛢️', '오일 교환': '🛢️',
+      '换机油': '🛢️', '换油': '🛢️',
+      
+      // --- ABASTECER / GAS STATION ---
+      'abastecer': '⛽', 'gasolina': '⛽', 'posto de gasolina': '⛽', 'posto': '⛽', 'combustivel': '⛽',
+      'gas station': '⛽', 'fill up': '⛽', 'refuel': '⛽', 'get gas': '⛽', 'fill the tank': '⛽', 'fuel up': '⛽',
+      'gasolinera': '⛽', 'repostar': '⛽', 'echar gasolina': '⛽', 'llenar tanque': '⛽', 'cargar gasolina': '⛽',
+      'essence': '⛽', 'faire le plein': '⛽', 'station service': '⛽', 'station essence': '⛽',
+      'tanken': '⛽', 'tankstelle': '⛽', 'benzin': '⛽',
+      'benzina': '⛽', 'fare benzina': '⛽', 'rifornimento': '⛽', 'benzinaio': '⛽',
+      'ガソリン': '⛽', '給油': '⛽', 'きゅうゆ': '⛽', 'ガソリンスタンド': '⛽',
+      '주유': '⛽', '주유소': '⛽', '기름 넣기': '⛽',
+      '加油': '⛽', '加油站': '⛽',
+      
+      // --- MECÂNICO / MECHANIC (new unique keywords) ---
+      'oficina mecanica': '🔧', 'auto repair': '🔧', 'car repair': '🔧', 'garage mechanic': '🔧',
+      'taller mecanico': '🔧', 'taller de autos': '🔧',
+      'garagiste': '🔧', 'mécanicien': '🔧', 'mecanicien': '🔧',
+      'mechaniker': '🔧', 'autowerkstatt': '🔧', 'werkstatt': '🔧',
+      'meccanico': '🔧', 'officina': '🔧', 'autofficina': '🔧',
+      '整備士': '🔧', 'せいびし': '🔧', '修理工場': '🔧',
+      '정비소': '🔧', '정비사': '🔧', '카센터': '🔧',
+      '修车': '🔧', '汽修': '🔧', '修理厂': '🔧',
+      
+      // --- REVISÃO / CAR INSPECTION (new unique keywords) ---
+      'revisao do carro': '🔧', 'vistoria': '🔧', 'vistoria carro': '🔧',
+      'car inspection': '🔧', 'vehicle inspection': '🔧', 'car service': '🔧',
+      'revision del coche': '🔧', 'itv': '🔧', 'inspeccion vehicular': '🔧', 'verificacion vehicular': '🔧',
+      'contrôle technique': '🔧', 'revision automobile': '🔧',
+      'tüv': '🔧', 'hauptuntersuchung': '🔧', 'inspektion': '🔧',
+      'revisione auto': '🔧', 'tagliando': '🔧', 'controllo veicolo': '🔧',
+      '車検': '🔧', 'しゃけん': '🔧', '点検': '🔧',
+      '차량 검사': '🔧', '정기 검사': '🔧',
+      '年检': '🔧', '车检': '🔧',
+      
+      // --- CALIBRAR PNEU / TIRE ---
+      'calibrar pneu': '🛞', 'pneu furado': '🛞', 'trocar pneu': '🛞', 'borracheiro': '🛞',
+      'tire': '🛞', 'tires': '🛞', 'flat tire': '🛞', 'change tire': '🛞', 'tire pressure': '🛞',
+      'llanta': '🛞', 'neumatico': '🛞', 'neumático': '🛞', 'cambiar llanta': '🛞',
+      'pneu creve': '🛞', 'pression pneus': '🛞', 'gonfler pneus': '🛞',
+      'reifen': '🛞', 'reifenwechsel': '🛞', 'reifendruck': '🛞',
+      'gomma': '🛞', 'pneumatico': '🛞', 'cambiare gomme': '🛞',
+      'タイヤ': '🛞', 'タイヤ交換': '🛞',
+      '타이어': '🛞', '타이어 교환': '🛞',
+      '轮胎': '🛞', '换轮胎': '🛞',
+      
+      // --- PAGAR CONTAS / PAY BILLS ---
+      'pagar conta': '💳', 'pagar contas': '💳', 'boleto': '💳', 'pagar boleto': '💳', 'pagar fatura': '💳',
+      'pay bills': '💳', 'pay bill': '💳', 'pay rent': '💳', 'bills': '💳', 'payment due': '💳',
+      'pagar factura': '💳', 'pagar la luz': '💳', 'pagar agua': '💳', 'pagar facturas': '💳',
+      'payer facture': '💳', 'payer les factures': '💳', 'regler facture': '💳', 'régler facture': '💳',
+      'rechnung bezahlen': '💳', 'rechnungen': '💳', 'rechnung': '💳', 'miete zahlen': '💳',
+      'pagare bolletta': '💳', 'pagare le bollette': '💳', 'pagare affitto': '💳',
+      '支払い': '💳', 'しはらい': '💳', '料金払う': '💳', '請求書': '💳',
+      '공과금': '💳', '요금 납부': '💳', '고지서': '💳',
+      '付账单': '💳', '交费': '💳', '缴费': '💳', '交房租': '💳',
+      
+      // --- CONSERTAR / REPAIR (unique keywords only) ---
+      'consertar algo': '🔧', 'conserto geral': '🔧', 'arrumar casa': '🔧', 'reparar item': '🔧',
+      'repair something': '🔧', 'fix something': '🔧', 'fixing things': '🔧', 'mend': '🔧',
+      'arreglar algo': '🔧', 'reparacion general': '🔧', 'reparación general': '🔧',
+      'réparer quelque chose': '🔧', 'réparation maison': '🔧',
+      'reparatur machen': '🔧', 'etwas reparieren': '🔧',
+      'riparare qualcosa': '🔧', 'aggiustare qualcosa': '🔧', 'riparazione casa': '🔧',
+      '直す': '🔧', 'なおす': '🔧',
+      '수선': '🔧', '뭔가 고치다': '🔧',
+      '修好': '🔧', '修东西': '🔧',
+      
+      // --- RECADO / ERRAND (unique keywords only) ---
+      'recado pendente': '📋', 'resolver pendencia': '📋', 'tarefa pendente': '📋',
+      'run errands': '📋', 'chore': '📋', 'chores': '📋', 'to-do list': '📋',
+      'hacer mandados': '📋', 'hacer diligencias': '📋', 'tramite pendiente': '📋', 'encargo': '📋',
+      'courses a faire': '📋', 'faire commission': '📋',
+      'besorgung machen': '📋', 'erledigung': '📋', 'besorgungen machen': '📋',
+      'sbrigare faccenda': '📋', 'faccenda': '📋',
+      '雑用': '📋', 'ざつよう': '📋',
+      '할일': '📋', '할 일': '📋',
+      '事情': '📋', '杂事': '📋',
+      
+      // ============================================
+      // FASE 6: AUTOCUIDADO, SAÚDE & BEM-ESTAR (~100 emojis)
+      // ============================================
+      
+      // --- SKINCARE / CUIDADOS PELE ---
+      'skincare': '🧴', 'cuidar da pele': '🧴', 'rotina pele': '🧴', 'hidratante': '🧴', 'protetor solar': '🧴',
+      'skin care': '🧴', 'facial routine': '🧴', 'moisturizer': '🧴', 'sunscreen': '🧴', 'serum': '🧴',
+      'cuidado de la piel': '🧴', 'rutina facial': '🧴', 'crema hidratante': '🧴', 'protector solar': '🧴',
+      'soins de la peau': '🧴', 'routine beauté': '🧴', 'crème hydratante': '🧴', 'écran solaire': '🧴',
+      'hautpflege': '🧴', 'gesichtspflege': '🧴', 'feuchtigkeitscreme': '🧴', 'sonnenschutz': '🧴',
+      'cura della pelle': '🧴', 'routine viso': '🧴', 'crema idratante': '🧴', 'protezione solare': '🧴',
+      'スキンケア': '🧴', '肌ケア': '🧴', '保湿': '🧴', '日焼け止め': '🧴',
+      '스킨케어': '🧴', '피부관리': '🧴', '로션': '🧴', '선크림': '🧴',
+      '护肤': '🧴', '皮肤护理': '🧴', '防晒': '🧴', '保湿霜': '🧴',
+      
+      // --- TOMAR REMÉDIO / TAKE MEDICINE (unique keywords) ---
+      'tomar meu remedio': '💊', 'hora do remedio': '💊', 'tomar vitamina': '💊', 'suplemento': '💊',
+      'take my medicine': '💊', 'take my pills': '💊', 'supplement': '💊', 'vitamins daily': '💊',
+      'tomar pastillas': '💊', 'suplementos': '💊', 'vitaminas diarias': '💊',
+      'prendre médicament': '💊', 'prendre pilule': '💊', 'prendre vitamines': '💊',
+      'medikament nehmen': '💊', 'tablette nehmen': '💊', 'vitamine nehmen': '💊',
+      'prendere medicina': '💊', 'prendere pillola': '💊', 'prendere vitamine': '💊',
+      '薬を飲む': '💊', 'くすりをのむ': '💊', 'ビタミン': '💊',
+      '약 먹기': '💊', '약 복용': '💊', '비타민': '💊',
+      '吃药': '💊', '服药': '💊', '维生素': '💊',
+      
+      // --- FIO DENTAL / FLOSS ---
+      'fio dental': '🪥', 'passar fio dental': '🪥',
+      'floss': '🪥', 'dental floss': '🪥', 'flossing': '🪥',
+      'hilo dental': '🪥', 'usar hilo dental': '🪥',
+      'fil dentaire': '🪥',
+      'zahnseide': '🪥',
+      'filo interdentale': '🪥',
+      'フロス': '🪥', 'デンタルフロス': '🪥',
+      '치실': '🪥',
+      '牙线': '🪥',
+      
+      // --- TERAPIA / THERAPY ---
+      'terapia': '🧠', 'psicólogo': '🧠', 'psicologo': '🧠', 'psiquiatra': '🧠', 'psicoterapia': '🧠',
+      'therapy': '🧠', 'therapist': '🧠', 'psychologist': '🧠', 'psychiatrist': '🧠', 'counseling': '🧠',
+      'terapia es': '🧠', 'psicologo es': '🧠', 'psiquiatra es': '🧠',
+      'thérapie': '🧠', 'therapie': '🧠', 'psychologue': '🧠', 'psychiatre': '🧠',
+      'therapeut': '🧠', 'psychologe': '🧠', 'psychiater': '🧠',
+      'terapia it': '🧠', 'psicologo it': '🧠', 'psichiatra': '🧠',
+      '療法': '🧠', 'セラピー': '🧠', '心理士': '🧠',
+      '치료': '🧠', '심리상담': '🧠', '정신과': '🧠',
+      '心理治疗': '🧠', '心理医生': '🧠',
+      
+      // --- FISIOTERAPIA / PHYSICAL THERAPY ---
+      'fisioterapia': '🦵', 'fisioterapeuta': '🦵', 'fisio': '🦵',
+      'physical therapy': '🦵', 'physiotherapy': '🦵', 'physio': '🦵', 'pt session': '🦵',
+      'fisioterapia es': '🦵', 'kinesiologo': '🦵', 'kinesiología': '🦵',
+      'kinésithérapie': '🦵', 'kinésithérapeute': '🦵', 'kiné': '🦵',
+      'physiotherapie': '🦵', 'physiotherapeut': '🦵', 'krankengymnastik': '🦵',
+      'fisioterapia it': '🦵', 'fisioterapista': '🦵',
+      '理学療法': '🦵', 'りがくりょうほう': '🦵',
+      '물리치료': '🦵',
+      '物理治疗': '🦵', '康复治疗': '🦵',
+      
+      // --- EXAME / TEST ---
+      'exame medico': '🔬', 'exame de sangue': '🔬', 'exames': '🔬', 'laboratorio': '🔬', 'laboratório': '🔬',
+      'blood test': '🔬', 'lab test': '🔬', 'medical test': '🔬', 'check-up': '🔬', 'screening': '🔬',
+      'análisis de sangre': '🔬', 'análisis': '🔬', 'pruebas medicas': '🔬',
+      'prise de sang': '🔬', 'analyse de sang': '🔬', 'bilan de santé': '🔬',
+      'bluttest': '🔬', 'blutuntersuchung': '🔬', 'labor': '🔬',
+      'esame del sangue': '🔬', 'analisi': '🔬', 'esami': '🔬',
+      '血液検査': '🔬', 'けつえきけんさ': '🔬', '検査': '🔬',
+      '혈액검사': '🔬', '건강검진': '🔬',
+      '验血': '🔬', '体检': '🔬', '化验': '🔬',
+      
+      // --- VACINA / VACCINE ---
+      'vacina': '💉', 'vacinar': '💉', 'vacinacao': '💉', 'vacinação': '💉',
+      'vaccine': '💉', 'vaccination': '💉', 'shot': '💉', 'immunization': '💉',
+      'vacuna': '💉', 'vacunar': '💉', 'vacunacion': '💉', 'vacunación': '💉',
+      'vaccin': '💉', 'vaccination fr': '💉', 'se faire vacciner': '💉',
+      'impfung': '💉', 'impfen': '💉',
+      'vaccino': '💉', 'vaccinazione': '💉', 'vaccinarsi': '💉',
+      'ワクチン': '💉', '予防接種': '💉', 'よぼうせっしゅ': '💉',
+      '백신': '💉', '예방접종': '💉',
+      '疫苗': '💉', '接种': '💉', '打疫苗': '💉',
+      
+      // --- ALONGAR / STRETCH ---
+      'alongar': '🤸', 'alongamento': '🤸', 'esticar': '🤸',
+      'stretch': '🤸', 'stretching': '🤸', 'warm up': '🤸',
+      'estirar': '🤸', 'estiramiento': '🤸', 'calentar': '🤸',
+      'etirement': '🤸', 'étirement': '🤸', 'stretirer': '🤸',
+      'dehnen': '🤸', 'dehnung': '🤸', 'aufwarmen': '🤸', 'aufwärmen': '🤸',
+      'stretching it': '🤸', 'allungamento': '🤸', 'riscaldamento': '🤸',
+      'ストレッチ': '🤸', 'ウォームアップ': '🤸',
+      '스트레칭': '🤸', '준비운동': '🤸',
+      '拉伸': '🤸', '热身': '🤸',
+      
+      // ============================================
+      // FASE 7: CASA, TECNOLOGIA & DIVERSOS (~100 emojis)
+      // ============================================
+      
+      // --- TROCAR LÂMPADA / CHANGE LIGHTBULB ---
+      'trocar lampada': '💡', 'trocar lâmpada': '💡', 'lampada queimada': '💡',
+      'change lightbulb': '💡', 'replace bulb': '💡', 'light bulb': '💡',
+      'cambiar bombilla': '💡', 'cambiar foco': '💡', 'bombilla': '💡',
+      'changer ampoule': '💡', 'ampoule': '💡',
+      'glühbirne wechseln': '💡', 'glühbirne': '💡', 'gluhbirne': '💡',
+      'cambiare lampadina': '💡', 'lampadina': '💡',
+      '電球交換': '💡', 'でんきゅう': '💡',
+      '전구 교체': '💡', '전구': '💡',
+      '换灯泡': '💡', '灯泡': '💡',
+      
+      // --- ASPIRAR / VACUUM ---
+      'aspirar': '🧹', 'aspirador': '🧹', 'passar aspirador': '🧹',
+      'vacuum': '🧹', 'vacuuming': '🧹', 'hoover': '🧹',
+      'aspirar es': '🧹', 'pasar aspiradora': '🧹', 'aspiradora': '🧹',
+      'passer laspirateur': '🧹', 'aspirateur': '🧹',
+      'staubsaugen': '🧹', 'staubsauger': '🧹',
+      'passare laspiratore': '🧹', 'aspirapolvere': '🧹',
+      '掃除機': '🧹', 'そうじき': '🧹',
+      '청소기': '🧹', '청소기 돌리기': '🧹',
+      '吸尘': '🧹', '吸尘器': '🧹',
+      
+      // --- LAVAR LOUÇA / WASH DISHES ---
+      'lavar louca': '🍽️', 'lavar louça': '🍽️', 'louça': '🍽️', 'lava louca': '🍽️',
+      'wash dishes': '🍽️', 'do dishes': '🍽️', 'dishes': '🍽️', 'dishwasher': '🍽️',
+      'lavar platos': '🍽️', 'fregar platos': '🍽️', 'trastes': '🍽️',
+      'faire la vaisselle': '🍽️', 'vaisselle': '🍽️',
+      'abspülen': '🍽️', 'abwaschen': '🍽️', 'geschirr': '🍽️',
+      'lavare i piatti': '🍽️', 'piatti': '🍽️',
+      '皿洗い': '🍽️', 'さらあらい': '🍽️',
+      '설거지': '🍽️',
+      '洗碗': '🍽️',
+      
+      // --- FAZER BOLO / BAKE CAKE ---
+      'fazer bolo': '🎂', 'assar bolo': '🎂', 'bolo': '🎂',
+      'bake cake': '🎂', 'baking': '🎂', 'make cake': '🎂',
+      'hacer pastel': '🎂', 'hornear': '🎂', 'pastel': '🎂', 'torta es': '🎂',
+      'faire gateau': '🎂', 'faire un gâteau': '🎂', 'pâtisserie': '🎂',
+      'kuchen backen': '🎂', 'kuchen': '🎂', 'backen': '🎂',
+      'fare torta': '🎂', 'torta it': '🎂',
+      'ケーキ作り': '🎂', 'ケーキ': '🎂',
+      '케이크': '🎂', '케이크 만들기': '🎂',
+      '做蛋糕': '🎂', '蛋糕': '🎂',
+      
+      // --- PREPARAR MARMITA / MEAL PREP ---
+      'preparar marmita': '🍱', 'marmita': '🍱', 'meal prep': '🍱',
+      'meal preparation': '🍱', 'food prep': '🍱', 'prep meals': '🍱',
+      'comida para semana': '🍱', 'tupper': '🍱',
+      'préparer repas': '🍱', 'préparation repas': '🍱',
+      'mahlzeiten vorbereiten': '🍱', 'meal prep de': '🍱',
+      'preparare pasti': '🍱', 'pasti': '🍱',
+      '作り置き': '🍱', 'つくりおき': '🍱', 'お弁当': '🍱',
+      '도시락': '🍱', '밀프렙': '🍱',
+      '便当': '🍱', '备餐': '🍱',
+      
+      // --- JOGAR VIDEOGAME / PLAY VIDEO GAMES ---
+      'jogar videogame': '🎮', 'videogame': '🎮', 'video game': '🎮', 'jogar': '🎮', 'playstation': '🎮', 'xbox': '🎮', 'nintendo': '🎮',
+      'play games': '🎮', 'gaming': '🎮', 'game': '🎮', 'games': '🎮',
+      'jugar videojuegos': '🎮', 'videojuegos': '🎮', 'jugar es': '🎮',
+      'jouer aux jeux video': '🎮', 'jeux video': '🎮', 'jeux vidéo': '🎮',
+      'videospiele spielen': '🎮', 'videospiele': '🎮', 'zocken': '🎮',
+      'giocare ai videogiochi': '🎮', 'videogiochi': '🎮',
+      'ゲーム': '🎮', 'ゲームする': '🎮', 'テレビゲーム': '🎮',
+      '게임': '🎮', '게임하기': '🎮',
+      '玩游戏': '🎮', '游戏': '🎮',
+      
+      // --- BACKUP / ATUALIZAR ---
+      'backup': '💾', 'fazer backup': '💾', 'salvar': '💾',
+      'back up': '💾', 'save': '💾', 'sync': '💾',
+      'copia de seguridad': '💾', 'respaldo': '💾',
+      'sauvegarde': '💾', 'sauvegarder': '💾',
+      'sicherung': '💾', 'datensicherung': '💾',
+      'backup it': '💾', 'salvare': '💾',
+      'バックアップ': '💾',
+      '백업': '💾',
+      '备份': '💾',
+      
+      // --- ATUALIZAR APP / UPDATE ---
+      'atualizar': '📲', 'atualização': '📲', 'atualizar app': '📲', 'update': '📲',
+      'actualizar': '📲', 'actualizacion': '📲', 'actualización': '📲',
+      'mettre a jour': '📲', 'mise a jour': '📲', 'mise à jour': '📲',
+      'aktualisieren': '📲', 'update de': '📲',
+      'aggiornare': '📲', 'aggiornamento': '📲',
+      'アップデート': '📲', '更新': '📲',
+      '업데이트': '📲',
+      '更新 zh': '📲',
+      
+      // --- LEVAR AO VETERINÁRIO / VET ---
+      'veterinario': '🐕', 'veterinário': '🐕', 'vet': '🐕', 'levar ao vet': '🐕',
+      'veterinarian': '🐕', 'vet appointment': '🐕', 'animal doctor': '🐕',
+      'veterinario es': '🐕', 'llevar al vet': '🐕',
+      'vétérinaire': '🐕', 'veterinaire': '🐕',
+      'tierarzt': '🐕',
+      'veterinario it': '🐕',
+      '獣医': '🐕', 'じゅうい': '🐕',
+      '수의사': '🐕', '동물병원': '🐕',
+      '兽医': '🐕', '看兽医': '🐕',
+      
+      // --- DAR BANHO NO CACHORRO / BATHE DOG ---
+      'dar banho cachorro': '🐕', 'banho cachorro': '🐕', 'banho no cachorro': '🐕', 'tosar': '🐕', 'pet shop': '🐕',
+      'bathe dog': '🐕', 'dog bath': '🐕', 'groom dog': '🐕', 'grooming': '🐕',
+      'banar perro': '🐕', 'bañar perro': '🐕',
+      'baigner le chien': '🐕', 'toilettage': '🐕',
+      'hund baden': '🐕', 'hundefriseur': '🐕',
+      'lavare il cane': '🐕', 'toelettatura': '🐕',
+      '犬のお風呂': '🐕', 'いぬのおふろ': '🐕', 'トリミング': '🐕',
+      '강아지 목욕': '🐕', '미용': '🐕',
+      '给狗洗澡': '🐕', '宠物美容': '🐕',
+      
+      // --- COSTURAR / SEW ---
+      'costurar': '🧵', 'costura': '🧵', 'costureira': '🧵', 'alfaiate': '🧵',
+      'sew': '🧵', 'sewing': '🧵', 'tailor': '🧵', 'seamstress': '🧵',
+      'coser': '🧵', 'costura es': '🧵', 'sastre': '🧵', 'modista': '🧵',
+      'coudre': '🧵', 'couture': '🧵', 'tailleur': '🧵', 'couturière': '🧵',
+      'nähen': '🧵', 'schneider': '🧵', 'näharbeit': '🧵',
+      'cucire': '🧵', 'sarto': '🧵', 'sarta': '🧵',
+      '縫う': '🧵', 'ぬう': '🧵', '裁縫': '🧵',
+      '바느질': '🧵', '재봉': '🧵',
+      '缝': '🧵', '缝纫': '🧵', '裁缝': '🧵',
+      
+      // --- TRICOTAR / KNIT ---
+      'tricotar': '🧶', 'trico': '🧶', 'tricô': '🧶', 'croche': '🧶', 'crochê': '🧶',
+      'knit': '🧶', 'knitting': '🧶', 'crochet': '🧶',
+      'tejer': '🧶', 'tejido': '🧶', 'croché': '🧶',
+      'tricoter': '🧶', 'tricot': '🧶', 'crochet fr': '🧶',
+      'stricken': '🧶', 'häkeln': '🧶',
+      'lavorare a maglia': '🧶', 'uncinetto': '🧶',
+      '編み物': '🧶', 'あみもの': '🧶',
+      '뜨개질': '🧶',
+      '织毛衣': '🧶', '钩针': '🧶',
+      
+      // --- MARATONAR SÉRIE / BINGE WATCH ---
+      'maratonar': '📺', 'maratona': '📺', 'serie': '📺', 'série': '📺', 'netflix': '📺',
+      'binge watch': '📺', 'binge': '📺', 'watch series': '📺', 'tv show': '📺', 'streaming': '📺',
+      'maratón': '📺', 'ver series': '📺', 'ver serie': '📺',
+      'marathon series': '📺', 'regarder série': '📺',
+      'serie schauen': '📺', 'staffel': '📺', 'serien marathon': '📺',
+      'guardare serie': '📺', 'serie tv': '📺',
+      'ドラマ': '📺', 'シリーズ': '📺', '一気見': '📺',
+      '드라마': '📺', '시리즈': '📺', '정주행': '📺',
+      '追剧': '📺', '电视剧': '📺', '刷剧': '📺',
+      
+      // --- PODCAST ---
+      'podcast': '🎧', 'podcasts': '🎧', 'ouvir podcast': '🎧',
+      'listen podcast': '🎧', 'audio show': '🎧',
+      'escuchar podcast': '🎧',
+      'écouter podcast': '🎧',
+      'podcast hören': '🎧',
+      'ascoltare podcast': '🎧',
+      'ポッドキャスト': '🎧',
+      '팟캐스트': '🎧',
+      '播客': '🎧',
+      
+      // --- LER / READ (unique keywords) ---
+      'ler um livro': '📖', 'hora de ler': '📖', 'terminar livro': '📖',
+      'read a book': '📖', 'reading time': '📖', 'finish book': '📖',
+      'leer un libro': '📖', 'tiempo de lectura': '📖',
+      'lire un livre': '📖', 'temps de lecture': '📖',
+      'ein buch lesen': '📖', 'lesezeit': '📖',
+      'leggere un libro': '📖', 'tempo di lettura': '📖',
+      '本を読む': '📖', '読書時間': '📖',
+      '책 읽기': '📖', '독서 시간': '📖',
+      '读一本书': '📖', '阅读时间': '📖',
+      
+      // --- ORAR / PRAY ---
+      'orar': '🙏', 'oracao': '🙏', 'oração': '🙏', 'rezar': '🙏',
+      'pray': '🙏', 'prayer': '🙏', 'praying': '🙏',
+      'orar es': '🙏', 'oracion': '🙏', 'oración': '🙏', 'rezar es': '🙏',
+      'prier': '🙏', 'prière': '🙏',
+      'beten': '🙏', 'gebet': '🙏',
+      'pregare': '🙏', 'preghiera': '🙏',
+      '祈り': '🙏', 'いのり': '🙏', '祈る': '🙏',
+      '기도': '🙏', '기도하다': '🙏',
+      '祈祷': '🙏', '祷告': '🙏',
+      
+      // --- ROTINA NOTURNA / NIGHT ROUTINE ---
+      'rotina noturna': '🌙', 'tirar maquiagem': '🌙', 'rotina de noite': '🌙',
+      'night routine': '🌙', 'nighttime routine': '🌙', 'remove makeup': '🌙', 'bedtime routine': '🌙',
+      'rutina nocturna': '🌙', 'desmaquillarse': '🌙',
+      'routine du soir': '🌙', 'démaquiller': '🌙', 'se démaquiller': '🌙',
+      'abendroutine': '🌙', 'abschminken': '🌙',
+      'routine serale': '🌙', 'struccarsi': '🌙',
+      'ナイトルーティン': '🌙', '夜の習慣': '🌙',
+      '밤 루틴': '🌙', '나이트 루틴': '🌙',
+      '晚间护理': '🌙', '卸妆': '🌙',
+      
+      // --- FECHAR JANELA / CLOSE WINDOW ---
+      'fechar janela': '🪟', 'abrir janela': '🪟', 'janelas': '🪟',
+      'close window': '🪟', 'open window': '🪟', 'windows': '🪟',
+      'cerrar ventana': '🪟', 'abrir ventana': '🪟',
+      'fermer fenêtre': '🪟', 'ouvrir fenêtre': '🪟',
+      'fenster schliessen': '🪟', 'fenster öffnen': '🪟',
+      'chiudere finestra': '🪟', 'aprire finestra': '🪟',
+      '窓を閉める': '🪟', '窓を開ける': '🪟',
+      '창문 닫기': '🪟', '창문 열기': '🪟',
+      '关窗': '🪟', '开窗': '🪟',
+      
+      // --- ENTREGA / DELIVERY (unique keywords) ---
+      'buscar encomenda': '📦', 'receber encomenda': '📦', 'sedex': '📦', 'retirar pacote': '📦',
+      'pick up package': '📦', 'receive package': '📦', 'parcel delivery': '📦', 'postal': '📦',
+      'recoger paquete': '📦', 'recibir paquete': '📦', 'mensajería': '📦', 'envío': '📦',
+      'recevoir colis': '📦', 'retirer colis': '📦', 'la poste': '📦',
+      'paket abholen': '📦', 'paket empfangen': '📦', 'lieferung abholen': '📦',
+      'ritirare pacco': '📦', 'ricevere pacco': '📦', 'spedizione': '📦',
+      '荷物受け取り': '📦', '宅配受取': '📦',
+      '택배 수령': '📦', '택배 받기': '📦',
+      '取件': '📦', '收快递': '📦',
     };
     
     for (const [keyword, emoji] of Object.entries(titleKeywords)) {
