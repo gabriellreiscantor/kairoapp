@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { 
   ChevronRight, 
   Plus, 
@@ -21,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { DatePicker, TimePicker } from "@/components/ui/date-time-picker";
 import { EVENT_COLORS, REPEAT_OPTIONS, EVENT_EMOJIS, getColorClassName, getRepeatLabel, getAlertLabel, getAvailableAlertOptions, getBestValidAlert } from "@/lib/event-constants";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ interface Alert {
 }
 
 const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) => {
+  const { t } = useLanguage();
   const { isLoading: isGeoLoading, getCurrentAddress, searchAddresses } = useGeolocation();
   const [screenView, setScreenView] = useState<ScreenView>('main');
   const [title, setTitle] = useState("");
@@ -212,14 +213,14 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => { setScreenView('main'); setLocationSearch(""); setSearchResults([]); }} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Local do Evento</h1>
-          <button onClick={() => { setScreenView('main'); setLocationSearch(""); setSearchResults([]); }} className="text-primary font-medium">Salvar</button>
+          <h1 className="text-lg font-semibold text-foreground">{t('modal.eventLocation')}</h1>
+          <button onClick={() => { setScreenView('main'); setLocationSearch(""); setSearchResults([]); }} className="text-primary font-medium">{t('common.save')}</button>
         </header>
 
         <div className="px-4 mb-4">
           <div className="bg-kairo-surface-2 rounded-2xl px-4 py-3 flex items-center gap-3">
             <Search className="w-5 h-5 text-muted-foreground" />
-            <input type="text" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder="Buscar endereço..." className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none" />
+            <input type="text" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder={t('modal.searchAddress')} className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none" />
             {isSearching && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
             {locationSearch && !isSearching && (
               <button onClick={() => { setLocationSearch(""); setSearchResults([]); }}>
@@ -231,12 +232,12 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
         <button onClick={handleGetCurrentLocation} disabled={isGeoLoading} className="flex items-center gap-3 px-4 py-4 border-b border-border/10 disabled:opacity-50">
           {isGeoLoading ? <Loader2 className="w-5 h-5 text-primary animate-spin" /> : <Navigation className="w-5 h-5 text-primary" />}
-          <span className="text-foreground">{isGeoLoading ? "Obtendo localização..." : "Usar Localização Atual"}</span>
+          <span className="text-foreground">{isGeoLoading ? t('modal.gettingLocation') : t('modal.useCurrentLocation')}</span>
         </button>
 
         {searchResults.length > 0 && (
           <div className="px-4 py-2 flex-1 overflow-y-auto">
-            <p className="text-xs text-muted-foreground mb-2">Resultados</p>
+            <p className="text-xs text-muted-foreground mb-2">{t('modal.results')}</p>
             {searchResults.map((result, index) => (
               <button key={index} onClick={() => { setLocation(result.display_name); setLocationSearch(""); setSearchResults([]); setScreenView('main'); }} className="flex items-start gap-3 py-3 border-b border-border/10 w-full text-left">
                 <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
@@ -248,7 +249,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
         {locationSearch.length >= 3 && !isSearching && searchResults.length === 0 && (
           <div className="px-4 py-8 text-center">
-            <p className="text-muted-foreground">Nenhum resultado encontrado</p>
+            <p className="text-muted-foreground">{t('modal.noResults')}</p>
           </div>
         )}
       </div>
@@ -263,7 +264,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('main')} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Emoji do Evento</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('modal.eventEmoji')}</h1>
           <div className="w-10" />
         </header>
 
@@ -274,7 +275,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
         </div>
 
         <div className="flex-1 px-4 overflow-y-auto pb-8">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Emojis</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">{t('modal.emojis')}</p>
           <div className="grid grid-cols-8 gap-2">
             {EVENT_EMOJIS.map((emoji, idx) => (
               <button key={idx} onClick={() => { setSelectedEmoji(emoji); setScreenView('main'); }} className={`text-2xl p-2 rounded-lg transition-colors ${selectedEmoji === emoji ? 'bg-primary/20' : 'hover:bg-kairo-surface-2'}`}>
@@ -295,7 +296,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('main')} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Repetir</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('modal.repeat')}</h1>
           <div className="w-10" />
         </header>
 
@@ -321,7 +322,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('main')} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Cor do Evento</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('modal.eventColor')}</h1>
           <div className="w-10" />
         </header>
 
@@ -356,12 +357,12 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('main')} className="w-10 h-10 rounded-full bg-kairo-surface-2 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Alertas</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('modal.alerts')}</h1>
           <div className="w-10" />
         </header>
 
         <div className="flex-1 px-4 pt-4 overflow-y-auto">
-          <p className="text-xs text-muted-foreground mb-3">Arraste para a esquerda ou clique no X para remover</p>
+          <p className="text-xs text-muted-foreground mb-3">{t('modal.swipeToDelete')}</p>
           
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden mb-4">
             {alerts.map((alert, index) => (
@@ -376,7 +377,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                   className="px-4 py-4 flex items-center justify-between bg-kairo-surface-2 transition-transform"
                   style={{ transform: swipingAlertIndex === index ? `translateX(-${swipeOffset}px)` : 'translateX(0)' }}
                 >
-                  <span className="text-foreground">Alerta {index + 1}</span>
+                  <span className="text-foreground">{t('modal.alerts').replace('s', '')} {index + 1}</span>
                   <div className="flex items-center gap-2">
                     <select 
                       value={alert.time} 
@@ -405,11 +406,11 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           {alerts.length < 10 && (
             <button onClick={addAlert} className="w-full bg-kairo-surface-2 rounded-2xl px-4 py-4 flex items-center justify-center gap-2 text-foreground">
               <Plus className="w-5 h-5" />
-              <span>Adicionar Alerta</span>
+              <span>{t('modal.addAlert')}</span>
             </button>
           )}
           
-          <p className="text-xs text-muted-foreground text-center mt-4">Máximo de 10 alertas</p>
+          <p className="text-xs text-muted-foreground text-center mt-4">{t('modal.maxAlerts')}</p>
         </div>
       </div>
     );
@@ -419,9 +420,9 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in overflow-hidden">
       <header className="flex items-center justify-between px-4 py-4 safe-area-top">
-        <button onClick={onClose} className="text-foreground font-medium">Cancelar</button>
-        <h1 className="text-lg font-semibold text-foreground">Criar Novo Evento</h1>
-        <button onClick={handleSave} className="text-primary font-medium">Salvar</button>
+        <button onClick={onClose} className="text-foreground font-medium">{t('common.cancel')}</button>
+        <h1 className="text-lg font-semibold text-foreground">{t('modal.createEvent')}</h1>
+        <button onClick={handleSave} className="text-primary font-medium">{t('common.save')}</button>
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-8">
@@ -434,37 +435,37 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
         {/* Title Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none" />
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('modal.title')} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none" />
         </div>
 
         {/* All Day & Date/Time Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
           {/* All Day Toggle */}
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
-            <span className="text-foreground">Dia inteiro</span>
+            <span className="text-foreground">{t('modal.allDay')}</span>
             <Switch checked={isAllDay} onCheckedChange={setIsAllDay} />
           </div>
 
           {/* Date */}
           <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
-            <span className="text-foreground">Data</span>
+            <span className="text-foreground">{t('modal.date')}</span>
             <DatePicker date={startDate} onDateChange={setStartDate} />
           </div>
 
           {/* Time - only show if not all day */}
           {!isAllDay && (
             <div className="px-4 py-4 flex items-center justify-between border-b border-border/10">
-              <span className="text-foreground">Hora</span>
+              <span className="text-foreground">{t('modal.time')}</span>
               <TimePicker time={startTime} onTimeChange={setStartTime} />
             </div>
           )}
 
           {/* Location */}
           <button onClick={() => setScreenView('location')} className="w-full px-4 py-4 flex items-center justify-between gap-3">
-            <span className="text-foreground flex-shrink-0">Local</span>
+            <span className="text-foreground flex-shrink-0">{t('modal.location')}</span>
             <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
               <span className={`text-sm text-right truncate ${location ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {location || 'Adicionar'}
+                {location || t('modal.addLocation')}
               </span>
               <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
             </div>
@@ -476,7 +477,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('repeat')} className="w-full px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Repeat className="w-5 h-5 text-muted-foreground" />
-              <span className="text-foreground">Repetir</span>
+              <span className="text-foreground">{t('modal.repeat')}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <span>{getRepeatLabel(repeat)}</span>
@@ -490,7 +491,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <button onClick={() => setScreenView('color')} className="w-full px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Palette className="w-5 h-5 text-muted-foreground" />
-              <span className="text-foreground">Cor do Evento</span>
+              <span className="text-foreground">{t('modal.eventColor')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full ${getColorClassName(color)}`} />
@@ -508,8 +509,8 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                 <Bell className={`w-5 h-5 ${notificationEnabled ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
               <div className="text-left">
-                <span className="text-foreground">Notificação Push</span>
-                <p className="text-xs text-muted-foreground">Receber alerta no celular</p>
+                <span className="text-foreground">{t('modal.pushNotification')}</span>
+                <p className="text-xs text-muted-foreground">{t('modal.pushNotificationDesc')}</p>
               </div>
             </div>
             <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${notificationEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
@@ -524,8 +525,8 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                 <Phone className={`w-5 h-5 ${callAlertEnabled ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
               <div className="text-left">
-                <span className="text-foreground">Me ligue pra lembrar</span>
-                <p className="text-xs text-muted-foreground">1 hora antes do evento</p>
+                <span className="text-foreground">{t('modal.callMeReminder')}</span>
+                <p className="text-xs text-muted-foreground">{t('modal.callMeReminderDesc')}</p>
               </div>
             </div>
             <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${callAlertEnabled ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
@@ -535,9 +536,9 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
           {/* Alerts List */}
           <button onClick={() => setScreenView('alerts')} className="w-full px-4 py-4 flex items-center justify-between">
-            <span className="text-foreground">Alertas</span>
+            <span className="text-foreground">{t('modal.alerts')}</span>
             <div className="flex items-center gap-2 text-muted-foreground">
-              <span>{alerts.length} alerta{alerts.length !== 1 ? 's' : ''}</span>
+              <span>{alerts.length} {alerts.length !== 1 ? t('modal.alertsCount').replace('{count} ', '') : t('modal.alertCount').replace('{count} ', '')}</span>
               <ChevronRight className="w-5 h-5" />
             </div>
           </button>
@@ -545,7 +546,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
 
         {/* Notes Card */}
         <div className="mx-4 mb-4 bg-kairo-surface-2 rounded-2xl overflow-hidden">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas" rows={4} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('modal.notes')} rows={4} className="w-full px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
         </div>
       </div>
     </div>
