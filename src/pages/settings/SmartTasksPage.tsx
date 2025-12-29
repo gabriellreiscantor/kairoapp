@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const HOURS = [
   { value: 5, label: '05:00' },
@@ -41,6 +42,7 @@ const WEATHER_HOURS = [
 const SmartTasksPage = () => {
   const { user, profile, refreshProfile } = useAuth();
   const { getCurrentAddress, requestLocationPermission, error: locationError, permissionStatus } = useGeolocation();
+  const { t } = useLanguage();
   
   const [smartSuggestions, setSmartSuggestions] = useState(true);
   const [autoReschedule, setAutoReschedule] = useState(true);
@@ -292,7 +294,7 @@ const SmartTasksPage = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background px-4 py-4 safe-area-top flex items-center gap-3">
         <BackButton />
-        <h1 className="text-xl font-bold text-foreground">Ações Inteligentes</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('smartTasks.title')}</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
@@ -300,25 +302,25 @@ const SmartTasksPage = () => {
         <div className="gradient-primary rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-6 h-6 text-white" />
-            <h2 className="text-white font-semibold">IA do Horah</h2>
+            <h2 className="text-white font-semibold">{t('smartTasks.aiTitle')}</h2>
           </div>
           <p className="text-white/80 text-sm">
-            O Horah usa inteligência artificial para aprender seus padrões e sugerir o melhor momento para cada tarefa.
+            {t('smartTasks.aiDesc')}
           </p>
         </div>
 
         {/* Smart Features */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Recursos Inteligentes
+            {t('smartTasks.features')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/10">
               <div className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-foreground">Sugestões Inteligentes</p>
-                  <p className="text-xs text-muted-foreground">Sugestões baseadas no seu histórico</p>
+                  <p className="text-foreground">{t('smartTasks.suggestions')}</p>
+                  <p className="text-xs text-muted-foreground">{t('smartTasks.suggestionsDesc')}</p>
                 </div>
               </div>
               <Switch 
@@ -332,8 +334,8 @@ const SmartTasksPage = () => {
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-foreground">Reagendamento Automático</p>
-                  <p className="text-xs text-muted-foreground">Sugere novos horários para tarefas perdidas</p>
+                  <p className="text-foreground">{t('smartTasks.autoReschedule')}</p>
+                  <p className="text-xs text-muted-foreground">{t('smartTasks.autoRescheduleDesc')}</p>
                 </div>
               </div>
               <Switch 
@@ -347,8 +349,8 @@ const SmartTasksPage = () => {
               <div className="flex items-center gap-3">
                 <Brain className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-foreground">Contexto Inteligente</p>
-                  <p className="text-xs text-muted-foreground">Entende localização e duração</p>
+                  <p className="text-foreground">{t('smartTasks.context')}</p>
+                  <p className="text-xs text-muted-foreground">{t('smartTasks.contextDesc')}</p>
                 </div>
               </div>
               <Switch 
@@ -362,8 +364,8 @@ const SmartTasksPage = () => {
               <div className="flex items-center gap-3">
                 <Repeat className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-foreground">Aprender Padrões</p>
-                  <p className="text-xs text-muted-foreground">Melhora com o tempo</p>
+                  <p className="text-foreground">{t('smartTasks.patterns')}</p>
+                  <p className="text-xs text-muted-foreground">{t('smartTasks.patternsDesc')}</p>
                 </div>
               </div>
               <Switch 
@@ -383,11 +385,11 @@ const SmartTasksPage = () => {
                     <CloudSun className="w-5 h-5 text-muted-foreground" />
                   )}
                   <div>
-                    <p className="text-foreground">Previsão do Tempo Matinal</p>
+                    <p className="text-foreground">{t('smartTasks.weather')}</p>
                     <p className="text-xs text-muted-foreground">
                       {isCapturingLocation 
-                        ? 'Capturando localização...' 
-                        : 'Receba a previsão diariamente no chat'}
+                        ? t('smartTasks.capturingLocation')
+                        : t('smartTasks.weatherDesc')}
                     </p>
                   </div>
                 </div>
@@ -402,7 +404,7 @@ const SmartTasksPage = () => {
               {weatherForecast && (
                 <div className="mt-3 ml-8 space-y-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">Horário:</span>
+                    <span className="text-sm text-muted-foreground">{t('smartTasks.time')}</span>
                     <select
                       value={weatherHour}
                       onChange={(e) => handleWeatherHourChange(Number(e.target.value))}
@@ -428,7 +430,7 @@ const SmartTasksPage = () => {
                         <MapPin className="w-3.5 h-3.5" />
                       )}
                       <span>{userCity}</span>
-                      <span className="text-primary underline">Atualizar</span>
+                      <span className="text-primary underline">{t('smartTasks.updateLocation')}</span>
                     </button>
                   )}
                 </div>
@@ -441,8 +443,8 @@ const SmartTasksPage = () => {
                 <div className="flex items-center gap-3">
                   <BarChart3 className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-foreground">Resumo Semanal</p>
-                    <p className="text-xs text-muted-foreground">Relatório inteligente todo domingo</p>
+                    <p className="text-foreground">{t('smartTasks.weeklyReport')}</p>
+                    <p className="text-xs text-muted-foreground">{t('smartTasks.weeklyReportDesc')}</p>
                   </div>
                 </div>
                 <Switch 
@@ -455,7 +457,7 @@ const SmartTasksPage = () => {
               {/* Hour Picker - Only visible when enabled */}
               {weeklyReport && (
                 <div className="mt-3 ml-8 flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">Horário:</span>
+                  <span className="text-sm text-muted-foreground">{t('smartTasks.time')}</span>
                   <select
                     value={weeklyReportHour}
                     onChange={(e) => handleWeeklyReportHourChange(Number(e.target.value))}
@@ -476,7 +478,7 @@ const SmartTasksPage = () => {
 
         {/* Privacy Note */}
         <p className="text-xs text-muted-foreground px-1">
-          Seus dados são processados de forma segura. A IA aprende apenas com suas interações dentro do app para melhorar sua experiência. O horário é baseado no fuso do seu dispositivo.
+          {t('smartTasks.privacyNote')}
         </p>
       </div>
     </div>

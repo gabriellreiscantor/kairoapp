@@ -3,47 +3,50 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import horahLogo from "@/assets/horah-logo.png";
 import BackButton from "@/components/BackButton";
-
-const FAQ = [
-  {
-    question: "Como criar um evento via WhatsApp?",
-    answer: "Basta enviar uma mensagem para o número do Horah descrevendo seu compromisso em linguagem natural, como 'Reunião amanhã às 14h'."
-  },
-  {
-    question: "O que é o recurso 'Me Ligue'?",
-    answer: "É uma chamada simulada que o Horah faz para você quando um evento importante está prestes a começar, garantindo que você não perca."
-  },
-  {
-    question: "Como funcionam os alertas críticos?",
-    answer: "Alertas críticos ignoram o modo silencioso e 'Não Perturbe' do seu dispositivo para garantir que você receba notificações importantes."
-  },
-  {
-    question: "Posso sincronizar com outros calendários?",
-    answer: "Sim! Você pode conectar o Google Calendar, Apple Calendar e Outlook nas configurações de calendários."
-  },
-  {
-    question: "Como cancelar minha assinatura no iOS?",
-    answer: "Para cancelar sua assinatura no iPhone, vá em Ajustes > seu nome > Assinaturas > Horah e toque em 'Cancelar Assinatura'. A assinatura permanecerá ativa até o fim do período atual."
-  },
-  {
-    question: "Como cancelar minha assinatura no Android?",
-    answer: "No app Horah, vá em Configurações > Assinatura e toque no botão 'Cancelar Assinatura'. Você também pode gerenciar assinaturas pela Google Play Store."
-  },
-  {
-    question: "Quais são os planos disponíveis?",
-    answer: "Oferecemos três planos: Grátis (14 eventos/semana), Plus (50 eventos/semana, R$ 14,90/mês) e Super (280 eventos/semana, R$ 29,90/mês). Os planos pagos incluem Me Ligue ilimitado e alertas críticos."
-  },
-  {
-    question: "O Horah funciona offline?",
-    answer: "Você pode visualizar seus eventos salvos offline, mas a criação via chat e sincronização com outros calendários requerem conexão com a internet."
-  },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const HelpPage = () => {
   const navigate = useNavigate();
   const { subscription } = useSubscription();
+  const { t } = useLanguage();
   
   const isPremium = subscription?.plan === 'plus' || subscription?.plan === 'super';
+
+  // Dynamic FAQ based on current language
+  const FAQ = [
+    {
+      question: t('help.faqWhatsapp'),
+      answer: t('help.faqWhatsappAnswer'),
+    },
+    {
+      question: t('help.faqCallMe'),
+      answer: t('help.faqCallMeAnswer'),
+    },
+    {
+      question: t('help.faqCritical'),
+      answer: t('help.faqCriticalAnswer'),
+    },
+    {
+      question: t('help.faqSync'),
+      answer: t('help.faqSyncAnswer'),
+    },
+    {
+      question: t('help.faqCancelIos'),
+      answer: t('help.faqCancelIosAnswer'),
+    },
+    {
+      question: t('help.faqCancelAndroid'),
+      answer: t('help.faqCancelAndroidAnswer'),
+    },
+    {
+      question: t('help.faqPlans'),
+      answer: t('help.faqPlansAnswer'),
+    },
+    {
+      question: t('help.faqOffline'),
+      answer: t('help.faqOfflineAnswer'),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +55,7 @@ const HelpPage = () => {
         <BackButton />
         <div className="flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">Ajuda</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('help.title')}</h1>
         </div>
       </header>
 
@@ -64,16 +67,16 @@ const HelpPage = () => {
             alt="Horah" 
             className="w-16 h-16 mx-auto mb-4 rounded-full object-cover"
           />
-          <h2 className="text-lg font-semibold text-foreground mb-2">Como podemos ajudar?</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">{t('help.howCanWeHelp')}</h2>
           <p className="text-sm text-muted-foreground">
-            Estamos aqui para garantir a melhor experiência com o Horah
+            {t('help.subtitle')}
           </p>
         </div>
 
         {/* Contact Support */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1 font-medium">
-            Fale Conosco
+            {t('help.contactUs')}
           </h2>
           <div className="space-y-3">
             {/* Live Chat - Premium Only */}
@@ -85,12 +88,12 @@ const HelpPage = () => {
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <p className="text-foreground font-medium">Chat ao Vivo</p>
+                      <p className="text-foreground font-medium">{t('help.liveChat')}</p>
                       <span className="px-2 py-0.5 text-[10px] font-semibold bg-kairo-green/20 text-kairo-green rounded-full">
-                        PREMIUM
+                        {t('help.liveChatPremium')}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">Resposta em até 5 minutos</p>
+                    <p className="text-xs text-muted-foreground">{t('help.liveChatDesc')}</p>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-kairo-green/20 flex items-center justify-center group-hover:bg-kairo-green/30 transition-colors">
@@ -106,10 +109,10 @@ const HelpPage = () => {
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2">
-                        <p className="text-foreground font-medium">Chat ao Vivo</p>
+                        <p className="text-foreground font-medium">{t('help.liveChat')}</p>
                         <Crown className="w-4 h-4 text-kairo-amber" />
                       </div>
-                      <p className="text-xs text-muted-foreground">Exclusivo para assinantes</p>
+                      <p className="text-xs text-muted-foreground">{t('help.liveChatExclusive')}</p>
                     </div>
                   </div>
                 </div>
@@ -117,7 +120,7 @@ const HelpPage = () => {
                   onClick={() => navigate('/settings/my-plan')}
                   className="mt-3 w-full py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
                 >
-                  Fazer upgrade
+                  {t('common.upgrade')}
                 </button>
               </div>
             )}
@@ -132,7 +135,7 @@ const HelpPage = () => {
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="text-foreground font-medium">E-mail</p>
+                  <p className="text-foreground font-medium">{t('help.email')}</p>
                   <p className="text-xs text-muted-foreground">contato@horah.app</p>
                 </div>
               </div>
@@ -146,7 +149,7 @@ const HelpPage = () => {
         {/* Resources */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1 font-medium">
-            Recursos
+            {t('help.resources')}
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <button className="bg-kairo-surface-2 rounded-2xl p-4 flex flex-col items-center gap-3 hover:bg-kairo-surface-3 transition-colors group">
@@ -154,8 +157,8 @@ const HelpPage = () => {
                 <Book className="w-6 h-6 text-kairo-blue" />
               </div>
               <div className="text-center">
-                <p className="text-foreground font-medium text-sm">Guia do Usuário</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Documentação</p>
+                <p className="text-foreground font-medium text-sm">{t('help.userGuide')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('help.documentation')}</p>
               </div>
             </button>
             <button className="bg-kairo-surface-2 rounded-2xl p-4 flex flex-col items-center gap-3 hover:bg-kairo-surface-3 transition-colors group">
@@ -163,8 +166,8 @@ const HelpPage = () => {
                 <Video className="w-6 h-6 text-kairo-purple" />
               </div>
               <div className="text-center">
-                <p className="text-foreground font-medium text-sm">Tutoriais</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Vídeos</p>
+                <p className="text-foreground font-medium text-sm">{t('help.tutorials')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('help.videos')}</p>
               </div>
             </button>
           </div>
@@ -173,7 +176,7 @@ const HelpPage = () => {
         {/* FAQ */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1 font-medium">
-            Perguntas Frequentes
+            {t('help.faq')}
           </h2>
           <div className="space-y-3">
             {FAQ.map((item, index) => (
@@ -196,13 +199,13 @@ const HelpPage = () => {
         {/* Footer */}
         <div className="text-center pt-4">
           <p className="text-xs text-muted-foreground">
-            Não encontrou o que procurava?
+            {t('help.notFound')}
           </p>
           <a 
             href="mailto:contato@horah.app?subject=Dúvida%20-%20Horah%20App"
             className="text-primary text-sm font-medium mt-1 hover:underline"
           >
-            Envie sua dúvida
+            {t('help.sendQuestion')}
           </a>
         </div>
       </div>

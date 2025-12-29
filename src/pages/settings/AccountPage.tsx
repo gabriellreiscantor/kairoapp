@@ -6,10 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const AccountPage = () => {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, isLoading } = useAuth();
+  const { t } = useLanguage();
   
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +31,7 @@ const AccountPage = () => {
 
   const handleSave = async () => {
     if (!user?.id) {
-      toast.error("Usuário não autenticado");
+      toast.error(t('account.saveError'));
       return;
     }
 
@@ -44,9 +46,9 @@ const AccountPage = () => {
 
     if (!error) {
       await refreshProfile();
-      toast.success("Alterações salvas com sucesso!");
+      toast.success(t('account.saved'));
     } else {
-      toast.error("Erro ao salvar alterações");
+      toast.error(t('account.saveError'));
       console.error(error);
     }
     setSaving(false);
@@ -65,7 +67,7 @@ const AccountPage = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
         <BackButton />
-        <h1 className="text-xl font-bold text-foreground">Conta</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('account.title')}</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
@@ -81,7 +83,7 @@ const AccountPage = () => {
             ) : (
               <img 
                 src={defaultAvatar} 
-                alt="Avatar padrão" 
+                alt="Avatar" 
                 className="w-24 h-24 rounded-full object-cover"
               />
             )}
@@ -89,27 +91,27 @@ const AccountPage = () => {
               <Pencil className="w-4 h-4 text-primary-foreground" />
             </button>
           </div>
-          <p className="text-sm text-muted-foreground">Toque para alterar foto</p>
+          <p className="text-sm text-muted-foreground">{t('account.tapToChangePhoto')}</p>
         </div>
 
         {/* Account Info */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Informações Pessoais
+            {t('account.personalInfo')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             <div className="px-4 py-3.5 border-b border-border/10">
-              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t('account.name')}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome"
+                placeholder={t('account.namePlaceholder')}
                 className="w-full bg-transparent text-foreground focus:outline-none placeholder:text-muted-foreground/50"
               />
             </div>
             <div className="px-4 py-3.5 border-b border-border/10">
-              <label className="text-xs text-muted-foreground mb-1 block">E-mail</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t('account.email')}</label>
               <input
                 type="email"
                 value={email}
@@ -118,7 +120,7 @@ const AccountPage = () => {
               />
             </div>
             <div className="px-4 py-3.5">
-              <label className="text-xs text-muted-foreground mb-1 block">Telefone</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t('account.phone')}</label>
               <input
                 type="tel"
                 value={phone}
@@ -133,23 +135,23 @@ const AccountPage = () => {
         {/* Security */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Segurança
+            {t('account.security')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             <button className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border/10">
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground">Alterar Senha</span>
+                <span className="text-foreground">{t('account.changePassword')}</span>
               </div>
               <ChevronLeft className="w-4 h-4 text-muted-foreground rotate-180" />
             </button>
             <button className="w-full flex items-center justify-between px-4 py-3.5">
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground">Verificar E-mail</span>
+                <span className="text-foreground">{t('account.verifyEmail')}</span>
               </div>
               <span className={`text-xs ${user?.email_confirmed_at ? 'text-kairo-green' : 'text-kairo-amber'}`}>
-                {user?.email_confirmed_at ? 'Verificado' : 'Pendente'}
+                {user?.email_confirmed_at ? t('account.verified') : t('account.pending')}
               </span>
             </button>
           </div>
@@ -158,16 +160,16 @@ const AccountPage = () => {
         {/* Danger Zone */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Zona de Perigo
+            {t('account.dangerZone')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             <button className="w-full flex items-center gap-3 px-4 py-3.5 text-kairo-red">
               <Trash2 className="w-5 h-5" />
-              <span>Excluir Conta</span>
+              <span>{t('account.deleteAccount')}</span>
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 px-1">
-            Ao excluir sua conta, todos os seus dados serão permanentemente removidos.
+            {t('account.deleteWarning')}
           </p>
         </div>
 
@@ -178,7 +180,7 @@ const AccountPage = () => {
           className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {saving ? "Salvando..." : "Salvar Alterações"}
+          {saving ? t('account.saving') : t('account.saveChanges')}
         </button>
       </div>
     </div>
