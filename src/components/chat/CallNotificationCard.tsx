@@ -43,7 +43,7 @@ const CallNotificationCard = ({
           <Phone className="w-4 h-4 text-green-500" />
         </div>
         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-          📞 Te liguei!
+          Te liguei!
         </span>
       </div>
       
