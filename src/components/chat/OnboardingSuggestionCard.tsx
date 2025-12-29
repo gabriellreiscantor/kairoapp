@@ -1,5 +1,6 @@
 import { Calendar, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface OnboardingSuggestionCardProps {
   type: 'weekly_planning' | 'connect_calendar';
@@ -14,20 +15,22 @@ const OnboardingSuggestionCard = ({
   onSkip, 
   isLoading 
 }: OnboardingSuggestionCardProps) => {
+  const { t } = useLanguage();
+
   const content = {
     weekly_planning: {
       icon: "📅",
-      title: "Planejamento semanal",
-      description: "Toda segunda-feira, o Kairo pode reservar 30 minutos para você planejar a semana e definir suas metas. É um pequeno hábito para uma vida mais tranquila.",
-      acceptText: "Criar lembrete",
-      skipText: "Agora não",
+      title: t('onboardingSuggestion.weeklyPlanning') || "Weekly Planning",
+      description: t('onboardingSuggestion.weeklyPlanningDesc') || "Every Monday, Kairo can reserve 30 minutes for you to plan the week and set your goals. It's a small habit for a more peaceful life.",
+      acceptText: t('onboardingSuggestion.createReminder') || "Create Reminder",
+      skipText: t('onboardingSuggestion.notNow') || "Not Now",
     },
     connect_calendar: {
       icon: "🔗",
-      title: "Conectar calendários",
-      description: "Para uma experiência ainda melhor, você pode conectar seu calendário para manter tudo sincronizado.",
-      acceptText: "Conectar",
-      skipText: "Pular",
+      title: t('onboardingSuggestion.connectCalendars') || "Connect Calendars",
+      description: t('onboardingSuggestion.connectCalendarsDesc') || "For an even better experience, you can connect your calendar to keep everything synchronized.",
+      acceptText: t('onboardingSuggestion.connect') || "Connect",
+      skipText: t('onboardingSuggestion.skip') || "Skip",
     },
   };
 

@@ -1,6 +1,6 @@
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ListedEvent {
   id: string;
@@ -30,28 +30,30 @@ const getCategoryEmoji = (category?: string) => {
   return emojis[category || "geral"] || "📌";
 };
 
-const formatDate = (dateStr: string) => {
-  try {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return "Hoje";
-    if (isTomorrow(date)) return "Amanhã";
-    return format(date, "dd 'de' MMM", { locale: ptBR });
-  } catch {
-    return dateStr;
-  }
-};
-
-const formatTime = (timeStr?: string) => {
-  if (!timeStr) return "Dia inteiro";
-  try {
-    const [hours, minutes] = timeStr.split(":");
-    return `${hours}:${minutes}`;
-  } catch {
-    return timeStr;
-  }
-};
-
 const EventListCard = ({ events }: EventListCardProps) => {
+  const { t, getDateLocale } = useLanguage();
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr);
+      if (isToday(date)) return t('event.today') || "Today";
+      if (isTomorrow(date)) return t('event.tomorrow') || "Tomorrow";
+      return format(date, t('event.dateFormatShort') || "MMM d", { locale: getDateLocale() });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return t('event.allDay') || "All day";
+    try {
+      const [hours, minutes] = timeStr.split(":");
+      return `${hours}:${minutes}`;
+    } catch {
+      return timeStr;
+    }
+  };
+
   if (!events || events.length === 0) return null;
 
   return (
