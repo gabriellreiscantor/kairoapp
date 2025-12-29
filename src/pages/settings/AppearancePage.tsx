@@ -3,35 +3,38 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
-import { useFontPreference, FONT_OPTIONS, FontOption } from "@/hooks/useFontPreference";
+import { useFontPreference, FontOption } from "@/hooks/useFontPreference";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Theme = 'light' | 'dark' | 'system';
-
-const THEMES: { id: Theme; icon: typeof Sun; label: string; description: string }[] = [
-  { id: 'light', icon: Sun, label: 'Claro', description: 'Cores vibrantes com fundo branco' },
-  { id: 'dark', icon: Moon, label: 'Escuro', description: 'Tons escuros e acentos quentes' },
-  { id: 'system', icon: Monitor, label: 'Sistema', description: 'Segue as configurações do dispositivo' },
-];
-
-// Cores principais do tema escuro - Degradê Horah
-const DARK_THEME_COLORS = [
-  { color: '#1F5BFF', name: 'Azul vibrante' },
-  { color: '#39B7E5', name: 'Azul ciano' },
-  { color: '#63E0A3', name: 'Verde água' },
-];
-
-// Cores principais do tema claro - Degradê azul → verde água
-const LIGHT_THEME_COLORS = [
-  { color: 'hsl(220, 100%, 56%)', name: 'Azul vibrante' },
-  { color: 'hsl(195, 75%, 56%)', name: 'Azul ciano' },
-  { color: 'hsl(153, 65%, 63%)', name: 'Verde água' },
-];
 
 const AppearancePage = () => {
   const navigate = useNavigate();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { currentFont, setFont, isPremium, fontOptions, loading: fontLoading } = useFontPreference();
+  const { currentFont, setFont, isPremium, fontOptions } = useFontPreference();
+  const { t } = useLanguage();
+
+  // Theme options with translations
+  const THEMES: { id: Theme; icon: typeof Sun; labelKey: string; descKey: string }[] = [
+    { id: 'light', icon: Sun, labelKey: 'appearance.light', descKey: 'appearance.lightDesc' },
+    { id: 'dark', icon: Moon, labelKey: 'appearance.dark', descKey: 'appearance.darkDesc' },
+    { id: 'system', icon: Monitor, labelKey: 'appearance.system', descKey: 'appearance.systemDesc' },
+  ];
+
+  // Cores principais do tema escuro - Degradê Horah
+  const DARK_THEME_COLORS = [
+    { color: '#1F5BFF', name: 'Blue' },
+    { color: '#39B7E5', name: 'Cyan' },
+    { color: '#63E0A3', name: 'Green' },
+  ];
+
+  // Cores principais do tema claro - Degradê azul → verde água
+  const LIGHT_THEME_COLORS = [
+    { color: 'hsl(220, 100%, 56%)', name: 'Blue' },
+    { color: 'hsl(195, 75%, 56%)', name: 'Cyan' },
+    { color: 'hsl(153, 65%, 63%)', name: 'Green' },
+  ];
   
   // Get current theme colors
   const currentColors = mounted && resolvedTheme === 'dark' ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
@@ -55,11 +58,17 @@ const AppearancePage = () => {
 
   const handleFontSelect = (fontId: FontOption) => {
     if (!isPremium && fontId !== 'system') {
-      // Navigate to subscription page
       navigate('/settings/subscription');
       return;
     }
     setFont(fontId);
+  };
+
+  const getPreviewText = () => {
+    if (currentTheme === 'system') {
+      return `${t('appearance.usingSystemTheme')} ${mounted && resolvedTheme === 'dark' ? t('appearance.dark').toLowerCase() : t('appearance.light').toLowerCase()}`;
+    }
+    return currentTheme === 'dark' ? t('appearance.darkActive') : t('appearance.lightActive');
   };
 
   return (
@@ -67,14 +76,14 @@ const AppearancePage = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm px-4 py-4 safe-area-top flex items-center gap-3">
         <BackButton />
-        <h1 className="text-xl font-bold text-foreground">Aparência</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('appearance.title')}</h1>
       </header>
 
       <div className="px-4 pb-8 space-y-6">
         {/* Theme Selection */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Tema
+            {t('appearance.theme')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             {THEMES.map((themeOption, index) => (
@@ -98,8 +107,8 @@ const AppearancePage = () => {
                     }`} />
                   </div>
                   <div className="text-left">
-                    <span className="text-foreground font-medium block">{themeOption.label}</span>
-                    <span className="text-xs text-muted-foreground">{themeOption.description}</span>
+                    <span className="text-foreground font-medium block">{t(themeOption.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">{t(themeOption.descKey)}</span>
                   </div>
                 </div>
                 {currentTheme === themeOption.id && (
@@ -114,12 +123,12 @@ const AppearancePage = () => {
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-xs text-muted-foreground uppercase tracking-wider">
-              Fonte
+              {t('appearance.font')}
             </h2>
             {!isPremium && (
               <div className="flex items-center gap-1 text-xs text-primary">
                 <Crown className="w-3 h-3" />
-                <span>Premium</span>
+                <span>{t('common.premium')}</span>
               </div>
             )}
           </div>
@@ -179,7 +188,7 @@ const AppearancePage = () => {
             >
               <Crown className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">
-                Desbloqueie fontes personalizadas com Premium
+                {t('appearance.unlockFonts')}
               </span>
             </button>
           )}
@@ -188,7 +197,7 @@ const AppearancePage = () => {
         {/* Preview */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Pré-visualização
+            {t('appearance.preview')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl p-4">
             <div className="flex gap-3">
@@ -210,7 +219,7 @@ const AppearancePage = () => {
                     ? 'bg-primary text-primary-foreground' 
                     : 'bg-kairo-surface-3 text-muted-foreground'
                 }`}>
-                  Claro
+                  {t('appearance.light')}
                 </div>
               </div>
               
@@ -232,18 +241,13 @@ const AppearancePage = () => {
                     ? 'bg-primary text-primary-foreground' 
                     : 'bg-kairo-surface-3 text-muted-foreground'
                 }`}>
-                  Escuro
+                  {t('appearance.dark')}
                 </div>
               </div>
             </div>
             
             <p className="text-xs text-muted-foreground text-center mt-4">
-              {currentTheme === 'system' 
-                ? `Usando tema ${mounted && resolvedTheme === 'dark' ? 'escuro' : 'claro'} do sistema` 
-                : currentTheme === 'dark' 
-                  ? 'Tema escuro ativado'
-                  : 'Tema claro com as cores vibrantes do Horah'
-              }
+              {getPreviewText()}
             </p>
           </div>
         </div>
@@ -251,7 +255,7 @@ const AppearancePage = () => {
         {/* Accent Colors Preview */}
         <div>
           <h2 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">
-            Cores do Horah
+            {t('appearance.colors')}
           </h2>
           <div className="bg-kairo-surface-2 rounded-2xl p-4">
             <div className="flex items-center justify-center gap-2">
@@ -270,8 +274,8 @@ const AppearancePage = () => {
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3">
               {mounted && resolvedTheme === 'dark' 
-                ? 'Tons vibrantes e quentes para o tema escuro'
-                : 'Cores alegres e suaves para o tema claro'
+                ? t('appearance.darkColors')
+                : t('appearance.lightColors')
               }
             </p>
           </div>
@@ -279,7 +283,7 @@ const AppearancePage = () => {
 
         {/* Note */}
         <p className="text-xs text-muted-foreground px-1">
-          O tema "Sistema" segue automaticamente as configurações de aparência do seu dispositivo. A fonte padrão usa a tipografia nativa do seu dispositivo para melhor legibilidade.
+          {t('appearance.note')}
         </p>
       </div>
     </div>

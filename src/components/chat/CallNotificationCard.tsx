@@ -43,27 +43,27 @@ const CallNotificationCard = ({
           <Phone className="w-4 h-4 text-green-500" />
         </div>
         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-          Te liguei!
+          {t('callCard.iCalled')}
         </span>
       </div>
       
       {/* Message content */}
       <p className="text-sm text-foreground mb-3">
         {answered 
-          ? `Você atendeu a ligação para lembrar do evento "${eventTitle}" às ${formattedEventTime}.`
-          : `Acabei de ligar para te lembrar do evento "${eventTitle}" às ${formattedEventTime}.`
+          ? `${t('callCard.youAnswered')} "${eventTitle}" ${t('callCard.at')} ${formattedEventTime}.`
+          : `${t('callCard.justCalled')} "${eventTitle}" ${t('callCard.at')} ${formattedEventTime}.`
         }
       </p>
       
       {!answered && (
         <p className="text-xs text-muted-foreground mb-3">
-          Se você não atendeu, é só verificar os detalhes do evento abaixo.
+          {t('callCard.missedCall')}
         </p>
       )}
       
       {/* Call time */}
       <div className="text-xs text-muted-foreground mb-3">
-        Ligação {answered ? 'atendida' : 'enviada'} às {formattedCallTime}
+        {answered ? t('callCard.callAnswered') : t('callCard.callSent')} {formattedCallTime}
       </div>
       
       {/* View event button */}
@@ -72,7 +72,7 @@ const CallNotificationCard = ({
           onClick={() => onViewEvent(eventId)}
           className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
         >
-          <span>Ver evento</span>
+          <span>{t('callCard.viewEvent')}</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </button>
       )}
