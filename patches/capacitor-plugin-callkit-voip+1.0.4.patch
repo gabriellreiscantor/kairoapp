@@ -115,9 +115,11 @@ index 1234567..abcdefg 100644
 +        
 +        do {
 +            let audioSession = AVAudioSession.sharedInstance()
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
++            // REMOVED .mixWithOthers - can cause conflicts with TTS
++            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
-+            print("[CallKit-Swift] ✅ Audio session configured for silence anchor")
++            try audioSession.overrideOutputAudioPort(.speaker)
++            print("[CallKit-Swift] ✅ Audio session configured for silence anchor (speaker forced)")
 +        } catch {
 +            print("[CallKit-Swift] ⚠️ Audio session error for silence: \(error)")
 +        }
@@ -274,8 +276,10 @@ index 1234567..abcdefg 100644
 +            // Use playAndRecord to allow audio during call
 +            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
++            // FORCE speaker output - .defaultToSpeaker alone doesn't guarantee speaker
++            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            print("[CallKit-Swift] ✅ Audio session configured")
++            print("[CallKit-Swift] ✅ Audio session configured (speaker forced)")
 +            call.resolve(["configured": true])
 +        } catch {
 +            print("[CallKit-Swift] ❌ Audio session error: \(error)")
@@ -307,13 +311,16 @@ index 1234567..abcdefg 100644
 +            let audioSession = AVAudioSession.sharedInstance()
 +            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
++            // FORCE speaker output - critical for TTS to be heard
++            try audioSession.overrideOutputAudioPort(.speaker)
 +            
 +            // Create and play audio
 +            audioPlayer = try AVAudioPlayer(data: audioData)
++            audioPlayer?.volume = 1.0  // Maximum volume
 +            audioPlayer?.prepareToPlay()
 +            audioPlayer?.play()
 +            
-+            print("[CallKit-Swift] ✅ TTS audio playing")
++            print("[CallKit-Swift] ✅ TTS audio playing on SPEAKER (volume: 1.0)")
 +            call.resolve(["playing": true])
 +        } catch {
 +            print("[CallKit-Swift] ❌ Audio playback error: \(error)")
