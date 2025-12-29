@@ -291,9 +291,17 @@ index 1234567..abcdefg 100644
 +    @objc func playTTSAudio(_ call: CAPPluginCall) {
 +        // 1️⃣ Log CHAMADA do método
 +        print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
++        notifyListeners("debug", data: [
++            "stage": "tts_play_called",
++            "timestamp": ISO8601DateFormatter().string(from: Date())
++        ])
 +        
 +        guard let base64Audio = call.getString("audio") else {
 +            print("[CallKit-Swift] ❌ No audio data provided")
++            notifyListeners("debug", data: [
++                "stage": "tts_error",
++                "error": "no_audio_data"
++            ])
 +            call.resolve(["playing": false, "error": "no_audio_data"])
 +            return
 +        }
@@ -301,18 +309,32 @@ index 1234567..abcdefg 100644
 +        print("[CallKit-Swift] 🎵 Base64 audio length: \(base64Audio.count)")
 +        
 +        // 6️⃣ Log se silencePlayer está tocando
-+        print("[CallKit-Swift] 🔇 Silence player isPlaying: \(silencePlayer?.isPlaying ?? false)")
++        let silenceIsPlaying = silencePlayer?.isPlaying ?? false
++        print("[CallKit-Swift] 🔇 Silence player isPlaying: \(silenceIsPlaying)")
++        notifyListeners("debug", data: [
++            "stage": "tts_silence_check",
++            "silencePlayerPlaying": silenceIsPlaying,
++            "base64Length": base64Audio.count
++        ])
 +        
 +        // Stop silence anchor when TTS starts
 +        stopSilenceAnchor()
 +        
 +        guard let audioData = Data(base64Encoded: base64Audio) else {
 +            print("[CallKit-Swift] ❌ Invalid base64 audio")
++            notifyListeners("debug", data: [
++                "stage": "tts_error",
++                "error": "invalid_base64"
++            ])
 +            call.resolve(["playing": false, "error": "invalid_base64"])
 +            return
 +        }
 +        
 +        print("[CallKit-Swift] 📦 Audio data decoded: \(audioData.count) bytes")
++        notifyListeners("debug", data: [
++            "stage": "tts_audio_decoded",
++            "audioBytes": audioData.count
++        ])
 +        
 +        do {
 +            // Configure audio session
@@ -324,10 +346,17 @@ index 1234567..abcdefg 100644
 +            
 +            // 4️⃣ Log rota de áudio ANTES de tocar
 +            let route = audioSession.currentRoute
++            let outputPort = route.outputs.first?.portType.rawValue ?? "unknown"
++            let outputName = route.outputs.first?.portName ?? "unknown"
 +            print("[CallKit-Swift] 🔈 Audio route outputs: \(route.outputs)")
 +            for output in route.outputs {
 +                print("[CallKit-Swift] 🔈 Output: \(output.portName) (\(output.portType.rawValue))")
 +            }
++            notifyListeners("debug", data: [
++                "stage": "tts_audio_session_ready",
++                "outputPort": outputPort,
++                "outputName": outputName
++            ])
 +            
 +            // Create and play audio
 +            audioPlayer = try AVAudioPlayer(data: audioData)
@@ -336,7 +365,12 @@ index 1234567..abcdefg 100644
 +            audioPlayer?.delegate = self
 +            
 +            // 2️⃣ Log duração do áudio
-+            print("[CallKit-Swift] ⏱️ TTS audio duration: \(audioPlayer?.duration ?? -1) seconds")
++            let duration = audioPlayer?.duration ?? -1
++            print("[CallKit-Swift] ⏱️ TTS audio duration: \(duration) seconds")
++            notifyListeners("debug", data: [
++                "stage": "tts_player_created",
++                "duration": duration
++            ])
 +            
 +            audioPlayer?.volume = 1.0  // Maximum volume
 +            audioPlayer?.prepareToPlay()
@@ -349,13 +383,25 @@ index 1234567..abcdefg 100644
 +            print("[CallKit-Swift] ====== TTS PLAYBACK SUMMARY ======")
 +            print("[CallKit-Swift] playTTSAudio CALLED: ✅")
 +            print("[CallKit-Swift] play() returned: \(didPlay)")
-+            print("[CallKit-Swift] audio route: \(route.outputs.first?.portType.rawValue ?? "unknown")")
-+            print("[CallKit-Swift] duration: \(audioPlayer?.duration ?? -1)s")
++            print("[CallKit-Swift] audio route: \(outputPort)")
++            print("[CallKit-Swift] duration: \(duration)s")
 +            print("[CallKit-Swift] ===================================")
 +            
-+            call.resolve(["playing": didPlay, "duration": audioPlayer?.duration ?? 0])
++            notifyListeners("debug", data: [
++                "stage": "tts_play_result",
++                "didPlay": didPlay,
++                "duration": duration,
++                "volume": audioPlayer?.volume ?? -1,
++                "outputPort": outputPort
++            ])
++            
++            call.resolve(["playing": didPlay, "duration": duration])
 +        } catch {
 +            print("[CallKit-Swift] ❌ Audio playback error: \(error.localizedDescription)")
++            notifyListeners("debug", data: [
++                "stage": "tts_play_error",
++                "error": error.localizedDescription
++            ])
 +            call.resolve(["playing": false, "error": error.localizedDescription])
 +        }
 +    }
@@ -363,10 +409,18 @@ index 1234567..abcdefg 100644
 +    // 5️⃣ Audio player delegate - capture decode errors
 +    public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
 +        print("[CallKit-Swift] ❌ Audio decode error: \(error?.localizedDescription ?? "nil")")
++        notifyListeners("debug", data: [
++            "stage": "tts_decode_error",
++            "error": error?.localizedDescription ?? "nil"
++        ])
 +    }
 +    
 +    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
 +        print("[CallKit-Swift] ✅ Audio finished playing, success: \(flag)")
++        notifyListeners("debug", data: [
++            "stage": "tts_finished",
++            "success": flag
++        ])
 +    }
 +    
 +    // NEW: Stop TTS audio
