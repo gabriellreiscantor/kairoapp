@@ -112,12 +112,100 @@ const pushNotificationTitles: Record<string, string[]> = {
     '¡ES AHORA! 🔔',
     '¡PREPÁRATE! 🎯',
   ],
+  'fr': [
+    'NE SOYEZ PAS EN RETARD! ⏰',
+    "C'EST L'HEURE DE SE PRÉPARER! 🚀",
+    'RAPPEL IMPORTANT! 📢',
+    "N'OUBLIEZ PAS! 💡",
+    'ATTENTION! ⚠️',
+    "C'EST MAINTENANT! 🔔",
+    'PRÉPAREZ-VOUS! 🎯',
+  ],
+  'de': [
+    'NICHT ZU SPÄT KOMMEN! ⏰',
+    'ZEIT SICH VORZUBEREITEN! 🚀',
+    'WICHTIGE ERINNERUNG! 📢',
+    'NICHT VERGESSEN! 💡',
+    'ACHTUNG! ⚠️',
+    'JETZT GEHT ES LOS! 🔔',
+    'MACH DICH BEREIT! 🎯',
+  ],
+  'it': [
+    'NON FARE TARDI! ⏰',
+    'È ORA DI PREPARARSI! 🚀',
+    'PROMEMORIA IMPORTANTE! 📢',
+    'NON DIMENTICARE! 💡',
+    'ATTENZIONE! ⚠️',
+    'È ORA! 🔔',
+    'PREPARATI! 🎯',
+  ],
+  'ja': [
+    '遅刻しないで! ⏰',
+    '準備の時間です! 🚀',
+    '重要なリマインダー! 📢',
+    '忘れないで! 💡',
+    '注意! ⚠️',
+    '今です! 🔔',
+    '準備して! 🎯',
+  ],
+  'ko': [
+    '늦지 마세요! ⏰',
+    '준비할 시간이에요! 🚀',
+    '중요한 알림! 📢',
+    '잊지 마세요! 💡',
+    '주의! ⚠️',
+    '지금이에요! 🔔',
+    '준비하세요! 🎯',
+  ],
+  'zh': [
+    '别迟到! ⏰',
+    '是时候准备了! 🚀',
+    '重要提醒! 📢',
+    '别忘了! 💡',
+    '注意! ⚠️',
+    '现在开始! 🔔',
+    '准备好! 🎯',
+  ],
 };
 
 function getRandomPushTitle(language: string | null): string {
   const lang = language?.split('-')[0] || 'pt';
   const titles = pushNotificationTitles[lang] || pushNotificationTitles['pt-BR'];
   return titles[Math.floor(Math.random() * titles.length)];
+}
+
+// Multilingual push notification bodies for Me Notifique
+function normalizeLanguageCode(language: string | null): string {
+  if (!language) return 'pt-BR';
+  if (language.startsWith('en')) return 'en-US';
+  if (language.startsWith('es')) return 'es-ES';
+  if (language.startsWith('fr')) return 'fr-FR';
+  if (language.startsWith('de')) return 'de-DE';
+  if (language.startsWith('it')) return 'it-IT';
+  if (language.startsWith('ja')) return 'ja-JP';
+  if (language.startsWith('ko')) return 'ko-KR';
+  if (language.startsWith('zh')) return 'zh-CN';
+  if (language.startsWith('pt')) return 'pt-BR';
+  return 'pt-BR';
+}
+
+function getPushNotificationBody(language: string | null, emoji: string, title: string, time: string): string {
+  const lang = normalizeLanguageCode(language);
+  
+  const templates: Record<string, (e: string, t: string, tm: string) => string> = {
+    'pt-BR': (e, t, tm) => `Você tem ${e} ${t} às ${tm}`,
+    'en-US': (e, t, tm) => `You have ${e} ${t} at ${tm}`,
+    'es-ES': (e, t, tm) => `Tienes ${e} ${t} a las ${tm}`,
+    'fr-FR': (e, t, tm) => `Vous avez ${e} ${t} à ${tm}`,
+    'de-DE': (e, t, tm) => `Sie haben ${e} ${t} um ${tm}`,
+    'it-IT': (e, t, tm) => `Hai ${e} ${t} alle ${tm}`,
+    'ja-JP': (e, t, tm) => `${tm}に${e} ${t}があります`,
+    'ko-KR': (e, t, tm) => `${tm}에 ${e} ${t}이(가) 있습니다`,
+    'zh-CN': (e, t, tm) => `您在${tm}有${e} ${t}`,
+  };
+  
+  const builder = templates[lang] || templates['pt-BR'];
+  return builder(emoji, title, time);
 }
 
 Deno.serve(async (req) => {
@@ -622,10 +710,10 @@ Deno.serve(async (req) => {
           
           console.log(`[ATOMIC LOCK] Acquired push notification lock for event ${event.id}`);
           
-          // Fetch user profile
+          // Fetch user profile with language
           const { data: profile } = await supabase
             .from('profiles')
-            .select('fcm_token, push_enabled')
+            .select('fcm_token, push_enabled, language')
             .eq('id', event.user_id)
             .maybeSingle();
           
@@ -635,24 +723,18 @@ Deno.serve(async (req) => {
             continue;
           }
           
-          // Get user language
-          const { data: lastMessage } = await supabase
-            .from('chat_messages')
-            .select('metadata')
-            .eq('user_id', event.user_id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          
-          const userLanguage = (lastMessage?.metadata as any)?.language || 'pt-BR';
+          // ✅ Get user language from profile (not chat_messages)
+          const userLanguage = profile?.language || 'pt-BR';
+          console.log(`[Me Notifique] User ${event.user_id} language: ${userLanguage}`);
           
           // Format time
           const timeDisplay = event.event_time?.slice(0, 5) || '';
           const eventEmoji = event.emoji || '📅';
           
-          // Creative title + descriptive body
+          // Creative title + translated body
           const title = getRandomPushTitle(userLanguage);
-          const body = `Você tem que ${eventEmoji} ${event.title} às ${timeDisplay}`;
+          const body = getPushNotificationBody(userLanguage, eventEmoji, event.title, timeDisplay);
+          console.log(`[Me Notifique] Sending: "${title}" - "${body}"`);
           
           const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
             body: {
