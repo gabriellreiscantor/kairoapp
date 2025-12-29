@@ -1,5 +1,6 @@
 import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getColorClassName } from "@/lib/event-constants";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type Priority = "high" | "medium" | "low";
 export type EventStatus = "pending" | "confirmed" | "done";
@@ -47,6 +48,7 @@ const EventCard = ({
   isAllDay,
   onClick,
 }: EventCardProps) => {
+  const { t } = useLanguage();
   const config = priorityConfig[priority];
   const Icon = config.icon;
   const hasCustomColor = color && color !== 'primary';
@@ -80,7 +82,7 @@ const EventCard = ({
           {title}
         </h3>
         <p className="text-xs text-muted-foreground">
-          {isAllDay ? "Dia inteiro" : time}
+          {isAllDay ? t('event.allDay') : time}
         </p>
       </div>
 

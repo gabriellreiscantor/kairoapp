@@ -154,16 +154,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const TRANSCRIBE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`;
 const ANALYZE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`;
 
-// Onboarding messages
-const ONBOARDING_WELCOME = `Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso.
-
-Assim você não precisa guardar tudo na cabeça.
-
-Pode ser qualquer coisa — me conta o que você gostaria de lembrar.`;
-
-const ONBOARDING_FIRST_EVENT_SUCCESS = `Excelente! Você acabou de criar seu primeiro lembrete no Horah.
-
-A partir de agora, o Horah cuida disso pra você.`;
+// Onboarding messages are now loaded from translations in the component
 
 const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChange, onEventCreated, initialEditMessage, onClearInitialEditMessage }: ChatPageProps) => {
   const { user, session } = useAuth();
@@ -259,10 +250,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   }, [user]);
 
   const suggestions = isInOnboarding ? [
-    { emoji: "🦷", text: "Lembrar de escovar os dentes às 22h" },
-    { emoji: "💊", text: "Tomar remédio todo dia às 8h" },
-    { emoji: "📞", text: "Ligar para minha mãe domingo" },
-    { emoji: "🏃", text: "Academia amanhã às 7h" },
+    { emoji: "🦷", text: t('onboarding.suggestion1') },
+    { emoji: "💊", text: t('onboarding.suggestion2') },
+    { emoji: "📞", text: t('onboarding.suggestion3') },
+    { emoji: "🏃", text: t('onboarding.suggestion4') },
   ] : [
     { emoji: "🍖", text: t('chat.suggestion1') },
     { emoji: "🩺", text: t('chat.suggestion2') },
@@ -452,7 +443,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 ...m,
                 weeklyReportNotReady: undefined,
                 weeklyReportData,
-                content: '📊 Seu resumo semanal chegou!'
+                content: t('chat.weeklyReportArrived')
               };
             }
             return m;
@@ -463,7 +454,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             await supabase
               .from('chat_messages')
               .update({
-                content: '📊 Seu resumo semanal chegou!',
+                content: t('chat.weeklyReportArrived'),
                 metadata: {
                   weeklyReportData,
                   weeklyReportNotReady: undefined
@@ -657,7 +648,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           setMessages(prev => [...prev, {
             id: `error-${Date.now()}`,
             type: 'assistant',
-            content: '⚠️ Sua sessão expirou. Por favor, faça login novamente para continuar.',
+            content: t('error.sessionExpired'),
             createdAt: new Date()
           }]);
           return;
@@ -673,7 +664,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       setMessages(prev => [...prev, {
         id: `error-${Date.now()}`,
         type: 'assistant',
-        content: '⚠️ Erro ao verificar sua sessão. Por favor, tente novamente.',
+        content: t('error.sessionCheck'),
         createdAt: new Date()
       }]);
       return;
@@ -907,7 +898,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                       hasId: !!(failedEventAction.data?.id || failedEventAction.eventId),
                       success: failedEventAction.success
                     });
-                    toast.error(failedEventAction.error || 'Não foi possível criar o evento. Tente novamente.');
+                    toast.error(failedEventAction.error || t('error.couldNotCreateEvent'));
                   }
                   
                   const eventResumo = eventAction 
@@ -1022,13 +1013,13 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         call_alert_enabled: false,
                         emoji: '📅',
                         color: 'primary',
-                        is_all_day: eventResumo?.hora === 'Dia inteiro',
+                        is_all_day: eventResumo?.hora === t('event.allDay'),
                         saveFailed: true,
-                        saveFailedReason: 'ID não retornado pelo servidor - evento não foi salvo',
+                        saveFailedReason: t('error.idNotReturned'),
                         resumo_evento: eventResumo,
                         _createdAt: Date.now()
                       };
-                      toast.error('Erro ao salvar evento. Tente novamente.');
+                      toast.error(t('error.saveEvent'));
                     }
                   } else if (failedEventAction) {
                     // Explicitly failed event - show error card
@@ -1036,16 +1027,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     eventData = {
                       title: failedResumo?.titulo || 'Evento',
                       event_date: failedResumo?.data,
-                      event_time: failedResumo?.hora === 'Dia inteiro' ? undefined : failedResumo?.hora,
+                      event_time: failedResumo?.hora === t('event.allDay') ? undefined : failedResumo?.hora,
                       location: failedResumo?.local,
                       category: 'geral',
                       notification_enabled: false,
                       call_alert_enabled: false,
                       emoji: '📅',
                       color: 'primary',
-                      is_all_day: failedResumo?.hora === 'Dia inteiro',
+                      is_all_day: failedResumo?.hora === t('event.allDay'),
                       saveFailed: true,
-                      saveFailedReason: failedEventAction.error || 'Falha ao salvar evento',
+                      saveFailedReason: failedEventAction.error || t('error.failedToSave'),
                       resumo_evento: failedResumo,
                       _createdAt: Date.now()
                     };
@@ -1291,14 +1282,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               
               // Add success message after a delay (card already shown in the animation message)
               setTimeout(async () => {
+                const successMessageContent = t('onboarding.firstEventSuccessMessage');
                 const successMessage: Message = {
                   id: `success-${Date.now()}`,
                   type: 'assistant',
-                  content: ONBOARDING_FIRST_EVENT_SUCCESS,
+                  content: successMessageContent,
                   createdAt: new Date(),
                 };
                 setMessages(prev => [...prev, successMessage]);
-                await saveMessage('assistant', ONBOARDING_FIRST_EVENT_SUCCESS);
+                await saveMessage('assistant', successMessageContent);
                 
                 // After a short delay, show weekly planning suggestion
                 setTimeout(() => {
@@ -1633,11 +1625,12 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   // Get welcome message based on onboarding state
   const getWelcomeMessage = () => {
     if (isInOnboarding && messages.length === 0) {
-      return ONBOARDING_WELCOME;
+      return t('onboarding.welcomeMessage');
     }
-    // Regular greeting with name
-    const name = displayName ? `${displayName}! ` : '';
-    return `E aí ${name}O que vamos agendar hoje?`;
+    // Regular greeting with name - use translation with placeholder
+    const greeting = t('chat.whatToSchedule');
+    const name = displayName || '';
+    return greeting.replace('{name}', name);
   };
 
   return (
