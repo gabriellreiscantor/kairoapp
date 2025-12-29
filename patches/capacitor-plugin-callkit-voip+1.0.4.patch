@@ -539,16 +539,27 @@ index 1234567..abcdefg 100644
          let name = (payload.dictionaryPayload["name"] as? String) ?? "Evento"
          let duration = (payload.dictionaryPayload["duration"] as? String) ?? "0"
 +        
++        // Extract language for TTS (sent from check-upcoming-alerts)
++        let language = (payload.dictionaryPayload["language"] as? String) ?? "pt-BR"
++        let eventTime = (payload.dictionaryPayload["eventTime"] as? String) ?? duration
++        let eventEmoji = (payload.dictionaryPayload["eventEmoji"] as? String) ?? "calendario"
++        let eventLocation = (payload.dictionaryPayload["eventLocation"] as? String) ?? ""
++        
 +        print("[CallKit-Swift] id: \(id)")
 +        print("[CallKit-Swift] name: \(name)")
 +        print("[CallKit-Swift] media: \(media)")
 +        print("[CallKit-Swift] duration: \(duration)")
++        print("[CallKit-Swift] language: \(language)")
++        print("[CallKit-Swift] eventTime: \(eventTime)")
 +        
 +        // Notify JavaScript about the incoming push (for TTS pre-loading)
 +        notifyListeners("callStarted", data: [
 +            "eventId": id,
 +            "eventTitle": name,
-+            "eventTime": duration,
++            "eventTime": eventTime,
++            "eventEmoji": eventEmoji,
++            "eventLocation": eventLocation,
++            "language": language,
 +        ])
 +        
          self.incomingCall(id: id, media: media, name: name, duration: duration)
