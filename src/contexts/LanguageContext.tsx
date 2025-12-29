@@ -156,12 +156,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'smartTasks.time': 'Horário:',
     'smartTasks.updateLocation': 'Atualizar',
     'smartTasks.weeklyReport': 'Resumo Semanal',
-    'smartTasks.weeklyReportDesc': 'Análise semanal dos seus eventos',
+    'smartTasks.weeklyReportDesc': 'Relatório inteligente todo domingo',
     'smartTasks.locationCaptured': 'Localização capturada:',
     'smartTasks.locationUpdated': 'Localização atualizada:',
     'smartTasks.locationDenied': 'Permissão negada. Vá em Ajustes > Horah para permitir o acesso à localização.',
     'smartTasks.locationNeeded': 'Precisamos da sua localização para enviar a previsão do tempo.',
     'smartTasks.locationError': 'Erro ao capturar localização. Verifique as permissões.',
+    'smartTasks.privacyNote': 'Seus dados são processados de forma segura. A IA aprende apenas com suas interações dentro do app para melhorar sua experiência. O horário é baseado no fuso do seu dispositivo.',
     
     // Premium Features
     'premium.title': 'Recursos Premium',
@@ -194,6 +195,10 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'account.saving': 'Salvando...',
     'account.saved': 'Alterações salvas com sucesso',
     'account.saveError': 'Erro ao salvar alterações',
+    'account.tapToChangePhoto': 'Toque para alterar foto',
+    'account.namePlaceholder': 'Seu nome',
+    'account.verified': 'Verificado',
+    'account.pending': 'Pendente',
     
     // Help
     'help.title': 'Ajuda',
@@ -219,6 +224,16 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'help.faqCallMeAnswer': 'É uma chamada simulada que o Horah faz para você quando um evento importante está prestes a começar.',
     'help.faqCritical': 'Como funcionam os alertas críticos?',
     'help.faqCriticalAnswer': 'Alertas críticos ignoram o modo silencioso e "Não Perturbe" do seu dispositivo.',
+    'help.faqSync': 'Posso sincronizar com outros calendários?',
+    'help.faqSyncAnswer': 'Sim! Você pode conectar o Google Calendar, Apple Calendar e Outlook nas configurações de calendários.',
+    'help.faqCancelIos': 'Como cancelar minha assinatura no iOS?',
+    'help.faqCancelIosAnswer': 'Para cancelar sua assinatura no iPhone, vá em Ajustes > seu nome > Assinaturas > Horah e toque em "Cancelar Assinatura".',
+    'help.faqCancelAndroid': 'Como cancelar minha assinatura no Android?',
+    'help.faqCancelAndroidAnswer': 'No app Horah, vá em Configurações > Assinatura e toque no botão "Cancelar Assinatura".',
+    'help.faqPlans': 'Quais são os planos disponíveis?',
+    'help.faqPlansAnswer': 'Oferecemos três planos: Grátis (14 eventos/semana), Plus (50 eventos/semana) e Super (280 eventos/semana).',
+    'help.faqOffline': 'O Horah funciona offline?',
+    'help.faqOfflineAnswer': 'Você pode visualizar seus eventos salvos offline, mas a criação via chat requer conexão com a internet.',
     
     // Call Card
     'callCard.iCalled': 'Te liguei!',
@@ -458,12 +473,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'smartTasks.time': 'Time:',
     'smartTasks.updateLocation': 'Update',
     'smartTasks.weeklyReport': 'Weekly Summary',
-    'smartTasks.weeklyReportDesc': 'Weekly analysis of your events',
+    'smartTasks.weeklyReportDesc': 'Smart report every Sunday',
     'smartTasks.locationCaptured': 'Location captured:',
     'smartTasks.locationUpdated': 'Location updated:',
     'smartTasks.locationDenied': 'Permission denied. Go to Settings > Horah to allow location access.',
     'smartTasks.locationNeeded': 'We need your location to send the weather forecast.',
     'smartTasks.locationError': 'Error capturing location. Check permissions.',
+    'smartTasks.privacyNote': 'Your data is processed securely. The AI only learns from your interactions within the app to improve your experience. The time is based on your device timezone.',
     
     // Premium Features
     'premium.title': 'Premium Features',
@@ -496,6 +512,10 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'account.saving': 'Saving...',
     'account.saved': 'Changes saved successfully',
     'account.saveError': 'Error saving changes',
+    'account.tapToChangePhoto': 'Tap to change photo',
+    'account.namePlaceholder': 'Your name',
+    'account.verified': 'Verified',
+    'account.pending': 'Pending',
     
     // Help
     'help.title': 'Help',
@@ -521,6 +541,16 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'help.faqCallMeAnswer': 'It is a simulated call that Horah makes to you when an important event is about to start.',
     'help.faqCritical': 'How do critical alerts work?',
     'help.faqCriticalAnswer': 'Critical alerts ignore silent mode and "Do Not Disturb" on your device.',
+    'help.faqSync': 'Can I sync with other calendars?',
+    'help.faqSyncAnswer': 'Yes! You can connect Google Calendar, Apple Calendar and Outlook in the calendar settings.',
+    'help.faqCancelIos': 'How to cancel my subscription on iOS?',
+    'help.faqCancelIosAnswer': 'To cancel your subscription on iPhone, go to Settings > your name > Subscriptions > Horah and tap "Cancel Subscription".',
+    'help.faqCancelAndroid': 'How to cancel my subscription on Android?',
+    'help.faqCancelAndroidAnswer': 'In the Horah app, go to Settings > Subscription and tap the "Cancel Subscription" button.',
+    'help.faqPlans': 'What plans are available?',
+    'help.faqPlansAnswer': 'We offer three plans: Free (14 events/week), Plus (50 events/week) and Super (280 events/week).',
+    'help.faqOffline': 'Does Horah work offline?',
+    'help.faqOfflineAnswer': 'You can view your saved events offline, but creating via chat requires an internet connection.',
     
     // Call Card
     'callCard.iCalled': 'I called you!',
