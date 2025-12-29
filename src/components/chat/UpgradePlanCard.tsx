@@ -2,6 +2,7 @@ import React from "react";
 import { Sparkles, Calendar, ArrowRight, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface UpgradePlanCardProps {
   limitData: {
@@ -16,6 +17,7 @@ interface UpgradePlanCardProps {
 const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
   ({ limitData, onDismiss }, ref) => {
     const navigate = useNavigate();
+    const { t, language } = useLanguage();
 
     if (!limitData) {
       return null;
@@ -23,11 +25,22 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
 
     const { currentPlan, eventsUsed, eventsLimit, daysUntilReset } = limitData;
     
-    const planDisplayName = currentPlan === 'free' ? 'grátis' : currentPlan.toUpperCase();
+    const planDisplayName = currentPlan === 'free' 
+      ? (t('upgrade.freePlan') || 'Free plan')
+      : currentPlan.toUpperCase();
 
     const handleUpgrade = () => {
       navigate('/settings/my-plan');
     };
+
+    // Build events used text
+    const eventsUsedText = (t('upgrade.eventsUsed') || 'You used {used}/{limit} events this week')
+      .replace('{used}', String(eventsUsed))
+      .replace('{limit}', String(eventsLimit));
+
+    // Build resets in text
+    const resetsInText = (t('upgrade.resetsIn') || 'Resets in {days} days')
+      .replace('{days}', String(daysUntilReset));
 
     return (
       <div
@@ -40,7 +53,7 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="text-sm font-medium bg-gradient-to-r from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3] bg-clip-text text-transparent">
-            Limite atingido
+            {t('upgrade.limitReached') || "Limit Reached"}
           </span>
         </div>
 
@@ -49,14 +62,14 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-foreground">
-              Você usou <span className="font-semibold">{eventsUsed}/{eventsLimit}</span> eventos
+              {eventsUsedText}
             </span>
           </div>
           
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-3 h-3" />
             <span>
-              Plano {planDisplayName} • Reseta em {daysUntilReset} dia{daysUntilReset > 1 ? 's' : ''}
+              {planDisplayName} • {resetsInText}
             </span>
           </div>
         </div>
@@ -74,7 +87,7 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
           onClick={handleUpgrade}
           className="w-full bg-gradient-to-r from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3] text-white hover:opacity-90 transition-opacity"
         >
-          <span>Atualizar para Plus</span>
+          <span>{t('upgrade.upgradeToPlus') || "Upgrade to Plus"}</span>
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
 
@@ -84,13 +97,13 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
             onClick={onDismiss}
             className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors text-center py-2"
           >
-            Esperar o limite resetar
+            {t('upgrade.waitForReset') || "Wait for Limit Reset"}
           </button>
         )}
 
         {/* Info text */}
         <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-center">
-          Com o Plus você cria até 50 eventos por semana!
+          {t('upgrade.plusBenefit') || "With Plus you can create up to 50 events per week!"}
         </p>
       </div>
     );

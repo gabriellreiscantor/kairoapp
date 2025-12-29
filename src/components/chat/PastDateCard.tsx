@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, Calendar, Clock, MapPin } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PastDateCardProps {
   event: {
@@ -14,6 +14,8 @@ interface PastDateCardProps {
 
 const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
   ({ event }, ref) => {
+    const { t, getDateLocale } = useLanguage();
+
     if (!event || !event.titulo || !event.data) {
       return null;
     }
@@ -21,14 +23,14 @@ const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
     const formatDate = (dateStr: string): string => {
       try {
         const date = parseISO(dateStr);
-        return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+        return format(date, t('event.dateFormat') || "EEEE, MMMM d", { locale: getDateLocale() });
       } catch {
         return dateStr;
       }
     };
 
     const formatTime = (timeStr?: string): string => {
-      if (!timeStr) return "Dia inteiro";
+      if (!timeStr) return t('event.allDay') || "All day";
       return timeStr;
     };
 
@@ -43,7 +45,7 @@ const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
             <AlertTriangle className="w-4 h-4 text-sky-500" />
           </div>
           <span className="text-sm font-medium text-sky-500">
-            Data no passado
+            {t('event.pastDate') || "Past Date"}
           </span>
         </div>
 
@@ -73,7 +75,7 @@ const PastDateCard = React.forwardRef<HTMLDivElement, PastDateCardProps>(
 
         {/* Warning message */}
         <p className="text-xs text-sky-600 dark:text-sky-400 leading-relaxed">
-          Essa data e horário já passaram. Por favor, escolha uma data no futuro.
+          {t('event.pastDateMessage') || "This date and time have already passed. Please choose a future date."}
         </p>
       </div>
     );
