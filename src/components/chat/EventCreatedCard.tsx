@@ -3,12 +3,13 @@ import {
   Calendar, Bell, Phone, MapPin, CheckCircle, ChevronRight, Trash2, Clock, FileText, AlertCircle, RefreshCw
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { scheduleCallAlert, cancelCallAlert, getCallAlertTime } from "@/hooks/useCallAlertScheduler";
 import { getColorClassName } from "@/lib/event-constants";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 interface EventCreatedCardProps {
   event: {
     id?: string;
@@ -22,7 +23,7 @@ interface EventCreatedCardProps {
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
     call_alert_sent_at?: string;
-    call_alert_scheduled_at?: string; // Added for showing actual scheduled call time
+    call_alert_scheduled_at?: string;
     call_alert_attempts?: number;
     call_alert_answered?: boolean;
     call_alert_answered_at?: string;
@@ -31,18 +32,21 @@ interface EventCreatedCardProps {
     color?: string;
     is_all_day?: boolean;
     repeat?: string;
-    alerts?: Array<{ time?: string }>; // Alert configuration from DB
+    alerts?: Array<{ time?: string }>;
     _createdAt?: number;
-    saveFailed?: boolean; // If true, event was not saved to database
-    saveFailedReason?: string; // Reason for save failure
+    saveFailed?: boolean;
+    saveFailedReason?: string;
   };
   type?: 'created' | 'updated';
   onEdit?: (eventId: string) => void;
-  onRetry?: (event: EventCreatedCardProps['event']) => void; // Callback to retry saving
+  onRetry?: (event: EventCreatedCardProps['event']) => void;
 }
 
 const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>(
   ({ event, type = 'created', onEdit, onRetry }, ref) => {
+  
+  const { t, getDateLocale } = useLanguage();
+  const dateLocale = getDateLocale();
   
   // Calculate if event was just created (within 15 seconds)
   const isRecentlyCreated = event._createdAt ? (Date.now() - event._createdAt < 15000) : false;
@@ -58,7 +62,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const [isDeleted, setIsDeleted] = useState(false);
   const [isCheckingDeleted, setIsCheckingDeleted] = useState(false);
   
-  // Live event data from database - all fields, not just call_alert
+  // Live event data from database
   const [liveEventData, setLiveEventData] = useState<{
     id?: string;
     title: string;
@@ -71,7 +75,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     notification_enabled?: boolean;
     call_alert_enabled?: boolean;
     call_alert_sent_at?: string;
-    call_alert_scheduled_at?: string; // Added for showing actual scheduled call time
+    call_alert_scheduled_at?: string;
     call_alert_attempts?: number;
     call_alert_answered?: boolean;
     call_alert_answered_at?: string;
@@ -80,7 +84,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     color?: string;
     is_all_day?: boolean;
     repeat?: string;
-    alerts?: Array<{ time?: string }>; // Alert configuration from DB
+    alerts?: Array<{ time?: string }>;
   } | null>(null);
 
   // Sync callAlertEnabled when event prop changes OR live data changes
@@ -95,22 +99,18 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     setNotificationEnabled(enabled);
   }, [event?.notification_enabled, liveEventData?.notification_enabled]);
   
-  // Check if event is expired (already happened) - only for non-recurring events
-  // Uses state + interval to update in real-time when event expires
+  // Check if event is expired
   const [isExpired, setIsExpired] = useState(false);
   
   useEffect(() => {
-    // Use live data if available, fallback to event prop
     const currentEvent = liveEventData || event;
     
     const checkExpired = () => {
-      // Recurring events never expire in this sense
       if (currentEvent.repeat && currentEvent.repeat !== 'never') {
         setIsExpired(false);
         return;
       }
       
-      // Build the event datetime - parse explicitly to avoid timezone issues
       const [year, month, day] = currentEvent.event_date.split('-').map(Number);
       const eventDateTime = currentEvent.event_time 
         ? (() => {
@@ -122,12 +122,8 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       setIsExpired(eventDateTime < new Date());
     };
     
-    // Check immediately
     checkExpired();
-    
-    // Re-check every minute to update when event expires
     const interval = setInterval(checkExpired, 60000);
-    
     return () => clearInterval(interval);
   }, [event.event_date, event.event_time, event.repeat, liveEventData]);
   
@@ -135,7 +131,6 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   useEffect(() => {
     if (!event.id) return;
     
-    // Fetch latest event data (all fields)
     const fetchLiveData = async () => {
       const { data, error } = await supabase
         .from('events')
@@ -145,7 +140,6 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       
       if (error) {
         if (error.code === 'PGRST116') {
-          // Event doesn't exist
           setIsDeleted(true);
         }
         return;
@@ -183,7 +177,6 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     
     fetchLiveData();
     
-    // Subscribe to realtime updates for this event
     const channel = supabase
       .channel(`event-call-status-${event.id}`)
       .on(
@@ -240,7 +233,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     };
   }, [event.id]);
   
-  // Timer to hide edit button after 15 seconds (only if recently created)
+  // Timer to hide edit button after 15 seconds
   useEffect(() => {
     if (!isRecentlyCreated) return;
     
@@ -279,36 +272,34 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       const dateOnly = new Date(date);
       dateOnly.setHours(0, 0, 0, 0);
       
-      // Check if it's today
       if (dateOnly.getTime() === today.getTime()) {
-        // If we have a time, check if the event has already passed
         if (timeStr) {
           const [hours, minutes] = timeStr.split(':').map(Number);
           const eventDateTime = new Date(date);
           eventDateTime.setHours(hours, minutes, 0, 0);
           
           if (eventDateTime < now) {
-            return "Hoje (realizado)";
+            return t('event.todayCompleted');
           }
         }
-        return "Hoje";
+        return t('common.today');
       } else if (dateOnly.getTime() === tomorrow.getTime()) {
-        return "Amanhã";
+        return t('common.tomorrow');
       } else if (dateOnly.getTime() === yesterday.getTime()) {
-        return "Ontem";
+        return t('common.yesterday');
       }
       
-      const formattedDate = format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+      const formattedDate = format(date, t('event.dateFormat'), { locale: dateLocale });
       
-      // Check if it's a past date
       if (dateOnly < today) {
         const diffTime = today.getTime() - dateOnly.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays <= 7) {
-          return `${formattedDate} (há ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'})`;
+          const unit = diffDays === 1 ? t('event.day') : t('event.days');
+          return `${formattedDate} (${t('event.daysAgo').replace('{count}', String(diffDays)).replace('{unit}', unit)})`;
         } else {
-          return `${formattedDate} (passado)`;
+          return `${formattedDate} (${t('event.past')})`;
         }
       }
       
@@ -337,18 +328,16 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   };
 
   const handleToggleCallAlert = async (e: React.MouseEvent, checked: boolean) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     if (!event.id || isUpdating) return;
     
     setIsUpdating(true);
     setCallAlertEnabled(checked);
     
-    // Show tooltip when activating
     if (checked) {
       setShowCallAlertTooltip(true);
       setTimeout(() => setShowCallAlertTooltip(false), 3000);
       
-      // Schedule the call alert notification (local fallback)
       await scheduleCallAlert({
         id: event.id,
         title: event.title,
@@ -357,15 +346,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         location: event.location,
       });
     } else {
-      // Cancel the scheduled notification
       await cancelCallAlert(event.id);
     }
     
     try {
-      // Get current user for VoIP
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Calculate when the call should happen
       let callScheduledAt: Date | null = null;
       let shouldCallImmediately = false;
       
@@ -377,27 +363,22 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         const now = new Date();
         const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
         
-        // Calculate alert minutes using same logic as getBestCallAlertMinutes
-        let alertMinutes = 60; // default
-        if (diffMinutes <= 2) alertMinutes = 0; // Too close
+        let alertMinutes = 60;
+        if (diffMinutes <= 2) alertMinutes = 0;
         else if (diffMinutes <= 5) alertMinutes = 2;
         else if (diffMinutes <= 15) alertMinutes = 5;
         else if (diffMinutes <= 30) alertMinutes = 15;
         else if (diffMinutes <= 60) alertMinutes = 30;
         else if (diffMinutes <= 120) alertMinutes = 60;
         
-        // Calculate scheduled time
         callScheduledAt = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
         
-        // If scheduled time is within 3 minutes from now or already passed, call immediately
         const minutesUntilCall = Math.floor((callScheduledAt.getTime() - now.getTime()) / (1000 * 60));
         if (minutesUntilCall <= 3 && diffMinutes > 2) {
           shouldCallImmediately = true;
-          console.log('[EventCreatedCard] Event is close, will trigger VoIP immediately');
         }
       }
       
-      // Reset call_alert_sent_at and set scheduled time when enabling
       const updateData: { 
         call_alert_enabled: boolean; 
         call_alert_sent_at?: null;
@@ -420,7 +401,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       
       if (error) {
         console.error('Error updating call alert:', error);
-        setCallAlertEnabled(!checked); // Revert on error
+        setCallAlertEnabled(!checked);
         setShowCallAlertTooltip(false);
         if (checked) {
           await cancelCallAlert(event.id);
@@ -428,19 +409,14 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         return;
       }
       
-      // If event is close and user is authenticated, trigger VoIP immediately
       if (checked && shouldCallImmediately && user?.id) {
-        console.log('[EventCreatedCard] Triggering immediate VoIP call');
         try {
-          // Get device_id from localStorage (same as debug button in MainApp)
           const storedDeviceId = localStorage.getItem('device_id');
           
-          if (!storedDeviceId) {
-            console.warn('[EventCreatedCard] No device_id found in localStorage, cannot trigger VoIP');
-          } else {
-            const { error: voipError } = await supabase.functions.invoke('send-voip-push', {
+          if (storedDeviceId) {
+            await supabase.functions.invoke('send-voip-push', {
               body: {
-                device_id: storedDeviceId, // CRITICAL: device_id is required by send-voip-push
+                device_id: storedDeviceId,
                 user_id: user.id,
                 event_id: event.id,
                 event_title: event.title,
@@ -449,12 +425,6 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
                 event_emoji: event.emoji || '📅',
               },
             });
-            
-            if (voipError) {
-              console.error('[EventCreatedCard] VoIP error:', voipError);
-            } else {
-              console.log('[EventCreatedCard] VoIP call triggered successfully with device_id:', storedDeviceId.substring(0, 8) + '...');
-            }
           }
         } catch (voipErr) {
           console.error('[EventCreatedCard] Error triggering VoIP:', voipErr);
@@ -462,14 +432,13 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       }
     } catch (err) {
       console.error('Error updating call alert:', err);
-      setCallAlertEnabled(!checked); // Revert on error
+      setCallAlertEnabled(!checked);
       setShowCallAlertTooltip(false);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Handle toggle for notification (Me Notifique)
   const handleToggleNotification = async (e: React.MouseEvent, checked: boolean) => {
     e.stopPropagation();
     if (!event.id || isUpdatingNotification) return;
@@ -477,14 +446,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     setIsUpdatingNotification(true);
     setNotificationEnabled(checked);
     
-    // Show tooltip when activating
     if (checked) {
       setShowNotificationTooltip(true);
       setTimeout(() => setShowNotificationTooltip(false), 3000);
     }
     
     try {
-      // Calculate notification scheduled time using SAME logic as Me Ligue
       let notificationScheduledAt: Date | null = null;
       
       if (checked && event.event_time) {
@@ -495,8 +462,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         const now = new Date();
         const diffMinutes = Math.floor((eventDateTime.getTime() - now.getTime()) / (1000 * 60));
         
-        // Use same alert calculation as Me Ligue
-        let alertMinutes = 60; // default
+        let alertMinutes = 60;
         if (diffMinutes <= 2) alertMinutes = 0;
         else if (diffMinutes <= 5) alertMinutes = 2;
         else if (diffMinutes <= 15) alertMinutes = 5;
@@ -506,13 +472,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         
         notificationScheduledAt = new Date(eventDateTime.getTime() - alertMinutes * 60 * 1000);
         
-        // If scheduled time already passed, check if we can still notify
         if (notificationScheduledAt <= now) {
           if (diffMinutes > 2) {
-            // Notify 1 minute from now
             notificationScheduledAt = new Date(now.getTime() + 60 * 1000);
           } else {
-            // Too close, disable
             setNotificationEnabled(false);
             setIsUpdatingNotification(false);
             return;
@@ -530,7 +493,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       
       if (checked) {
         updateData.notification_scheduled_at = notificationScheduledAt?.toISOString() || null;
-        updateData.notification_sent_at = null; // Reset sent status
+        updateData.notification_sent_at = null;
       } else {
         updateData.notification_scheduled_at = null;
       }
@@ -555,34 +518,29 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
-  // Use live data if available, fallback to original event prop
   const displayEvent = liveEventData || event;
 
-  // Map alert time value to display label
   const getAlertLabel = (alertValue: string): string => {
     const labelMap: Record<string, string> = {
-      'exact': 'No momento exato',
-      '5min': '5 min antes',
-      '15min': '15 min antes',
-      '30min': '30 min antes',
-      '1hour': '1 hora antes',
-      '2hours': '2 horas antes',
-      '1day': '1 dia antes',
+      'exact': t('event.exactMoment'),
+      '5min': t('event.5minBefore'),
+      '15min': t('event.15minBefore'),
+      '30min': t('event.30minBefore'),
+      '1hour': t('event.oneHourBefore'),
+      '2hours': t('event.2hoursBefore'),
+      '1day': t('event.1dayBefore'),
     };
     return labelMap[alertValue] || alertValue;
   };
 
-  // Get call alert info - USE alerts JSONB as source of truth for the LABEL
   const getActualCallAlertInfo = () => {
-    // Get label from alerts JSONB (the source of truth)
-    let label = '1 hora antes'; // default
+    let label = t('event.oneHourBefore');
     let minutesBefore = 60;
     
     if (displayEvent.alerts && Array.isArray(displayEvent.alerts) && displayEvent.alerts.length > 0) {
       const alertValue = (displayEvent.alerts[0] as { time?: string })?.time;
       if (alertValue) {
         label = getAlertLabel(alertValue);
-        // Map to minutes for sorting/logic
         const minutesMap: Record<string, number> = {
           'exact': 0, '5min': 5, '15min': 15, '30min': 30,
           '1hour': 60, '2hours': 120, '1day': 1440,
@@ -591,14 +549,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       }
     }
     
-    // Get the actual scheduled time for display
     if (displayEvent.call_alert_scheduled_at) {
       const scheduledDate = parseISO(displayEvent.call_alert_scheduled_at);
       const callTime = format(scheduledDate, 'HH:mm');
       return { time: callTime, label, minutesBefore };
     }
     
-    // Fallback: calculate time if no scheduled time in DB
     const fallback = getCallAlertTime(displayEvent.event_date, displayEvent.event_time);
     if (fallback) {
       return { ...fallback, label, minutesBefore };
@@ -610,14 +566,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
   const callAlertInfo = getActualCallAlertInfo();
   const canEnableCallAlert = callAlertInfo !== null;
 
-  // É dia inteiro APENAS se: is_all_day é true OU não tem hora
-  // Ter hora sem duração = mostrar só o horário de início (não o intervalo)
   const isAllDay = displayEvent.is_all_day === true || !displayEvent.event_time;
   const hasDuration = displayEvent.duration_minutes && displayEvent.duration_minutes > 0;
   const eventEmoji = displayEvent.emoji || '📅';
   const eventColor = displayEvent.color || 'primary';
 
-  // Get color class for the dot
   const colorClass = getColorClassName(eventColor);
 
   const handleCardClick = () => {
@@ -631,7 +584,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const formatDateFailed = (dateStr: string) => {
       try {
         const date = parseISO(dateStr);
-        return format(date, "d 'de' MMM", { locale: ptBR });
+        return format(date, t('event.dateFormatShort'), { locale: dateLocale });
       } catch {
         return dateStr;
       }
@@ -645,15 +598,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
 
     return (
       <div ref={ref} className="w-full max-w-[320px]">
-        {/* Header text with error indicator */}
         <div className="flex items-center gap-2 mb-3">
           <AlertCircle className="w-4 h-4 text-destructive" />
-          <p className="text-sm text-destructive">Erro ao salvar evento</p>
+          <p className="text-sm text-destructive">{t('event.saveError')}</p>
         </div>
         
-        {/* Failed Event Card */}
         <div className="bg-kairo-surface-2/50 border border-destructive/40 rounded-2xl p-4 space-y-3">
-          {/* Header: Emoji + Title */}
           <div className="flex items-center gap-3">
             <span className="text-xl flex-shrink-0 opacity-60">{event.emoji || '📅'}</span>
             <span className="text-base font-semibold text-foreground/70 flex-1 truncate">
@@ -661,13 +611,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             </span>
           </div>
           
-          {/* Date */}
           <div className="text-sm text-muted-foreground/60 pl-9">
             {formatDateFailed(event.event_date)}
-            {event.event_time && ` às ${event.event_time.slice(0, 5)}`}
+            {event.event_time && ` ${t('event.at')} ${event.event_time.slice(0, 5)}`}
           </div>
           
-          {/* Location if exists */}
           {event.location && (
             <div className="flex items-center gap-2 pl-9 text-muted-foreground/60">
               <MapPin className="w-3 h-3" />
@@ -675,12 +623,10 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             </div>
           )}
           
-          {/* Error message */}
           <div className="text-xs text-destructive/70 pl-9 mt-2">
-            O evento não foi salvo. Sua sessão pode ter expirado.
+            {t('event.notSaved')}
           </div>
           
-          {/* Retry button */}
           {onRetry && (
             <Button
               variant="outline"
@@ -689,7 +635,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
               className="w-full mt-2 border-destructive/30 text-destructive hover:bg-destructive/10"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
+              {t('event.tryAgain')}
             </Button>
           )}
         </div>
@@ -702,7 +648,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     const formatDateDeleted = (dateStr: string) => {
       try {
         const date = parseISO(dateStr);
-        return format(date, "d 'de' MMM", { locale: ptBR });
+        return format(date, t('event.dateFormatShort'), { locale: dateLocale });
       } catch {
         return dateStr;
       }
@@ -710,15 +656,12 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
 
     return (
       <div ref={ref} className="w-full max-w-[320px]">
-        {/* Header text with deleted indicator */}
         <div className="flex items-center gap-2 mb-3">
           <Trash2 className="w-4 h-4 text-red-500/60" />
-          <p className="text-sm text-muted-foreground/60">Evento removido</p>
+          <p className="text-sm text-muted-foreground/60">{t('event.removed')}</p>
         </div>
         
-        {/* Deleted Event Card */}
         <div className="bg-kairo-surface-2/50 border border-red-500/20 rounded-2xl p-4 space-y-2 opacity-70">
-          {/* Header: Emoji + Title (strikethrough) */}
           <div className="flex items-center gap-3">
             <span className="text-xl flex-shrink-0 opacity-50">{event.emoji || '📅'}</span>
             <span className="text-base font-semibold text-foreground/60 line-through flex-1 truncate">
@@ -726,13 +669,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             </span>
           </div>
           
-          {/* Date */}
           <div className="text-sm text-muted-foreground/50 pl-9 line-through">
             {formatDateDeleted(event.event_date)}
-            {event.event_time && ` às ${event.event_time.slice(0, 5)}`}
+            {event.event_time && ` ${t('event.at')} ${event.event_time.slice(0, 5)}`}
           </div>
           
-          {/* Location if exists */}
           {event.location && (
             <div className="flex items-center gap-2 pl-9 text-muted-foreground/50">
               <MapPin className="w-3 h-3" />
@@ -751,13 +692,13 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         {isExpired ? (
           <>
             <Clock className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Evento Realizado</p>
+            <p className="text-sm text-muted-foreground">{t('event.completed')}</p>
           </>
         ) : (
           <>
             <CheckCircle className="w-4 h-4 text-emerald-500" />
             <p className="text-sm text-muted-foreground">
-              {type === 'updated' ? 'Evento Atualizado' : 'Evento Criado'}
+              {type === 'updated' ? t('event.updated') : t('event.created')}
             </p>
           </>
         )}
@@ -776,16 +717,9 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
       >
         {/* Header: Color dot + Emoji + Title + Arrow */}
         <div className="flex items-center gap-3">
-          {/* Color dot */}
           <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isExpired ? 'opacity-50' : ''} ${colorClass}`} />
-          
-          {/* Emoji */}
           <span className={`text-xl flex-shrink-0 ${isExpired ? 'opacity-60' : ''}`}>{eventEmoji}</span>
-          
-          {/* Title */}
           <span className={`text-base font-semibold flex-1 truncate ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{displayEvent.title}</span>
-          
-          {/* Arrow indicator */}
           {event.id && onEdit && (
             <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           )}
@@ -795,7 +729,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         <div className={`flex items-center justify-between text-sm pl-6 ${isExpired ? 'text-muted-foreground/60' : ''}`}>
           <span className={`capitalize ${isExpired ? 'text-foreground/60' : 'text-foreground'}`}>{formatDate(displayEvent.event_date, displayEvent.event_time)}</span>
         {isAllDay ? (
-            <span className="text-muted-foreground text-sm whitespace-nowrap">☀️ Dia inteiro</span>
+            <span className="text-muted-foreground text-sm whitespace-nowrap">☀️ {t('event.allDay')}</span>
           ) : hasDuration ? (
             <span className="text-muted-foreground font-medium">
               {formatTime(displayEvent.event_time)} - {calculateEndTime(displayEvent.event_time!, displayEvent.duration_minutes!)}
@@ -807,7 +741,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           )}
         </div>
         
-        {/* Me Ligue toggle - disabled for expired events or events too close */}
+        {/* Me Ligue toggle */}
         <div className="relative pl-6">
           <div 
             className="flex items-center justify-between py-1"
@@ -815,8 +749,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           >
             <div className="flex items-center gap-2">
               <Phone className={`w-4 h-4 ${isExpired || !canEnableCallAlert ? 'text-muted-foreground/50' : 'text-green-500'}`} />
-              <span className={`text-sm ${isExpired || !canEnableCallAlert ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Ligue</span>
-              {/* Show dynamic timing info */}
+              <span className={`text-sm ${isExpired || !canEnableCallAlert ? 'text-muted-foreground/60' : 'text-foreground'}`}>{t('event.callMe')}</span>
               {callAlertInfo && !isExpired && (
                 <span className="text-xs text-muted-foreground">
                   ({callAlertInfo.label})
@@ -824,7 +757,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
               )}
               {!canEnableCallAlert && !isExpired && (
                 <span className="text-xs text-amber-500">
-                  (muito próximo)
+                  ({t('event.tooClose')})
                 </span>
               )}
             </div>
@@ -836,29 +769,29 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
             />
           </div>
           
-          {/* Call status indicator - show when call was sent (using live data) */}
+          {/* Call status indicator */}
           {displayEvent.call_alert_sent_at && (
             <div className="mt-2 flex items-center gap-2 text-xs">
               {displayEvent.call_alert_answered ? (
                 <span className="inline-flex items-center gap-1 text-emerald-500">
-                  ✅ Atendida
+                  ✅ {t('event.answered')}
                   {displayEvent.call_alert_answered_at && (
                     <span className="text-muted-foreground ml-1">
-                      às {format(parseISO(displayEvent.call_alert_answered_at), 'HH:mm')}
+                      {t('event.at')} {format(parseISO(displayEvent.call_alert_answered_at), 'HH:mm')}
                     </span>
                   )}
                 </span>
               ) : displayEvent.call_alert_outcome === 'missed' ? (
                 <span className="inline-flex items-center gap-1 text-amber-500">
-                  📞 Ligamos {displayEvent.call_alert_attempts && displayEvent.call_alert_attempts > 1 ? `${displayEvent.call_alert_attempts}x` : ''} - não atendida
+                  📞 {t('event.weCalled')} {displayEvent.call_alert_attempts && displayEvent.call_alert_attempts > 1 ? `${displayEvent.call_alert_attempts}x` : ''} - {t('event.notAnswered')}
                 </span>
               ) : displayEvent.call_alert_outcome === 'sent' ? (
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  📞 Ligação enviada às {format(parseISO(displayEvent.call_alert_sent_at), 'HH:mm')}
+                  📞 {t('event.callSentAt')} {format(parseISO(displayEvent.call_alert_sent_at), 'HH:mm')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-muted-foreground/60">
-                  📞 Ligamos (sem dados de resultado)
+                  📞 {t('event.calledNoResult')}
                 </span>
               )}
             </div>
@@ -868,7 +801,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {showCallAlertTooltip && !isExpired && callAlertInfo && (
             <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
               <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
-                Te ligaremos às {callAlertInfo.time} ({callAlertInfo.label})
+                {t('event.willCallAt').replace('{time}', callAlertInfo.time)} ({callAlertInfo.label})
               </div>
             </div>
           )}
@@ -876,19 +809,19 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {/* Tooltip for expired events */}
           {isExpired && (
             <p className="text-xs text-muted-foreground/50 mt-1">
-              Não disponível para eventos passados
+              {t('event.notAvailableExpired')}
             </p>
           )}
           
           {/* Tooltip for events too close */}
           {!isExpired && !canEnableCallAlert && (
             <p className="text-xs text-amber-500/80 mt-1">
-              Evento muito próximo para ativar
+              {t('event.tooCloseToActivate')}
             </p>
           )}
         </div>
         
-        {/* Me Notifique toggle - for push notifications */}
+        {/* Me Notifique toggle */}
         <div className="relative pl-6">
           <div 
             className="flex items-center justify-between py-1"
@@ -896,8 +829,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           >
             <div className="flex items-center gap-2">
               <Bell className={`w-4 h-4 ${isExpired ? 'text-muted-foreground/50' : 'text-sky-500'}`} />
-              <span className={`text-sm ${isExpired ? 'text-muted-foreground/60' : 'text-foreground'}`}>Me Notifique</span>
-              {/* Show timing info - same as Me Ligue */}
+              <span className={`text-sm ${isExpired ? 'text-muted-foreground/60' : 'text-foreground'}`}>{t('event.notifyMe')}</span>
               {callAlertInfo && !isExpired && (
                 <span className="text-xs text-muted-foreground">
                   ({callAlertInfo.label})
@@ -916,13 +848,13 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           {showNotificationTooltip && !isExpired && callAlertInfo && (
             <div className="absolute right-0 top-full mt-2 z-10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
               <div className="bg-foreground text-background text-xs px-3 py-2 rounded-lg shadow-lg max-w-[220px]">
-                Te notificaremos às {callAlertInfo.time} ({callAlertInfo.label})
+                {t('event.willNotifyAt').replace('{time}', callAlertInfo.time)} ({callAlertInfo.label})
               </div>
             </div>
           )}
         </div>
         
-        {/* Notes/Description - with italic styling */}
+        {/* Notes/Description */}
         {displayEvent.description && (
           <div className="flex items-start gap-2 pl-6 mt-2">
             <FileText className="w-3 h-3 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
@@ -947,7 +879,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           onClick={() => onEdit(event.id!)}
           className="mt-2 text-sm text-muted-foreground hover:text-foreground transition-opacity animate-in fade-in-0 flex items-center gap-1"
         >
-          Editar detalhes
+          {t('event.editDetails')}
         </button>
       )}
     </div>
