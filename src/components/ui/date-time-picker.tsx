@@ -1,6 +1,5 @@
 import * as React from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DatePickerProps {
   date: Date;
@@ -19,9 +19,11 @@ interface DatePickerProps {
 
 export function DatePicker({ date, onDateChange, className }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const { t, getDateLocale } = useLanguage();
+  const dateLocale = getDateLocale();
 
   const formatDateDisplay = (date: Date) => {
-    return format(date, "d 'de' MMM. 'de' yyyy", { locale: ptBR });
+    return format(date, t('event.dateFormatShort'), { locale: dateLocale });
   };
 
   return (
@@ -47,7 +49,7 @@ export function DatePicker({ date, onDateChange, className }: DatePickerProps) {
             }
           }}
           initialFocus
-          locale={ptBR}
+          locale={dateLocale}
           className="p-3 pointer-events-auto"
         />
       </PopoverContent>
@@ -63,6 +65,7 @@ interface TimePickerProps {
 
 export function TimePicker({ time, onTimeChange, className }: TimePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const { t } = useLanguage();
   
   // Generate hours and minutes options
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
@@ -86,7 +89,7 @@ export function TimePicker({ time, onTimeChange, className }: TimePickerProps) {
         <div className="flex p-2 max-h-[200px]">
           {/* Hours */}
           <div className="flex flex-col overflow-y-auto pr-2 border-r border-border">
-            <span className="text-xs text-muted-foreground px-2 py-1 sticky top-0 bg-background">Hora</span>
+            <span className="text-xs text-muted-foreground px-2 py-1 sticky top-0 bg-background">{t('modal.hourLabel')}</span>
             {hours.map((hour) => (
               <button
                 key={hour}
@@ -104,7 +107,7 @@ export function TimePicker({ time, onTimeChange, className }: TimePickerProps) {
           </div>
           {/* Minutes */}
           <div className="flex flex-col overflow-y-auto pl-2">
-            <span className="text-xs text-muted-foreground px-2 py-1 sticky top-0 bg-background">Min</span>
+            <span className="text-xs text-muted-foreground px-2 py-1 sticky top-0 bg-background">{t('modal.minLabel')}</span>
             {minutes.map((minute) => (
               <button
                 key={minute}

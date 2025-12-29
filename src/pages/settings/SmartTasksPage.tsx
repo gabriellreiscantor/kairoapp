@@ -127,9 +127,9 @@ const SmartTasksPage = () => {
           if (!hasPermission) {
             // Permission denied - show appropriate message
             if (permissionStatus === 'denied') {
-              toast.error('Permissão negada. Vá em Ajustes > Horah para permitir o acesso à localização.');
+              toast.error(t('smartTasks.locationDenied'));
             } else {
-              toast.error('Precisamos da sua localização para enviar a previsão do tempo.');
+              toast.error(t('smartTasks.locationNeeded'));
             }
             setIsCapturingLocation(false);
             return;
@@ -183,14 +183,14 @@ const SmartTasksPage = () => {
             
             setUserCity(cityName);
             setWeatherForecast(true);
-            toast.success(`Localização capturada: ${cityName}`);
+            toast.success(`${t('smartTasks.locationCaptured')} ${cityName}`);
             await refreshProfile();
           } else {
-            toast.error(locationError || 'Não foi possível obter sua localização');
+            toast.error(locationError || t('smartTasks.locationUpdateError'));
           }
         } catch (error) {
           console.error('Error capturing location:', error);
-          toast.error('Erro ao capturar localização. Verifique as permissões.');
+          toast.error(t('smartTasks.locationError'));
         } finally {
           setIsCapturingLocation(false);
         }
@@ -213,7 +213,7 @@ const SmartTasksPage = () => {
       const hasPermission = await requestLocationPermission();
       
       if (!hasPermission) {
-        toast.error('Permissão de localização negada.');
+        toast.error(t('smartTasks.locationUpdateDenied'));
         return;
       }
       
@@ -261,14 +261,14 @@ const SmartTasksPage = () => {
         if (error) throw error;
         
         setUserCity(cityName);
-        toast.success(`Localização atualizada: ${cityName}`);
+        toast.success(`${t('smartTasks.locationUpdated')} ${cityName}`);
         await refreshProfile();
       } else {
-        toast.error('Não foi possível obter sua localização');
+        toast.error(t('smartTasks.locationUpdateError'));
       }
     } catch (error) {
       console.error('Error updating location:', error);
-      toast.error('Erro ao atualizar localização');
+      toast.error(t('smartTasks.locationUpdateFailed'));
     } finally {
       setIsCapturingLocation(false);
     }
