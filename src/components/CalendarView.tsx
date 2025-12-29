@@ -91,7 +91,7 @@ const CalendarView = ({ selectedDate, onDateSelect, currentMonth, events = {} }:
   };
 
   const formatEventTime = (event: CalendarEvent): string => {
-    if (event.isAllDay || !event.time) return "Dia inteiro";
+    if (event.isAllDay || !event.time) return t('calendar.allDay');
     try {
       const [hours, minutes] = event.time.split(":");
       return `${hours}:${minutes}`;

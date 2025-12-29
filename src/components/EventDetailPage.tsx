@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { format, isToday } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   Phone, 
   Bell, 
@@ -148,7 +148,7 @@ const SingleEventCard = ({
 
             {/* Duration badge */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground mb-3">
-              <span>{event.isAllDay ? 'Dia inteiro' : `${event.time}`}</span>
+              <span>{event.isAllDay ? t('event.allDay') : `${event.time}`}</span>
             </div>
 
             {/* Location */}
@@ -352,9 +352,12 @@ const EventDetailPage = ({
 
   if (!isOpen && !isClosing) return null;
 
+  const { t, getDateLocale } = useLanguage();
+  const dateLocale = getDateLocale();
+
   const getDateLabel = () => {
-    if (isToday(selectedDate)) return 'Hoje';
-    return format(selectedDate, "d 'de' MMM", { locale: ptBR });
+    if (isToday(selectedDate)) return t('common.today');
+    return format(selectedDate, t('event.dateFormatShort'), { locale: dateLocale });
   };
 
   const handleDeleteEvent = (eventId: string) => {

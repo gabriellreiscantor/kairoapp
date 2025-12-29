@@ -392,6 +392,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'Olá! Sou o Horah, seu assistente pessoal de agenda. 📅\n\nMe conte sobre um evento que você gostaria de agendar e eu cuido do resto!',
     'onboarding.firstEventSuccess': 'Perfeito! 🎉 Seu primeiro evento foi criado com sucesso.\n\nAgora você pode continuar me contando sobre seus compromissos, e eu vou organizando tudo pra você!',
+    'onboarding.welcomeMessage': 'Estou aqui para te ajudar a criar seu primeiro lembrete ou compromisso.\n\nAssim você não precisa guardar tudo na cabeça.\n\nPode ser qualquer coisa — me conta o que você gostaria de lembrar.',
+    'onboarding.firstEventSuccessMessage': 'Excelente! Você acabou de criar seu primeiro lembrete no Horah.\n\nA partir de agora, o Horah cuida disso pra você.',
+    'onboarding.suggestion1': 'Lembrar de escovar os dentes às 22h',
+    'onboarding.suggestion2': 'Tomar remédio todo dia às 8h',
+    'onboarding.suggestion3': 'Ligar para minha mãe domingo',
+    'onboarding.suggestion4': 'Academia amanhã às 7h',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'E aí {name}! O que vamos agendar hoje?',
+    'chat.weeklyReportArrived': '📊 Seu resumo semanal chegou!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ Sua sessão expirou. Por favor, faça login novamente para continuar.',
+    'error.sessionCheck': '⚠️ Erro ao verificar sua sessão. Por favor, tente novamente.',
+    'error.couldNotCreateEvent': 'Não foi possível criar o evento. Tente novamente.',
+    'error.saveEvent': 'Erro ao salvar evento. Tente novamente.',
+    'error.idNotReturned': 'ID não retornado pelo servidor - evento não foi salvo',
+    'error.failedToSave': 'Falha ao salvar evento',
   },
   'en-US': {
     // Navigation
@@ -757,6 +775,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'Hi! I\'m Horah, your personal calendar assistant. 📅\n\nTell me about an event you\'d like to schedule and I\'ll take care of the rest!',
     'onboarding.firstEventSuccess': 'Perfect! 🎉 Your first event was created successfully.\n\nNow you can keep telling me about your appointments, and I\'ll organize everything for you!',
+    'onboarding.welcomeMessage': 'I\'m here to help you create your first reminder or appointment.\n\nSo you don\'t have to keep everything in your head.\n\nIt can be anything — tell me what you\'d like to remember.',
+    'onboarding.firstEventSuccessMessage': 'Excellent! You just created your first reminder in Horah.\n\nFrom now on, Horah takes care of it for you.',
+    'onboarding.suggestion1': 'Remind me to brush my teeth at 10pm',
+    'onboarding.suggestion2': 'Take medicine every day at 8am',
+    'onboarding.suggestion3': 'Call my mom on Sunday',
+    'onboarding.suggestion4': 'Gym tomorrow at 7am',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'Hey {name}! What shall we schedule today?',
+    'chat.weeklyReportArrived': '📊 Your weekly report is here!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ Your session has expired. Please log in again to continue.',
+    'error.sessionCheck': '⚠️ Error checking your session. Please try again.',
+    'error.couldNotCreateEvent': 'Could not create event. Please try again.',
+    'error.saveEvent': 'Error saving event. Please try again.',
+    'error.idNotReturned': 'ID not returned from server - event was not saved',
+    'error.failedToSave': 'Failed to save event',
   },
   'es-ES': {
     // Navigation
@@ -923,6 +959,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': '¡Hola! Soy Horah, tu asistente personal de agenda. 📅\n\nCuéntame sobre un evento que te gustaría agendar y yo me encargo del resto!',
     'onboarding.firstEventSuccess': '¡Perfecto! 🎉 Tu primer evento fue creado con éxito.\n\nAhora puedes seguir contándome sobre tus compromisos, y yo organizaré todo para ti!',
+    'onboarding.welcomeMessage': 'Estoy aquí para ayudarte a crear tu primer recordatorio o compromiso.\n\nAsí no tienes que guardar todo en tu cabeza.\n\nPuede ser cualquier cosa — cuéntame qué te gustaría recordar.',
+    'onboarding.firstEventSuccessMessage': '¡Excelente! Acabas de crear tu primer recordatorio en Horah.\n\nA partir de ahora, Horah se encarga de eso por ti.',
+    'onboarding.suggestion1': 'Recordar cepillarme los dientes a las 22h',
+    'onboarding.suggestion2': 'Tomar medicamento todos los días a las 8h',
+    'onboarding.suggestion3': 'Llamar a mi mamá el domingo',
+    'onboarding.suggestion4': 'Gimnasio mañana a las 7h',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': '¡Hola {name}! ¿Qué vamos a agendar hoy?',
+    'chat.weeklyReportArrived': '📊 ¡Tu resumen semanal ha llegado!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ Tu sesión ha expirado. Por favor, inicia sesión de nuevo para continuar.',
+    'error.sessionCheck': '⚠️ Error al verificar tu sesión. Por favor, inténtalo de nuevo.',
+    'error.couldNotCreateEvent': 'No se pudo crear el evento. Inténtalo de nuevo.',
+    'error.saveEvent': 'Error al guardar el evento. Inténtalo de nuevo.',
+    'error.idNotReturned': 'ID no retornado por el servidor - el evento no fue guardado',
+    'error.failedToSave': 'Error al guardar el evento',
   },
   'fr-FR': {
     'nav.chat': 'Chat',
@@ -1071,6 +1125,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'Salut ! Je suis Horah, votre assistant personnel d\'agenda. 📅\n\nDites-moi quel événement vous aimeriez planifier et je m\'occupe du reste !',
     'onboarding.firstEventSuccess': 'Parfait ! 🎉 Votre premier événement a été créé avec succès.\n\nVous pouvez maintenant continuer à me parler de vos rendez-vous, et j\'organiserai tout pour vous !',
+    'onboarding.welcomeMessage': 'Je suis là pour vous aider à créer votre premier rappel ou rendez-vous.\n\nAinsi vous n\'avez pas à tout garder en tête.\n\nCela peut être n\'importe quoi — dites-moi ce que vous aimeriez vous rappeler.',
+    'onboarding.firstEventSuccessMessage': 'Excellent ! Vous venez de créer votre premier rappel dans Horah.\n\nÀ partir de maintenant, Horah s\'en occupe pour vous.',
+    'onboarding.suggestion1': 'Me rappeler de me brosser les dents à 22h',
+    'onboarding.suggestion2': 'Prendre mes médicaments tous les jours à 8h',
+    'onboarding.suggestion3': 'Appeler ma mère dimanche',
+    'onboarding.suggestion4': 'Gym demain à 7h',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'Salut {name} ! Qu\'allons-nous planifier aujourd\'hui ?',
+    'chat.weeklyReportArrived': '📊 Votre résumé hebdomadaire est arrivé !',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ Votre session a expiré. Veuillez vous reconnecter pour continuer.',
+    'error.sessionCheck': '⚠️ Erreur lors de la vérification de votre session. Veuillez réessayer.',
+    'error.couldNotCreateEvent': 'Impossible de créer l\'événement. Veuillez réessayer.',
+    'error.saveEvent': 'Erreur lors de l\'enregistrement de l\'événement. Veuillez réessayer.',
+    'error.idNotReturned': 'ID non retourné par le serveur - l\'événement n\'a pas été enregistré',
+    'error.failedToSave': 'Échec de l\'enregistrement de l\'événement',
   },
   'de-DE': {
     'nav.chat': 'Chat',
@@ -1219,6 +1291,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'Hallo! Ich bin Horah, dein persönlicher Kalenderassistent. 📅\n\nErzähl mir von einem Ereignis, das du planen möchtest, und ich kümmere mich um den Rest!',
     'onboarding.firstEventSuccess': 'Perfekt! 🎉 Dein erstes Ereignis wurde erfolgreich erstellt.\n\nJetzt kannst du mir weiter von deinen Terminen erzählen, und ich organisiere alles für dich!',
+    'onboarding.welcomeMessage': 'Ich bin hier, um dir bei der Erstellung deiner ersten Erinnerung oder deines ersten Termins zu helfen.\n\nSo musst du nicht alles im Kopf behalten.\n\nEs kann alles sein — erzähl mir, woran du dich erinnern möchtest.',
+    'onboarding.firstEventSuccessMessage': 'Ausgezeichnet! Du hast gerade deine erste Erinnerung in Horah erstellt.\n\nAb jetzt kümmert sich Horah darum für dich.',
+    'onboarding.suggestion1': 'Erinnerung: Zähne putzen um 22 Uhr',
+    'onboarding.suggestion2': 'Medikament täglich um 8 Uhr nehmen',
+    'onboarding.suggestion3': 'Mama am Sonntag anrufen',
+    'onboarding.suggestion4': 'Fitnessstudio morgen um 7 Uhr',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'Hey {name}! Was planen wir heute?',
+    'chat.weeklyReportArrived': '📊 Deine Wochenzusammenfassung ist da!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ Deine Sitzung ist abgelaufen. Bitte melde dich erneut an, um fortzufahren.',
+    'error.sessionCheck': '⚠️ Fehler beim Überprüfen deiner Sitzung. Bitte versuche es erneut.',
+    'error.couldNotCreateEvent': 'Ereignis konnte nicht erstellt werden. Bitte versuche es erneut.',
+    'error.saveEvent': 'Fehler beim Speichern des Ereignisses. Bitte versuche es erneut.',
+    'error.idNotReturned': 'ID nicht vom Server zurückgegeben - Ereignis wurde nicht gespeichert',
+    'error.failedToSave': 'Speichern des Ereignisses fehlgeschlagen',
   },
   'it-IT': {
     'nav.chat': 'Chat',
@@ -1367,6 +1457,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'Ciao! Sono Horah, il tuo assistente personale per l\'agenda. 📅\n\nRaccontami di un evento che vorresti programmare e io mi occuperò del resto!',
     'onboarding.firstEventSuccess': 'Perfetto! 🎉 Il tuo primo evento è stato creato con successo.\n\nOra puoi continuare a parlarmi dei tuoi impegni, e organizzerò tutto per te!',
+    'onboarding.welcomeMessage': 'Sono qui per aiutarti a creare il tuo primo promemoria o appuntamento.\n\nCosì non devi tenere tutto a mente.\n\nPuò essere qualsiasi cosa — dimmi cosa vorresti ricordare.',
+    'onboarding.firstEventSuccessMessage': 'Eccellente! Hai appena creato il tuo primo promemoria in Horah.\n\nD\'ora in poi, Horah se ne occupa per te.',
+    'onboarding.suggestion1': 'Ricordami di lavare i denti alle 22',
+    'onboarding.suggestion2': 'Prendere la medicina ogni giorno alle 8',
+    'onboarding.suggestion3': 'Chiamare mamma domenica',
+    'onboarding.suggestion4': 'Palestra domani alle 7',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'Ciao {name}! Cosa programmiamo oggi?',
+    'chat.weeklyReportArrived': '📊 Il tuo riepilogo settimanale è arrivato!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ La tua sessione è scaduta. Per favore accedi di nuovo per continuare.',
+    'error.sessionCheck': '⚠️ Errore durante la verifica della sessione. Per favore riprova.',
+    'error.couldNotCreateEvent': 'Impossibile creare l\'evento. Riprova.',
+    'error.saveEvent': 'Errore durante il salvataggio dell\'evento. Riprova.',
+    'error.idNotReturned': 'ID non restituito dal server - l\'evento non è stato salvato',
+    'error.failedToSave': 'Salvataggio dell\'evento fallito',
   },
   'ja-JP': {
     'nav.chat': 'チャット',
@@ -1515,6 +1623,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': 'こんにちは！Horahです、あなたの個人的なカレンダーアシスタントです。📅\n\n予定したいイベントについて教えてください、残りは私がやります！',
     'onboarding.firstEventSuccess': '完璧！🎉 最初のイベントが正常に作成されました。\n\nこれからも予定について教えてください、すべて整理します！',
+    'onboarding.welcomeMessage': '最初のリマインダーや予定を作成するお手伝いをします。\n\nすべてを頭に入れておく必要はありません。\n\n何でも大丈夫です — 覚えておきたいことを教えてください。',
+    'onboarding.firstEventSuccessMessage': '素晴らしい！Horahで最初のリマインダーを作成しました。\n\nこれからは、Horahがあなたの代わりにそれを管理します。',
+    'onboarding.suggestion1': '22時に歯を磨くことを思い出させて',
+    'onboarding.suggestion2': '毎日8時に薬を飲む',
+    'onboarding.suggestion3': '日曜日に母に電話する',
+    'onboarding.suggestion4': '明日7時にジム',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': 'やあ{name}！今日は何を予定する？',
+    'chat.weeklyReportArrived': '📊 週間レポートが届きました！',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ セッションが期限切れです。続行するには再度ログインしてください。',
+    'error.sessionCheck': '⚠️ セッションの確認中にエラーが発生しました。もう一度お試しください。',
+    'error.couldNotCreateEvent': 'イベントを作成できませんでした。もう一度お試しください。',
+    'error.saveEvent': 'イベントの保存中にエラーが発生しました。もう一度お試しください。',
+    'error.idNotReturned': 'サーバーからIDが返されませんでした - イベントは保存されませんでした',
+    'error.failedToSave': 'イベントの保存に失敗しました',
   },
   'ko-KR': {
     'nav.chat': '채팅',
@@ -1663,6 +1789,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': '안녕하세요! 저는 Horah, 당신의 개인 캘린더 어시스턴트입니다. 📅\n\n예약하고 싶은 이벤트에 대해 말해주세요, 나머지는 제가 처리할게요!',
     'onboarding.firstEventSuccess': '완벽해요! 🎉 첫 번째 이벤트가 성공적으로 생성되었습니다.\n\n이제 계속해서 약속에 대해 말해주세요, 모든 것을 정리해 드릴게요!',
+    'onboarding.welcomeMessage': '첫 번째 알림이나 약속을 만드는 것을 도와드리겠습니다.\n\n모든 것을 기억할 필요가 없습니다.\n\n무엇이든 괜찮아요 — 기억하고 싶은 것을 말해주세요.',
+    'onboarding.firstEventSuccessMessage': '훌륭해요! Horah에서 첫 번째 알림을 만들었습니다.\n\n이제부터 Horah가 대신 관리해 드릴게요.',
+    'onboarding.suggestion1': '밤 10시에 양치하기 알림',
+    'onboarding.suggestion2': '매일 오전 8시에 약 먹기',
+    'onboarding.suggestion3': '일요일에 엄마에게 전화하기',
+    'onboarding.suggestion4': '내일 오전 7시에 헬스장',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': '안녕 {name}! 오늘은 뭘 예약할까?',
+    'chat.weeklyReportArrived': '📊 주간 리포트가 도착했어요!',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ 세션이 만료되었습니다. 계속하려면 다시 로그인해주세요.',
+    'error.sessionCheck': '⚠️ 세션 확인 중 오류가 발생했습니다. 다시 시도해주세요.',
+    'error.couldNotCreateEvent': '이벤트를 만들 수 없습니다. 다시 시도해주세요.',
+    'error.saveEvent': '이벤트 저장 중 오류가 발생했습니다. 다시 시도해주세요.',
+    'error.idNotReturned': '서버에서 ID가 반환되지 않았습니다 - 이벤트가 저장되지 않았습니다',
+    'error.failedToSave': '이벤트 저장 실패',
   },
   'zh-CN': {
     'nav.chat': '聊天',
@@ -1811,6 +1955,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     // Onboarding
     'onboarding.welcome': '你好！我是Horah，你的个人日历助手。📅\n\n告诉我你想安排的活动，剩下的交给我！',
     'onboarding.firstEventSuccess': '太棒了！🎉 你的第一个活动已成功创建。\n\n现在你可以继续告诉我你的约会，我会为你安排好一切！',
+    'onboarding.welcomeMessage': '我在这里帮助你创建第一个提醒或约会。\n\n这样你就不必把所有事情都记在脑子里。\n\n可以是任何事情 — 告诉我你想记住什么。',
+    'onboarding.firstEventSuccessMessage': '太棒了！你刚刚在Horah中创建了第一个提醒。\n\n从现在起，Horah会为你处理这些。',
+    'onboarding.suggestion1': '提醒我晚上10点刷牙',
+    'onboarding.suggestion2': '每天早上8点吃药',
+    'onboarding.suggestion3': '周日给妈妈打电话',
+    'onboarding.suggestion4': '明天早上7点健身房',
+    
+    // Chat additional keys
+    'chat.whatToSchedule': '嗨{name}！今天我们安排什么？',
+    'chat.weeklyReportArrived': '📊 你的周报来了！',
+    
+    // Error messages
+    'error.sessionExpired': '⚠️ 你的会话已过期。请重新登录以继续。',
+    'error.sessionCheck': '⚠️ 检查会话时出错。请重试。',
+    'error.couldNotCreateEvent': '无法创建活动。请重试。',
+    'error.saveEvent': '保存活动时出错。请重试。',
+    'error.idNotReturned': '服务器未返回ID - 活动未保存',
+    'error.failedToSave': '保存活动失败',
   },
 };
 
