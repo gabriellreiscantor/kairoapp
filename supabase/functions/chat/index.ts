@@ -1487,6 +1487,35 @@ function getTimezoneOffset(timezone: string): number {
   }
 }
 
+// Normalize time format from any format to HH:MM
+// Handles ISO format ("2025-12-28T21:29:00" -> "21:29") and validates HH:MM format
+function normalizeTimeFormat(timeStr: string | null | undefined): string | null {
+  if (!timeStr) return null;
+  
+  // If contains 'T', it's ISO format - extract just the time
+  if (timeStr.includes('T')) {
+    const match = timeStr.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      const normalized = `${match[1]}:${match[2]}`;
+      console.log(`[normalizeTimeFormat] Converted ISO "${timeStr}" to "${normalized}"`);
+      return normalized;
+    }
+    console.warn(`[normalizeTimeFormat] Failed to extract time from ISO format: "${timeStr}"`);
+    return null;
+  }
+  
+  // If already in HH:MM or HH:MM:SS format, extract HH:MM
+  const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
+  if (timeMatch) {
+    const hours = timeMatch[1].padStart(2, '0');
+    const minutes = timeMatch[2];
+    return `${hours}:${minutes}`;
+  }
+  
+  console.warn(`[normalizeTimeFormat] Unexpected format: "${timeStr}"`);
+  return null;
+}
+
 // Check if date/time is in the past considering user's timezone
 function isDateInPast(dateStr: string, timeStr?: string, timezone?: string): boolean {
   const tz = timezone || 'America/Sao_Paulo';
@@ -1711,19 +1740,24 @@ async function executeAction(
           return { success: false, error: 'Título é obrigatório' };
         }
 
+        // CRITICAL: Normalize time format FIRST
+        // AI sometimes sends ISO format like "2025-12-28T21:29:00" instead of "21:29"
+        const normalizedTime = normalizeTimeFormat(action.hora);
+        console.log(`[criar_evento] Original hora: "${action.hora}" → Normalized: "${normalizedTime}"`);
+        
         // Determine the correct date - DON'T trust AI's date decision
         // Calculate programmatically based on current time
         const userTz = timezone || 'America/Sao_Paulo';
-        const correctedDate = determineDateForTime(action.hora, action.data, userTz);
+        const correctedDate = determineDateForTime(normalizedTime, action.data, userTz);
         console.log(`[criar_evento] AI date: ${action.data} → Corrected date: ${correctedDate}`);
         
         // Use corrected date for validation and insertion
         const eventDate = correctedDate;
 
-        // Check if date is in the past
-        if (isDateInPast(eventDate, action.hora, timezone)) {
+        // Check if date is in the past (use normalized time!)
+        if (isDateInPast(eventDate, normalizedTime || undefined, timezone)) {
           console.log('Event date is in the past - blocking creation');
-          return { 
+          return {
             success: false, 
             pastDate: true,
             error: 'Data/hora no passado',
@@ -1774,16 +1808,16 @@ async function executeAction(
 
         // É dia inteiro APENAS se não tem hora definida
         // Ter hora sem duração NÃO é dia inteiro - é evento com horário sem duração explícita
-        const isAllDay = !action.hora;
+        const isAllDay = !normalizedTime;
         
-        // Calculate intelligent alert time based on time until event
-        const bestAlertTime = getBestAlertTimeForEvent(eventDate, action.hora, timezone);
+        // Calculate intelligent alert time based on time until event (use normalized time!)
+        const bestAlertTime = getBestAlertTimeForEvent(eventDate, normalizedTime, timezone);
         
         // Calculate call_alert_scheduled_at and notification_scheduled_at NOW during creation
         // This eliminates race conditions with the cron job that was causing missed calls
         const userTzForCalc = timezone || 'America/Sao_Paulo';
-        const callAlertScheduledAt = calculateCallAlertScheduledAt(eventDate, action.hora, bestAlertTime, userTzForCalc);
-        const notificationScheduledAt = calculateCallAlertScheduledAt(eventDate, action.hora, bestAlertTime, userTzForCalc);
+        const callAlertScheduledAt = calculateCallAlertScheduledAt(eventDate, normalizedTime, bestAlertTime, userTzForCalc);
+        const notificationScheduledAt = calculateCallAlertScheduledAt(eventDate, normalizedTime, bestAlertTime, userTzForCalc);
         
         console.log('[criar_evento] Attempting to insert event for user:', userId);
         console.log('[criar_evento] Calculated call_alert_scheduled_at:', callAlertScheduledAt);
@@ -1796,7 +1830,7 @@ async function executeAction(
             title: action.titulo,
             description: action.descricao || null,
             event_date: eventDate, // Use corrected date, not AI's date
-            event_time: action.hora || null,
+            event_time: normalizedTime || null, // Use normalized time!
             location: action.local || null,
             duration_minutes: action.duracao_minutos || null, // null se não explícito
             is_all_day: isAllDay,
@@ -2554,7 +2588,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
             properties: {
               titulo: { type: "string", description: "Nome da atividade exatamente como usuario falou" },
               data: { type: "string", description: `Data YYYY-MM-DD. Padrao: ${todayISO} (hoje)` },
-              hora: { type: ["string", "null"], description: "Hora HH:MM ou null para dia inteiro" },
+              hora: { type: ["string", "null"], description: "SOMENTE formato HH:MM (ex: '14:30', '09:00'). NUNCA use formato ISO com data. Para dia inteiro, use null." },
               local: { type: ["string", "null"], description: "Local se mencionado, senao null" },
               prioridade: { type: "string", enum: ["low", "medium", "high"], description: "low=lazer, medium=trabalho, high=saude/urgente" },
               categoria: { type: "string", description: "pessoal, trabalho, saude, lazer" },
