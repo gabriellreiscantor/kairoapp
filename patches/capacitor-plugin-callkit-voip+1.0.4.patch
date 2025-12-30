@@ -118,7 +118,7 @@ index 1234567..abcdefg 100644
 +        do {
 +            let audioSession = AVAudioSession.sharedInstance()
 +            // REMOVED .mixWithOthers - can cause conflicts with TTS
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            print("[CallKit-Swift] ✅ Audio session configured for silence anchor (speaker forced)")
@@ -276,12 +276,12 @@ index 1234567..abcdefg 100644
 +            let audioSession = AVAudioSession.sharedInstance()
 +            
 +            // Use playAndRecord to allow audio during call
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
 +            // FORCE speaker output - .defaultToSpeaker alone doesn't guarantee speaker
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            print("[CallKit-Swift] ✅ Audio session configured (speaker forced)")
++            print("[CallKit-Swift] ✅ Audio session configured (.spokenAudio + speaker forced)")
 +            call.resolve(["configured": true])
 +        } catch {
 +            print("[CallKit-Swift] ❌ Audio session error: \(error)")
@@ -349,11 +349,11 @@ index 1234567..abcdefg 100644
 +            let audioSession = AVAudioSession.sharedInstance()
 +            
 +            // 1️⃣ FIRST: Configure audio session for CallKit (MUST use .playAndRecord)
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            print("[CallKit-Swift] 🔊 Audio session: .playAndRecord + .voiceChat + speaker")
++            print("[CallKit-Swift] 🔊 Audio session: .playAndRecord + .spokenAudio + speaker")
 +            
 +            // Log initial route
 +            var route1 = audioSession.currentRoute
@@ -447,23 +447,45 @@ index 1234567..abcdefg 100644
 +            let didPlay = audioPlayer?.play() ?? false
 +            print("[CallKit-Swift] ▶️ TTS play() returned: \(didPlay)")
 +            
-+            // 6️⃣ DELAYED OVERRIDE: Force speaker AFTER playback starts
-+            // This catches any CallKit resets that happen during play() initialization
-+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-+                do {
-+                    let session = AVAudioSession.sharedInstance()
-+                    try session.overrideOutputAudioPort(.speaker)
-+                    let delayedRoute = session.currentRoute
-+                    let delayedPort = delayedRoute.outputs.first?.portType.rawValue ?? "unknown"
-+                    print("[CallKit-Swift] 🔊 DELAYED speaker override (300ms): \(delayedPort)")
-+                    
-+                    self?.notifyListeners("debug", data: [
-+                        "stage": "tts_delayed_override",
-+                        "outputPort": delayedPort,
-+                        "isSpeaker": delayedPort == "Speaker"
-+                    ])
-+                } catch {
-+                    print("[CallKit-Swift] ❌ Delayed override failed: \(error)")
++            // 6️⃣ POST-PLAY CHECK: Verify audio is playing correctly after 200ms
++            // This catches any CallKit resets and provides debug info
++            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
++                let session = AVAudioSession.sharedInstance()
++                let postRoute = session.currentRoute
++                let postPort = postRoute.outputs.first?.portType.rawValue ?? "unknown"
++                let postVolume = session.outputVolume
++                let isPlaying = self?.audioPlayer?.isPlaying ?? false
++                
++                print("[CallKit-Swift] 📊 POST-PLAY CHECK (200ms):")
++                print("[CallKit-Swift]   - isPlaying: \(isPlaying)")
++                print("[CallKit-Swift]   - outputPort: \(postPort)")
++                print("[CallKit-Swift]   - systemVolume: \(postVolume)")
++                
++                self?.notifyListeners("debug", data: [
++                    "stage": "tts_post_play_check",
++                    "isPlaying": isPlaying,
++                    "outputPort": postPort,
++                    "systemVolume": postVolume,
++                    "isSpeaker": postPort == "Speaker"
++                ])
++                
++                // If not on speaker, force it again
++                if postPort != "Speaker" {
++                    print("[CallKit-Swift] ⚠️ POST-PLAY: Not on speaker! Forcing again...")
++                    do {
++                        try session.overrideOutputAudioPort(.speaker)
++                        let forcedRoute = session.currentRoute
++                        let forcedPort = forcedRoute.outputs.first?.portType.rawValue ?? "unknown"
++                        print("[CallKit-Swift] 🔊 POST-PLAY forced: \(forcedPort)")
++                        
++                        self?.notifyListeners("debug", data: [
++                            "stage": "tts_post_play_force_speaker",
++                            "outputPort": forcedPort,
++                            "isSpeaker": forcedPort == "Speaker"
++                        ])
++                    } catch {
++                        print("[CallKit-Swift] ❌ POST-PLAY force speaker failed: \(error)")
++                    }
 +                }
 +            }
 +            
@@ -591,25 +613,39 @@ index 1234567..abcdefg 100644
 +    
 +    // Handle audio session activation - CRITICAL for speaker and keeping call alive
 +    public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-+        print("[CallKit-Swift] 🔊 Audio session activated by CallKit - FORCING SPEAKER")
++        print("[CallKit-Swift] 🔊 Audio session activated by CallKit (didActivate) - FORCING SPEAKER")
 +        
 +        // 🔊 FORCE SPEAKER IMMEDIATELY when CallKit activates audio session
 +        // This is the CORRECT moment to configure audio - CallKit has given us control
 +        do {
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
 +            let route = audioSession.currentRoute
 +            let port = route.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] ✅ Speaker forced in didActivate: \(port)")
++            print("[CallKit-Swift] ✅ Speaker forced in didActivate (.spokenAudio): \(port)")
++            
++            // ✅ NEW: Notify JavaScript that audio session is READY
++            // This is the gating signal for TTS playback
++            notifyListeners("callAudioReady", data: [
++                "outputPort": port,
++                "isSpeaker": port == "Speaker",
++                "timestamp": ISO8601DateFormatter().string(from: Date())
++            ])
 +            
 +            notifyListeners("debug", data: [
 +                "stage": "didActivate_speaker_forced",
 +                "outputPort": port,
-+                "isSpeaker": port == "Speaker"
++                "isSpeaker": port == "Speaker",
++                "mode": "spokenAudio"
 +            ])
 +        } catch {
 +            print("[CallKit-Swift] ❌ Failed to force speaker in didActivate: \(error)")
++            // Even on error, notify JS so it doesn't wait forever
++            notifyListeners("callAudioReady", data: [
++                "error": error.localizedDescription,
++                "timestamp": ISO8601DateFormatter().string(from: Date())
++            ])
 +        }
 +        
 +        // Start silence anchor here as backup

@@ -66,6 +66,8 @@ const preloadedTTSRef = useRef<string | null>(null);
   const safetyTimeoutRef = useRef<number | null>(null);
   const deviceIdRef = useRef<string | null>(null);
   const isAnswerFlowRunningRef = useRef<boolean>(false); // Protection against race condition: callAnswered before callStarted
+  const callAudioActiveRef = useRef<boolean>(false); // NEW: Track if CallKit audio session is active (didActivate)
+  const callAudioReadyPromiseRef = useRef<{ resolve: () => void } | null>(null); // NEW: Promise resolver for waiting on didActivate
 
   // Sync currentEvent to ref
   useEffect(() => {
@@ -86,6 +88,8 @@ const preloadedTTSRef = useRef<string | null>(null);
     preloadingTTSRef.current = null;
     lastTTSLanguageRef.current = null;
     isAnswerFlowRunningRef.current = false;
+    callAudioActiveRef.current = false; // NEW: Reset audio active flag
+    callAudioReadyPromiseRef.current = null; // NEW: Clear any pending promise
     
     if (audioRef.current) {
       try {
@@ -617,9 +621,58 @@ const preloadedTTSRef = useRef<string | null>(null);
                 }
               }
               
-              // Step 4: Delay to ensure audio session is ready (700ms is optimal for CallKit)
-              console.log('[CallKit] Step 4: Waiting 700ms for audio session...');
-              await new Promise(resolve => setTimeout(resolve, 700));
+              // Step 4: Wait for CallKit audio session (didActivate) instead of fixed delay
+              console.log('[CallKit] Step 4: Waiting for audio session (didActivate)...');
+              
+              // Wait for audio ready with 3s timeout
+              const audioReady = await (async () => {
+                // If already active, return immediately
+                if (callAudioActiveRef.current) {
+                  console.log('[CallKit] Audio already active, proceeding immediately');
+                  return true;
+                }
+                
+                console.log('[CallKit] Waiting for callAudioReady (timeout: 3000ms)...');
+                
+                return new Promise<boolean>((resolve) => {
+                  const timeout = setTimeout(() => {
+                    console.log('[CallKit] ⚠️ Audio ready timeout - proceeding anyway');
+                    remoteLog.warn('voip', 'audio_ready_timeout', { timeoutMs: 3000 });
+                    callAudioReadyPromiseRef.current = null;
+                    resolve(false);
+                  }, 3000);
+                  
+                  callAudioReadyPromiseRef.current = {
+                    resolve: () => {
+                      clearTimeout(timeout);
+                      console.log('[CallKit] ✅ Audio ready received!');
+                      resolve(true);
+                    }
+                  };
+                });
+              })();
+              
+              remoteLog.info('voip', 'call_answered_audio_ready', {
+                audioReady,
+                callAudioActive: callAudioActiveRef.current,
+              });
+              
+              if (!audioReady) {
+                console.log('[CallKit] didActivate timeout, forcing audio config...');
+                remoteLog.warn('voip', 'did_activate_timeout_forcing', { waited: 3000 });
+                
+                // Fallback: try to configure audio manually
+                try {
+                  if ((CallKitVoip as any).configureAudioSession) {
+                    await (CallKitVoip as any).configureAudioSession();
+                  }
+                } catch (e) {
+                  console.log('[CallKit] Manual audio config failed:', e);
+                }
+                
+                // Wait a bit for manual config to take effect
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
               
               // Step 5: GUARANTEE TTS audio before playing
               console.log('[CallKit] Step 5: Ensuring TTS audio is available...');
@@ -852,6 +905,7 @@ const preloadedTTSRef = useRef<string | null>(null);
           
           const wasAnswered = isCallingTTSRef.current;
           isCallingTTSRef.current = false;
+          callAudioActiveRef.current = false; // NEW: Reset audio active flag
           
           if (callKitPluginRef.current?.stopTTSAudio) {
             try {
@@ -888,6 +942,30 @@ const preloadedTTSRef = useRef<string | null>(null);
           }
           
           forceCleanupAllState();
+        });
+        
+        // NEW: Listen for audio session activation from CallKit (didActivate)
+        console.log('[CallKit] Setting up callAudioReady listener...');
+        (CallKitVoip as any).addListener('callAudioReady', (data: any) => {
+          const receivedAt = new Date().toISOString();
+          console.log('[CallKit] 🔊 CALL AUDIO READY (didActivate):', data);
+          
+          remoteLog.info('voip', 'call_audio_ready_received', {
+            receivedAt,
+            outputPort: data?.outputPort,
+            isSpeaker: data?.isSpeaker,
+            hasError: !!data?.error,
+          });
+          
+          // Mark audio as active
+          callAudioActiveRef.current = true;
+          
+          // Resolve any waiting promise
+          if (callAudioReadyPromiseRef.current) {
+            console.log('[CallKit] ✅ Resolving callAudioReady promise');
+            callAudioReadyPromiseRef.current.resolve();
+            callAudioReadyPromiseRef.current = null;
+          }
         });
         
         console.log('[CallKit] ====== CALLKIT INIT COMPLETE ======');
@@ -944,6 +1022,8 @@ const preloadedTTSRef = useRef<string | null>(null);
       currentEventRef.current = null;
       isCallingTTSRef.current = false;
       isAnswerFlowRunningRef.current = false;
+      callAudioActiveRef.current = false; // NEW: Reset audio active flag
+      callAudioReadyPromiseRef.current = null; // NEW: Clear any pending promise
       
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current);
