@@ -2,17 +2,19 @@ diff --git a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPl
 index 1234567..abcdefg 100644
 --- a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.m
 +++ b/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.m
-@@ -1,6 +1,10 @@
+@@ -1,6 +1,12 @@
  #import <Foundation/Foundation.h>
  #import <Capacitor/Capacitor.h>
  
-+// MODIFIED BY HORAH: Added new methods for TTS playback during native call screen
-+// - endCallFromJS: End call from JavaScript after TTS finishes
-+// - configureAudioSession: Configure audio for TTS during call
-+// - playTTSAudio: Play TTS audio during call
++// MODIFIED BY HORAH: TTS playback OUTSIDE CallKit context
++// - playTTSAsMedia: Play TTS as normal app media (not during call)
++// - endCallFromJS: End call from JavaScript
++// - configureAudioSession: Configure audio for TTS (legacy)
++// - playTTSAudio: Play TTS during call (legacy, kept for compatibility)
 +// - stopTTSAudio: Stop TTS audio
  CAP_PLUGIN(CallKitVoipPlugin, "CallKitVoip",
      CAP_PLUGIN_METHOD(register, CAPPluginReturnPromise);
++    CAP_PLUGIN_METHOD(playTTSAsMedia, CAPPluginReturnPromise);
 +    CAP_PLUGIN_METHOD(endCallFromJS, CAPPluginReturnPromise);
 +    CAP_PLUGIN_METHOD(configureAudioSession, CAPPluginReturnPromise);
 +    CAP_PLUGIN_METHOD(playTTSAudio, CAPPluginReturnPromise);
@@ -22,32 +24,29 @@ diff --git a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPl
 index 1234567..abcdefg 100644
 --- a/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.swift
 +++ b/node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.swift
-@@ -1,200 +1,400 @@
+@@ -1,200 +1,350 @@
  import Foundation
  import Capacitor
  import UIKit
  import CallKit
  import PushKit
 +import AVFoundation
-+import MediaPlayer
- 
+
  /**
   *  CallKit Voip Plugin provides native PushKit functionality with apple CallKit to capacitor
-+ *  MODIFIED BY HORAH: TTS plays on native call screen, call ends only after TTS finishes
-+ *  v2: Added SILENCE AUDIO ANCHOR to keep call active while TTS loads
++ *  MODIFIED BY HORAH v3: TTS plays OUTSIDE CallKit context as app media
++ *  CallKit = UX only (native call screen)
++ *  TTS = App media playback (AVAudioSession.Category.playback)
   */
 @objc(CallKitVoipPlugin)
  public class CallKitVoipPlugin: CAPPlugin, AVAudioPlayerDelegate {
- 
+
      private var provider: CXProvider?
      private let voipRegistry = PKPushRegistry(queue: nil)
      private var connectionIdRegistry: [UUID: CallConfig] = [:]
-+    private var activeCallUUID: UUID?  // Track the active call
-+    private var audioPlayer: AVAudioPlayer?  // For TTS playback
-+    private var silencePlayer: AVAudioPlayer?  // ANCHOR: Keeps call active
-+    private var silenceTimer: Timer?  // Timer to loop silence
-+    private let audioQueue = DispatchQueue(label: "com.horah.audio", qos: .userInitiated)
- 
++    private var activeCallUUID: UUID?
++    private var audioPlayer: AVAudioPlayer?  // For TTS playback (as media)
+
      @objc func register(_ call: CAPPluginCall) {
          voipRegistry.delegate = self
          voipRegistry.desiredPushTypes = [.voIP]
@@ -75,7 +74,7 @@ index 1234567..abcdefg 100644
                  "connectionId": uuid.uuidString,
              ])
 -            connectionIdRegistry[uuid] = nil
-+            // DON'T remove from registry here - we need it for endCallFromJS
++            // DON'T remove from registry here - we need it for cleanup
          }
      }
 
@@ -105,135 +104,8 @@ index 1234567..abcdefg 100644
          })
      }
 
-+    // ========== SILENCE AUDIO ANCHOR ==========
-+    // This keeps the call active while waiting for TTS to load
-+    // Without audio activity, iOS terminates the call after ~5-6 seconds
++    // ========== END CALL ==========
 +    
-+    private func startSilenceAnchor() {
-+        print("[CallKit-Swift] 🔇 Starting silence audio anchor...")
-+        
-+        // Stop any existing silence player
-+        stopSilenceAnchor()
-+        
-+        do {
-+            let audioSession = AVAudioSession.sharedInstance()
-+            // REMOVED .mixWithOthers - can cause conflicts with TTS
-+            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
-+            try audioSession.setActive(true)
-+            try audioSession.overrideOutputAudioPort(.speaker)
-+            print("[CallKit-Swift] ✅ Audio session configured for silence anchor (speaker forced)")
-+        } catch {
-+            print("[CallKit-Swift] ⚠️ Audio session error for silence: \(error)")
-+        }
-+        
-+        // Try to use silence.caf if it exists
-+        if let silenceURL = Bundle.main.url(forResource: "silence", withExtension: "caf") {
-+            do {
-+                silencePlayer = try AVAudioPlayer(contentsOf: silenceURL)
-+                silencePlayer?.numberOfLoops = -1 // Loop indefinitely
-+                silencePlayer?.volume = 0.01 // Nearly silent
-+                silencePlayer?.prepareToPlay()
-+                silencePlayer?.play()
-+                print("[CallKit-Swift] ✅ Silence anchor started (silence.caf)")
-+                return
-+            } catch {
-+                print("[CallKit-Swift] ⚠️ Could not play silence.caf: \(error)")
-+            }
-+        }
-+        
-+        // Fallback: Generate minimal audio data programmatically
-+        print("[CallKit-Swift] 📝 Generating synthetic silence audio...")
-+        generateAndPlaySyntheticSilence()
-+    }
-+    
-+    private func generateAndPlaySyntheticSilence() {
-+        // Create minimal PCM silence data (1 second of silence at 8000Hz mono)
-+        let sampleRate: Double = 8000
-+        let duration: Double = 1.0
-+        let numSamples = Int(sampleRate * duration)
-+        
-+        // Create silent audio buffer
-+        var silenceData = Data()
-+        let silentSample: Int16 = 0
-+        for _ in 0..<numSamples {
-+            var sample = silentSample
-+            silenceData.append(Data(bytes: &sample, count: 2))
-+        }
-+        
-+        // Create WAV header
-+        let wavData = createWAVData(pcmData: silenceData, sampleRate: Int(sampleRate))
-+        
-+        do {
-+            silencePlayer = try AVAudioPlayer(data: wavData)
-+            silencePlayer?.numberOfLoops = -1
-+            silencePlayer?.volume = 0.01
-+            silencePlayer?.prepareToPlay()
-+            silencePlayer?.play()
-+            print("[CallKit-Swift] ✅ Synthetic silence anchor started")
-+        } catch {
-+            print("[CallKit-Swift] ❌ Could not play synthetic silence: \(error)")
-+            // Last resort: use timer to periodically ping audio session
-+            startSilenceTimer()
-+        }
-+    }
-+    
-+    private func createWAVData(pcmData: Data, sampleRate: Int) -> Data {
-+        var wavData = Data()
-+        
-+        // RIFF header
-+        wavData.append("RIFF".data(using: .ascii)!)
-+        var fileSize = UInt32(36 + pcmData.count)
-+        wavData.append(Data(bytes: &fileSize, count: 4))
-+        wavData.append("WAVE".data(using: .ascii)!)
-+        
-+        // fmt chunk
-+        wavData.append("fmt ".data(using: .ascii)!)
-+        var fmtSize: UInt32 = 16
-+        wavData.append(Data(bytes: &fmtSize, count: 4))
-+        var audioFormat: UInt16 = 1 // PCM
-+        wavData.append(Data(bytes: &audioFormat, count: 2))
-+        var numChannels: UInt16 = 1 // Mono
-+        wavData.append(Data(bytes: &numChannels, count: 2))
-+        var sampleRateVal: UInt32 = UInt32(sampleRate)
-+        wavData.append(Data(bytes: &sampleRateVal, count: 4))
-+        var byteRate: UInt32 = UInt32(sampleRate * 2)
-+        wavData.append(Data(bytes: &byteRate, count: 4))
-+        var blockAlign: UInt16 = 2
-+        wavData.append(Data(bytes: &blockAlign, count: 2))
-+        var bitsPerSample: UInt16 = 16
-+        wavData.append(Data(bytes: &bitsPerSample, count: 2))
-+        
-+        // data chunk
-+        wavData.append("data".data(using: .ascii)!)
-+        var dataSize = UInt32(pcmData.count)
-+        wavData.append(Data(bytes: &dataSize, count: 4))
-+        wavData.append(pcmData)
-+        
-+        return wavData
-+    }
-+    
-+    private func startSilenceTimer() {
-+        print("[CallKit-Swift] ⏱️ Starting silence timer fallback...")
-+        silenceTimer?.invalidate()
-+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-+            // Keep audio session active
-+            do {
-+                try AVAudioSession.sharedInstance().setActive(true)
-+            } catch {}
-+        }
-+    }
-+    
-+    private func stopSilenceAnchor() {
-+        print("[CallKit-Swift] 🔇 Stopping silence anchor...")
-+        silencePlayer?.stop()
-+        silencePlayer = nil
-+        silenceTimer?.invalidate()
-+        silenceTimer = nil
-+    }
-+    
-+    // ========== END SILENCE AUDIO ANCHOR ==========
-
-+    // REMOVED: Don't end call automatically
      public func endCall(uuid: UUID) {
          let controller = CXCallController()
          let transaction = CXTransaction(action: CXEndCallAction(call: uuid))
@@ -249,11 +121,9 @@ index 1234567..abcdefg 100644
 +        // Cleanup
 +        self.activeCallUUID = nil
 +        self.connectionIdRegistry[uuid] = nil
-+        self.stopAudio()
-+        self.stopSilenceAnchor()
 +    }
 +    
-+    // NEW: End call from JavaScript (after TTS finishes)
++    // NEW: End call from JavaScript
 +    @objc func endCallFromJS(_ call: CAPPluginCall) {
 +        print("[CallKit-Swift] 📱 endCallFromJS called from JavaScript")
 +        
@@ -268,260 +138,109 @@ index 1234567..abcdefg 100644
 +        call.resolve(["ended": true])
 +    }
 +    
-+    // NEW: Configure audio session for TTS during call
-+    @objc func configureAudioSession(_ call: CAPPluginCall) {
-+        print("[CallKit-Swift] 🔊 Configuring audio session for TTS")
-+        
-+        do {
-+            let audioSession = AVAudioSession.sharedInstance()
-+            
-+            // Use playAndRecord to allow audio during call
-+            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
-+            try audioSession.setActive(true)
-+            // FORCE speaker output - .defaultToSpeaker alone doesn't guarantee speaker
-+            try audioSession.overrideOutputAudioPort(.speaker)
-+            
-+            print("[CallKit-Swift] ✅ Audio session configured (.spokenAudio + speaker forced)")
-+            call.resolve(["configured": true])
-+        } catch {
-+            print("[CallKit-Swift] ❌ Audio session error: \(error)")
-+            call.resolve(["configured": false, "error": error.localizedDescription])
-+        }
-+    }
++    // ========== TTS AS MEDIA (OUTSIDE CALLKIT) ==========
++    // This is the NEW PRIMARY method for TTS playback
++    // Uses AVAudioSession.Category.playback (media, not call)
 +    
-+    // NEW: Play TTS audio during call
-+    @objc func playTTSAudio(_ call: CAPPluginCall) {
-+        // 1️⃣ Log CHAMADA do método
-+        print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
++    @objc func playTTSAsMedia(_ call: CAPPluginCall) {
++        print("[CallKit-Swift] 🔊 playTTSAsMedia CALLED (media mode, outside CallKit)")
++        
 +        notifyListeners("debug", data: [
-+            "stage": "swift_playTTSAudio_called",
++            "stage": "media_tts_called",
 +            "timestamp": ISO8601DateFormatter().string(from: Date())
 +        ])
 +        
 +        guard let base64Audio = call.getString("audio") else {
 +            print("[CallKit-Swift] ❌ No audio data provided")
-+            notifyListeners("debug", data: [
-+                "stage": "tts_error",
-+                "error": "no_audio_data"
-+            ])
 +            call.resolve(["playing": false, "error": "no_audio_data"])
 +            return
 +        }
 +        
 +        print("[CallKit-Swift] 🎵 Base64 audio length: \(base64Audio.count)")
 +        
-+        // 6️⃣ Log se silencePlayer está tocando
-+        let silenceIsPlaying = silencePlayer?.isPlaying ?? false
-+        print("[CallKit-Swift] 🔇 Silence player isPlaying: \(silenceIsPlaying)")
-+        notifyListeners("debug", data: [
-+            "stage": "tts_silence_check",
-+            "silencePlayerPlaying": silenceIsPlaying,
-+            "base64Length": base64Audio.count
-+        ])
-+        
-+        // Stop silence anchor when TTS starts
-+        stopSilenceAnchor()
-+        
 +        guard let audioData = Data(base64Encoded: base64Audio) else {
 +            print("[CallKit-Swift] ❌ Invalid base64 audio")
-+            notifyListeners("debug", data: [
-+                "stage": "tts_error",
-+                "error": "invalid_base64"
-+            ])
 +            call.resolve(["playing": false, "error": "invalid_base64"])
 +            return
 +        }
 +        
 +        print("[CallKit-Swift] 📦 Audio data decoded: \(audioData.count) bytes")
-+        notifyListeners("debug", data: [
-+            "stage": "swift_audio_decoded",
-+            "audioBytes": audioData.count
-+        ])
 +        
 +        do {
-+            // 🔇 CLEANUP: Ensure previous players are completely stopped
++            // Stop any previous audio
 +            audioPlayer?.stop()
 +            audioPlayer = nil
-+            stopSilenceAnchor()
 +            
-+            // ========== AUDIO SESSION FOR CALLKIT COMPATIBILITY ==========
-+            // MUST use .playAndRecord during CallKit calls - .playback is IGNORED by iOS!
 +            let audioSession = AVAudioSession.sharedInstance()
 +            
-+            // 1️⃣ FIRST: Configure audio session for CallKit (MUST use .playAndRecord)
-+            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
++            // ✅ CRITICAL: Use .playback category (NOT .playAndRecord)
++            // This is for MEDIA playback, NOT call audio
++            // .duckOthers will lower other audio while playing
++            try audioSession.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
 +            try audioSession.setActive(true)
-+            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            print("[CallKit-Swift] 🔊 Audio session: .playAndRecord + .spokenAudio + speaker")
++            print("[CallKit-Swift] 🔊 Audio session: .playback + .spokenAudio + .duckOthers")
 +            
-+            // Log initial route
-+            var route1 = audioSession.currentRoute
-+            var port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] 🔈 Route after 1st override: \(port1)")
++            // Log current route
++            let route = audioSession.currentRoute
++            let port = route.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] 🔈 Audio route: \(port)")
 +            
-+            // 2️⃣ Force speaker using audioQueue for synchronization
-+            self.audioQueue.sync {
-+                do {
-+                    try audioSession.overrideOutputAudioPort(.speaker)
-+                    print("[CallKit-Swift] 🔊 audioQueue: speaker forced (sync)")
-+                } catch {
-+                    print("[CallKit-Swift] ❌ audioQueue: force speaker failed: \(error)")
-+                }
-+            }
++            notifyListeners("debug", data: [
++                "stage": "media_audio_session_ready",
++                "category": "playback",
++                "mode": "spokenAudio",
++                "outputPort": port,
++                "audioBytes": audioData.count
++            ])
 +            
 +            // Create audio player
 +            audioPlayer = try AVAudioPlayer(data: audioData)
 +            audioPlayer?.delegate = self
 +            audioPlayer?.volume = 1.0
-+            audioPlayer?.enableRate = false
 +            audioPlayer?.prepareToPlay()
 +            
-+            // 3️⃣ THIRD override AFTER creating player (iOS can reset route)
-+            try audioSession.overrideOutputAudioPort(.speaker)
-+            
-+            // Log route after creating player
-+            route1 = audioSession.currentRoute
-+            port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] 🔈 Route after player creation + 3rd override: \(port1)")
-+            
-+            // 4️⃣ FOURTH override via audioQueue again
-+            self.audioQueue.sync {
-+                do {
-+                    try audioSession.overrideOutputAudioPort(.speaker)
-+                } catch {}
-+            }
-+            
-+            // 5️⃣ Final route verification
-+            let finalRoute = audioSession.currentRoute
-+            let finalPort = finalRoute.outputs.first?.portType.rawValue ?? "unknown"
-+            let finalName = finalRoute.outputs.first?.portName ?? "unknown"
-+            
-+            print("[CallKit-Swift] 🔈 FINAL audio route: \(finalPort) (\(finalName))")
-+            for output in finalRoute.outputs {
-+                print("[CallKit-Swift] 🔈 Output: \(output.portName) (\(output.portType.rawValue))")
-+            }
-+            
-+            notifyListeners("debug", data: [
-+                "stage": "audio_route_verification",
-+                "outputPort": finalPort,
-+                "outputName": finalName,
-+                "isSpeaker": finalPort == "Speaker",
-+                "overrideCount": 4,
-+                "category": "playAndRecord",
-+                "mode": "voiceChat"
-+            ])
-+            
-+            // Log duration
 +            let duration = audioPlayer?.duration ?? -1
 +            print("[CallKit-Swift] ⏱️ TTS audio duration: \(duration) seconds")
-+            notifyListeners("debug", data: [
-+                "stage": "tts_player_created",
-+                "duration": duration
-+            ])
 +            
-+            // 🔊 FORCE SYSTEM VOLUME TO MAXIMUM
-+            let currentSystemVolume = audioSession.outputVolume
-+            print("[CallKit-Swift] 📢 System volume BEFORE: \(currentSystemVolume)")
-+            notifyListeners("debug", data: [
-+                "stage": "system_volume_before",
-+                "volume": currentSystemVolume
-+            ])
-+            
-+            // Use MPVolumeView to set system volume to maximum
-+            DispatchQueue.main.async {
-+                let volumeView = MPVolumeView()
-+                if let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider {
-+                    print("[CallKit-Swift] 📢 Found volume slider, setting to 1.0")
-+                    slider.setValue(1.0, animated: false)
-+                    print("[CallKit-Swift] 📢 System volume FORCED to: 1.0")
-+                } else {
-+                    print("[CallKit-Swift] ⚠️ Could not find volume slider in MPVolumeView")
-+                }
-+            }
-+            
-+            // Small delay to ensure volume is set before playing
-+            Thread.sleep(forTimeInterval: 0.1)
-+            
-+            // PLAY TTS
++            // PLAY TTS AS MEDIA
 +            let didPlay = audioPlayer?.play() ?? false
-+            print("[CallKit-Swift] ▶️ TTS play() returned: \(didPlay)")
-+            
-+            // 6️⃣ POST-PLAY CHECK: Verify audio is playing correctly after 200ms
-+            // This catches any CallKit resets and provides debug info
-+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-+                let session = AVAudioSession.sharedInstance()
-+                let postRoute = session.currentRoute
-+                let postPort = postRoute.outputs.first?.portType.rawValue ?? "unknown"
-+                let postVolume = session.outputVolume
-+                let isPlaying = self?.audioPlayer?.isPlaying ?? false
-+                
-+                print("[CallKit-Swift] 📊 POST-PLAY CHECK (200ms):")
-+                print("[CallKit-Swift]   - isPlaying: \(isPlaying)")
-+                print("[CallKit-Swift]   - outputPort: \(postPort)")
-+                print("[CallKit-Swift]   - systemVolume: \(postVolume)")
-+                
-+                self?.notifyListeners("debug", data: [
-+                    "stage": "tts_post_play_check",
-+                    "isPlaying": isPlaying,
-+                    "outputPort": postPort,
-+                    "systemVolume": postVolume,
-+                    "isSpeaker": postPort == "Speaker"
-+                ])
-+                
-+                // If not on speaker, force it again
-+                if postPort != "Speaker" {
-+                    print("[CallKit-Swift] ⚠️ POST-PLAY: Not on speaker! Forcing again...")
-+                    do {
-+                        try session.overrideOutputAudioPort(.speaker)
-+                        let forcedRoute = session.currentRoute
-+                        let forcedPort = forcedRoute.outputs.first?.portType.rawValue ?? "unknown"
-+                        print("[CallKit-Swift] 🔊 POST-PLAY forced: \(forcedPort)")
-+                        
-+                        self?.notifyListeners("debug", data: [
-+                            "stage": "tts_post_play_force_speaker",
-+                            "outputPort": forcedPort,
-+                            "isSpeaker": forcedPort == "Speaker"
-+                        ])
-+                    } catch {
-+                        print("[CallKit-Swift] ❌ POST-PLAY force speaker failed: \(error)")
-+                    }
-+                }
-+            }
-+            
-+            // Final summary
-+            print("[CallKit-Swift] ====== TTS PLAYBACK SUMMARY ======")
-+            print("[CallKit-Swift] playTTSAudio CALLED: ✅")
-+            print("[CallKit-Swift] play() returned: \(didPlay)")
-+            print("[CallKit-Swift] audio route: \(finalPort)")
-+            print("[CallKit-Swift] isSpeaker: \(finalPort == "Speaker")")
-+            print("[CallKit-Swift] duration: \(duration)s")
-+            print("[CallKit-Swift] systemVolume: \(currentSystemVolume)")
-+            print("[CallKit-Swift] playerVolume: \(audioPlayer?.volume ?? -1)")
-+            print("[CallKit-Swift] ===================================")
++            print("[CallKit-Swift] ▶️ TTS media play() returned: \(didPlay)")
 +            
 +            notifyListeners("debug", data: [
-+                "stage": "swift_play_result",
++                "stage": "media_tts_play_result",
 +                "didPlay": didPlay,
 +                "duration": duration,
-+                "playerVolume": audioPlayer?.volume ?? -1,
-+                "systemVolume": currentSystemVolume,
-+                "outputPort": finalPort,
-+                "isSpeaker": finalPort == "Speaker"
++                "outputPort": port,
++                "mode": "playback_media"
 +            ])
 +            
-+            call.resolve(["playing": didPlay, "duration": duration])
++            call.resolve(["playing": didPlay, "duration": duration, "mode": "media"])
 +        } catch {
-+            print("[CallKit-Swift] ❌ Audio playback error: \(error.localizedDescription)")
++            print("[CallKit-Swift] ❌ Media audio playback error: \(error.localizedDescription)")
 +            notifyListeners("debug", data: [
-+                "stage": "tts_play_error",
++                "stage": "media_tts_error",
 +                "error": error.localizedDescription
 +            ])
 +            call.resolve(["playing": false, "error": error.localizedDescription])
 +        }
 +    }
 +    
-+    // 5️⃣ Audio player delegate - capture decode errors
++    // ========== LEGACY: TTS DURING CALL (kept for compatibility) ==========
++    
++    @objc func configureAudioSession(_ call: CAPPluginCall) {
++        print("[CallKit-Swift] 🔊 configureAudioSession (legacy)")
++        // No-op in new architecture - audio is configured in playTTSAsMedia
++        call.resolve(["configured": true, "note": "legacy_noop"])
++    }
++    
++    @objc func playTTSAudio(_ call: CAPPluginCall) {
++        // LEGACY: Redirect to playTTSAsMedia
++        print("[CallKit-Swift] ⚠️ playTTSAudio called (legacy) - redirecting to playTTSAsMedia")
++        playTTSAsMedia(call)
++    }
++    
++    // Audio player delegate
 +    public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
 +        print("[CallKit-Swift] ❌ Audio decode error: \(error?.localizedDescription ?? "nil")")
 +        notifyListeners("debug", data: [
@@ -538,16 +257,12 @@ index 1234567..abcdefg 100644
 +        ])
 +    }
 +    
-+    // NEW: Stop TTS audio
++    // Stop TTS audio
 +    @objc func stopTTSAudio(_ call: CAPPluginCall) {
 +        print("[CallKit-Swift] 🔇 Stopping TTS audio")
-+        stopAudio()
-+        call.resolve(["stopped": true])
-+    }
-+    
-+    private func stopAudio() {
 +        audioPlayer?.stop()
 +        audioPlayer = nil
++        call.resolve(["stopped": true])
      }
  }
 
@@ -561,8 +276,8 @@ index 1234567..abcdefg 100644
 +        print("[CallKit-Swift] Provider reset")
 +        activeCallUUID = nil
 +        connectionIdRegistry.removeAll()
-+        stopAudio()
-+        stopSilenceAnchor()
++        audioPlayer?.stop()
++        audioPlayer = nil
      }
 
      public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
@@ -571,24 +286,25 @@ index 1234567..abcdefg 100644
 +        print("[CallKit-Swift] ====== CALL ANSWERED ======")
 +        print("[CallKit-Swift] UUID: \(action.callUUID)")
 +        
-+        // ✅ CRITICAL: Start silence anchor IMMEDIATELY
-+        // This keeps the call active while waiting for TTS to load
-+        startSilenceAnchor()
-+        
 +        // Notify JavaScript that call was answered
++        // JS will then END the CallKit and start MEDIA playback
          notifyEvent(eventName: "callAnswered", uuid: action.callUUID)
 -        endCall(uuid: action.callUUID)
 +        
-+        // ✅ IMPORTANT: DO NOT call endCall() here!
-+        // The call stays active so TTS can play on the native screen.
-+        // JavaScript will call endCallFromJS() after TTS finishes.
++        // ✅ NEW ARCHITECTURE: End CallKit QUICKLY after notifying JS
++        // TTS will play as APP MEDIA, not as call audio
++        // Small delay to let JS receive the event first
++        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
++            print("[CallKit-Swift] 🔚 Auto-ending CallKit (300ms after answer)")
++            self?.endCall(uuid: action.callUUID)
++        }
 +        
          action.fulfill()
      }
 
      public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
 -        print("CXEndCallAction end an incoming call")
-+        // Call ended (either by user or by endCallFromJS)
++        // Call ended (either by user, by auto-end, or by endCallFromJS)
 +        print("[CallKit-Swift] ====== CALL ENDED ======")
          notifyEvent(eventName: "callEnded", uuid: action.callUUID)
 +        
@@ -597,8 +313,6 @@ index 1234567..abcdefg 100644
 +        if activeCallUUID == action.callUUID {
 +            activeCallUUID = nil
 +        }
-+        stopAudio()
-+        stopSilenceAnchor()
 +        
          action.fulfill()
      }
@@ -611,53 +325,18 @@ index 1234567..abcdefg 100644
          action.fulfill()
      }
 +    
-+    // Handle audio session activation - CRITICAL for speaker and keeping call alive
++    // Audio session callbacks (informational only in new architecture)
 +    public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-+        print("[CallKit-Swift] 🔊 Audio session activated by CallKit (didActivate) - FORCING SPEAKER")
-+        
-+        // 🔊 FORCE SPEAKER IMMEDIATELY when CallKit activates audio session
-+        // This is the CORRECT moment to configure audio - CallKit has given us control
-+        do {
-+            try audioSession.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
-+            try audioSession.overrideOutputAudioPort(.speaker)
-+            
-+            let route = audioSession.currentRoute
-+            let port = route.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] ✅ Speaker forced in didActivate (.spokenAudio): \(port)")
-+            
-+            // ✅ NEW: Notify JavaScript that audio session is READY
-+            // This is the gating signal for TTS playback
-+            notifyListeners("callAudioReady", data: [
-+                "outputPort": port,
-+                "isSpeaker": port == "Speaker",
-+                "timestamp": ISO8601DateFormatter().string(from: Date())
-+            ])
-+            
-+            notifyListeners("debug", data: [
-+                "stage": "didActivate_speaker_forced",
-+                "outputPort": port,
-+                "isSpeaker": port == "Speaker",
-+                "mode": "spokenAudio"
-+            ])
-+        } catch {
-+            print("[CallKit-Swift] ❌ Failed to force speaker in didActivate: \(error)")
-+            // Even on error, notify JS so it doesn't wait forever
-+            notifyListeners("callAudioReady", data: [
-+                "error": error.localizedDescription,
-+                "timestamp": ISO8601DateFormatter().string(from: Date())
-+            ])
-+        }
-+        
-+        // Start silence anchor here as backup
-+        if silencePlayer == nil {
-+            startSilenceAnchor()
-+        }
++        print("[CallKit-Swift] 🔊 didActivate (CallKit audio session)")
++        // In new architecture, we don't use CallKit audio - TTS plays as media
++        notifyListeners("debug", data: [
++            "stage": "didActivate_callkit",
++            "note": "CallKit audio activated (not used for TTS in new architecture)"
++        ])
 +    }
 +    
 +    public func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
-+        print("[CallKit-Swift] 🔇 Audio session deactivated")
-+        stopAudio()
-+        stopSilenceAnchor()
++        print("[CallKit-Swift] 🔇 didDeactivate (CallKit audio session)")
 +    }
  }
 
@@ -688,7 +367,7 @@ index 1234567..abcdefg 100644
          let name = (payload.dictionaryPayload["name"] as? String) ?? "Evento"
          let duration = (payload.dictionaryPayload["duration"] as? String) ?? "0"
 +        
-+        // Extract language for TTS (sent from check-upcoming-alerts)
++        // Extract language and other data for TTS (sent from check-upcoming-alerts)
 +        let language = (payload.dictionaryPayload["language"] as? String) ?? "pt-BR"
 +        let eventTime = (payload.dictionaryPayload["eventTime"] as? String) ?? duration
 +        let eventEmoji = (payload.dictionaryPayload["eventEmoji"] as? String) ?? "calendario"
@@ -696,8 +375,6 @@ index 1234567..abcdefg 100644
 +        
 +        print("[CallKit-Swift] id: \(id)")
 +        print("[CallKit-Swift] name: \(name)")
-+        print("[CallKit-Swift] media: \(media)")
-+        print("[CallKit-Swift] duration: \(duration)")
 +        print("[CallKit-Swift] language: \(language)")
 +        print("[CallKit-Swift] eventTime: \(eventTime)")
 +        
