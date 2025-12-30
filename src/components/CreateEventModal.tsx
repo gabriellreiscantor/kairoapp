@@ -304,7 +304,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
           <div className="bg-kairo-surface-2 rounded-2xl overflow-hidden">
             {REPEAT_OPTIONS.map((option) => (
               <button key={option.value} onClick={() => { setRepeat(option.value); setScreenView('main'); }} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0">
-                <span className="text-foreground">{option.label}</span>
+                <span className="text-foreground">{t(option.labelKey)}</span>
                 {repeat === option.value && <Check className="w-5 h-5 text-primary" />}
               </button>
             ))}
@@ -338,7 +338,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
               <button key={c.value} onClick={() => { setColor(c.value); setScreenView('main'); }} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0">
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full ${c.className}`} />
-                  <span className="text-foreground">{c.label}</span>
+                  <span className="text-foreground">{t(c.labelKey)}</span>
                 </div>
                 {color === c.value && <Check className="w-5 h-5 text-primary" />}
               </button>
@@ -385,7 +385,7 @@ const CreateEventModal = ({ isOpen, onClose, onSave }: CreateEventModalProps) =>
                       className="bg-transparent text-muted-foreground text-right focus:outline-none"
                     >
                       {availableAlertOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                       ))}
                     </select>
                     <button 

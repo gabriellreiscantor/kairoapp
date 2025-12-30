@@ -458,6 +458,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Erro ao salvar evento. Tente novamente.',
     'error.idNotReturned': 'ID não retornado pelo servidor - evento não foi salvo',
     'error.failedToSave': 'Falha ao salvar evento',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Vermelho',
+    'color.blue': 'Azul',
+    'color.green': 'Verde',
+    'color.yellow': 'Amarelo',
+    'color.orange': 'Laranja',
+    'color.purple': 'Roxo',
+    'color.cyan': 'Azul Claro',
+    'color.amber': 'Laranja Escuro',
+    'color.pink': 'Rosa',
+    
+    // Repeat
+    'repeat.never': 'Nunca',
+    'repeat.daily': 'Todos os Dias',
+    'repeat.every2days': 'A cada 2 dias',
+    'repeat.weekly': 'Todas as Semanas',
+    'repeat.every2weeks': 'A cada 2 Semanas',
+    'repeat.monthly': 'Todos os Meses',
+    'repeat.yearly': 'Todos os Anos',
+    
+    // Alerts
+    'alert.exact': 'No momento exato',
+    'alert.5min': '5 minutos antes',
+    'alert.15min': '15 minutos antes',
+    'alert.30min': '30 minutos antes',
+    'alert.1hour': '1 hora antes',
+    'alert.2hours': '2 horas antes',
+    'alert.1day': '1 dia antes',
   },
   'en-US': {
     // Navigation
@@ -889,6 +919,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Error saving event. Please try again.',
     'error.idNotReturned': 'ID not returned from server - event was not saved',
     'error.failedToSave': 'Failed to save event',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Red',
+    'color.blue': 'Blue',
+    'color.green': 'Green',
+    'color.yellow': 'Yellow',
+    'color.orange': 'Orange',
+    'color.purple': 'Purple',
+    'color.cyan': 'Cyan',
+    'color.amber': 'Amber',
+    'color.pink': 'Pink',
+    
+    // Repeat
+    'repeat.never': 'Never',
+    'repeat.daily': 'Every Day',
+    'repeat.every2days': 'Every 2 Days',
+    'repeat.weekly': 'Every Week',
+    'repeat.every2weeks': 'Every 2 Weeks',
+    'repeat.monthly': 'Every Month',
+    'repeat.yearly': 'Every Year',
+    
+    // Alerts
+    'alert.exact': 'At the exact moment',
+    'alert.5min': '5 minutes before',
+    'alert.15min': '15 minutes before',
+    'alert.30min': '30 minutes before',
+    'alert.1hour': '1 hour before',
+    'alert.2hours': '2 hours before',
+    'alert.1day': '1 day before',
   },
   'es-ES': {
     // Navigation
@@ -1073,6 +1133,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Error al guardar el evento. Inténtalo de nuevo.',
     'error.idNotReturned': 'ID no retornado por el servidor - el evento no fue guardado',
     'error.failedToSave': 'Error al guardar el evento',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Rojo',
+    'color.blue': 'Azul',
+    'color.green': 'Verde',
+    'color.yellow': 'Amarillo',
+    'color.orange': 'Naranja',
+    'color.purple': 'Púrpura',
+    'color.cyan': 'Cian',
+    'color.amber': 'Ámbar',
+    'color.pink': 'Rosa',
+    
+    // Repeat
+    'repeat.never': 'Nunca',
+    'repeat.daily': 'Todos los días',
+    'repeat.every2days': 'Cada 2 días',
+    'repeat.weekly': 'Todas las semanas',
+    'repeat.every2weeks': 'Cada 2 semanas',
+    'repeat.monthly': 'Todos los meses',
+    'repeat.yearly': 'Todos los años',
+    
+    // Alerts
+    'alert.exact': 'En el momento exacto',
+    'alert.5min': '5 minutos antes',
+    'alert.15min': '15 minutos antes',
+    'alert.30min': '30 minutos antes',
+    'alert.1hour': '1 hora antes',
+    'alert.2hours': '2 horas antes',
+    'alert.1day': '1 día antes',
   },
   'fr-FR': {
     'nav.chat': 'Chat',
@@ -1239,6 +1329,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Erreur lors de l\'enregistrement de l\'événement. Veuillez réessayer.',
     'error.idNotReturned': 'ID non retourné par le serveur - l\'événement n\'a pas été enregistré',
     'error.failedToSave': 'Échec de l\'enregistrement de l\'événement',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Rouge',
+    'color.blue': 'Bleu',
+    'color.green': 'Vert',
+    'color.yellow': 'Jaune',
+    'color.orange': 'Orange',
+    'color.purple': 'Violet',
+    'color.cyan': 'Cyan',
+    'color.amber': 'Ambre',
+    'color.pink': 'Rose',
+    
+    // Repeat
+    'repeat.never': 'Jamais',
+    'repeat.daily': 'Tous les jours',
+    'repeat.every2days': 'Tous les 2 jours',
+    'repeat.weekly': 'Toutes les semaines',
+    'repeat.every2weeks': 'Toutes les 2 semaines',
+    'repeat.monthly': 'Tous les mois',
+    'repeat.yearly': 'Tous les ans',
+    
+    // Alerts
+    'alert.exact': 'Au moment exact',
+    'alert.5min': '5 minutes avant',
+    'alert.15min': '15 minutes avant',
+    'alert.30min': '30 minutes avant',
+    'alert.1hour': '1 heure avant',
+    'alert.2hours': '2 heures avant',
+    'alert.1day': '1 jour avant',
   },
   'de-DE': {
     'nav.chat': 'Chat',
@@ -1405,6 +1525,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Fehler beim Speichern des Ereignisses. Bitte versuche es erneut.',
     'error.idNotReturned': 'ID nicht vom Server zurückgegeben - Ereignis wurde nicht gespeichert',
     'error.failedToSave': 'Speichern des Ereignisses fehlgeschlagen',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Rot',
+    'color.blue': 'Blau',
+    'color.green': 'Grün',
+    'color.yellow': 'Gelb',
+    'color.orange': 'Orange',
+    'color.purple': 'Lila',
+    'color.cyan': 'Cyan',
+    'color.amber': 'Bernstein',
+    'color.pink': 'Rosa',
+    
+    // Repeat
+    'repeat.never': 'Nie',
+    'repeat.daily': 'Jeden Tag',
+    'repeat.every2days': 'Alle 2 Tage',
+    'repeat.weekly': 'Jede Woche',
+    'repeat.every2weeks': 'Alle 2 Wochen',
+    'repeat.monthly': 'Jeden Monat',
+    'repeat.yearly': 'Jedes Jahr',
+    
+    // Alerts
+    'alert.exact': 'Im genauen Moment',
+    'alert.5min': '5 Minuten vorher',
+    'alert.15min': '15 Minuten vorher',
+    'alert.30min': '30 Minuten vorher',
+    'alert.1hour': '1 Stunde vorher',
+    'alert.2hours': '2 Stunden vorher',
+    'alert.1day': '1 Tag vorher',
   },
   'it-IT': {
     'nav.chat': 'Chat',
@@ -1571,6 +1721,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'Errore durante il salvataggio dell\'evento. Riprova.',
     'error.idNotReturned': 'ID non restituito dal server - l\'evento non è stato salvato',
     'error.failedToSave': 'Salvataggio dell\'evento fallito',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': 'Rosso',
+    'color.blue': 'Blu',
+    'color.green': 'Verde',
+    'color.yellow': 'Giallo',
+    'color.orange': 'Arancione',
+    'color.purple': 'Viola',
+    'color.cyan': 'Ciano',
+    'color.amber': 'Ambra',
+    'color.pink': 'Rosa',
+    
+    // Repeat
+    'repeat.never': 'Mai',
+    'repeat.daily': 'Ogni giorno',
+    'repeat.every2days': 'Ogni 2 giorni',
+    'repeat.weekly': 'Ogni settimana',
+    'repeat.every2weeks': 'Ogni 2 settimane',
+    'repeat.monthly': 'Ogni mese',
+    'repeat.yearly': 'Ogni anno',
+    
+    // Alerts
+    'alert.exact': 'Nel momento esatto',
+    'alert.5min': '5 minuti prima',
+    'alert.15min': '15 minuti prima',
+    'alert.30min': '30 minuti prima',
+    'alert.1hour': '1 ora prima',
+    'alert.2hours': '2 ore prima',
+    'alert.1day': '1 giorno prima',
   },
   'ja-JP': {
     'nav.chat': 'チャット',
@@ -1737,6 +1917,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': 'イベントの保存中にエラーが発生しました。もう一度お試しください。',
     'error.idNotReturned': 'サーバーからIDが返されませんでした - イベントは保存されませんでした',
     'error.failedToSave': 'イベントの保存に失敗しました',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': '赤',
+    'color.blue': '青',
+    'color.green': '緑',
+    'color.yellow': '黄色',
+    'color.orange': 'オレンジ',
+    'color.purple': '紫',
+    'color.cyan': 'シアン',
+    'color.amber': '琥珀色',
+    'color.pink': 'ピンク',
+    
+    // Repeat
+    'repeat.never': 'なし',
+    'repeat.daily': '毎日',
+    'repeat.every2days': '2日ごと',
+    'repeat.weekly': '毎週',
+    'repeat.every2weeks': '2週間ごと',
+    'repeat.monthly': '毎月',
+    'repeat.yearly': '毎年',
+    
+    // Alerts
+    'alert.exact': '正確な時間に',
+    'alert.5min': '5分前',
+    'alert.15min': '15分前',
+    'alert.30min': '30分前',
+    'alert.1hour': '1時間前',
+    'alert.2hours': '2時間前',
+    'alert.1day': '1日前',
   },
   'ko-KR': {
     'nav.chat': '채팅',
@@ -1903,6 +2113,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': '이벤트 저장 중 오류가 발생했습니다. 다시 시도해주세요.',
     'error.idNotReturned': '서버에서 ID가 반환되지 않았습니다 - 이벤트가 저장되지 않았습니다',
     'error.failedToSave': '이벤트 저장 실패',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': '빨강',
+    'color.blue': '파랑',
+    'color.green': '초록',
+    'color.yellow': '노랑',
+    'color.orange': '주황',
+    'color.purple': '보라',
+    'color.cyan': '청록',
+    'color.amber': '호박색',
+    'color.pink': '분홍',
+    
+    // Repeat
+    'repeat.never': '안 함',
+    'repeat.daily': '매일',
+    'repeat.every2days': '2일마다',
+    'repeat.weekly': '매주',
+    'repeat.every2weeks': '2주마다',
+    'repeat.monthly': '매월',
+    'repeat.yearly': '매년',
+    
+    // Alerts
+    'alert.exact': '정확한 시간에',
+    'alert.5min': '5분 전',
+    'alert.15min': '15분 전',
+    'alert.30min': '30분 전',
+    'alert.1hour': '1시간 전',
+    'alert.2hours': '2시간 전',
+    'alert.1day': '1일 전',
   },
   'zh-CN': {
     'nav.chat': '聊天',
@@ -2069,6 +2309,36 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'error.saveEvent': '保存活动时出错。请重试。',
     'error.idNotReturned': '服务器未返回ID - 活动未保存',
     'error.failedToSave': '保存活动失败',
+    
+    // Colors
+    'color.horah': 'Horah',
+    'color.red': '红色',
+    'color.blue': '蓝色',
+    'color.green': '绿色',
+    'color.yellow': '黄色',
+    'color.orange': '橙色',
+    'color.purple': '紫色',
+    'color.cyan': '青色',
+    'color.amber': '琥珀色',
+    'color.pink': '粉色',
+    
+    // Repeat
+    'repeat.never': '从不',
+    'repeat.daily': '每天',
+    'repeat.every2days': '每2天',
+    'repeat.weekly': '每周',
+    'repeat.every2weeks': '每2周',
+    'repeat.monthly': '每月',
+    'repeat.yearly': '每年',
+    
+    // Alerts
+    'alert.exact': '在准确时间',
+    'alert.5min': '5分钟前',
+    'alert.15min': '15分钟前',
+    'alert.30min': '30分钟前',
+    'alert.1hour': '1小时前',
+    'alert.2hours': '2小时前',
+    'alert.1day': '1天前',
   },
 };
 

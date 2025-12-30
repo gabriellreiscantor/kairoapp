@@ -189,7 +189,7 @@ const SingleEventCard = ({
                   <div className="flex items-center gap-3">
                     <span className={`w-4 h-4 rounded-full ${getTimelineDotColor(selectedColor)}`} />
                     <span className="text-sm text-foreground">
-                      {EVENT_COLORS.find(c => c.value === selectedColor)?.label || 'Horah'}
+                      {t(EVENT_COLORS.find(c => c.value === selectedColor)?.labelKey || 'color.horah')}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -206,7 +206,7 @@ const SingleEventCard = ({
                       >
                         <div className="flex items-center gap-3">
                           <span className={`w-4 h-4 rounded-full ${c.className}`} />
-                          <span className="text-sm text-foreground">{c.label}</span>
+                          <span className="text-sm text-foreground">{t(c.labelKey)}</span>
                         </div>
                         {selectedColor === c.value && (
                           <Check className="w-4 h-4 text-primary" />
