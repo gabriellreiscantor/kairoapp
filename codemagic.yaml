@@ -45,7 +45,7 @@ workflows:
           import AVFoundation
 
           @objc(CallKitVoipPlugin)
-          public class CallKitVoipPlugin: CAPPlugin, CXProviderDelegate, PKPushRegistryDelegate {
+          public class CallKitVoipPlugin: CAPPlugin, CXProviderDelegate, PKPushRegistryDelegate, AVAudioPlayerDelegate {
               private var provider: CXProvider?
               private var callController = CXCallController()
               private var currentCallUUID: UUID?
@@ -339,11 +339,12 @@ workflows:
                       
                       // Create player from data
                       ttsPlayer = try AVAudioPlayer(data: audioData)
+                      ttsPlayer?.delegate = self  // ✅ Set delegate to receive finish notification
                       ttsPlayer?.numberOfLoops = 5  // Repeat 5 times
                       ttsPlayer?.volume = 1.0
                       
                       let started = ttsPlayer?.play() ?? false
-                      print("[CallKit] TTS playback started: \(started)")
+                      print("[CallKit] TTS playback started: \(started), delegate set: \(ttsPlayer?.delegate != nil)")
                       
                       if started {
                           call.resolve(["playing": true])
@@ -354,6 +355,30 @@ workflows:
                       print("[CallKit] Failed to play TTS audio: \(error)")
                       call.reject("Failed to play: \(error.localizedDescription)")
                   }
+              }
+              
+              // MARK: - AVAudioPlayerDelegate
+              
+              public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+                  print("[CallKit] ✅ TTS audio finished playing, success: \(flag)")
+                  
+                  // Notify JavaScript that TTS has finished
+                  notifyListeners("debug", data: [
+                      "stage": "tts_finished",
+                      "success": flag
+                  ])
+                  
+                  print("[CallKit] 📢 Sent tts_finished event to JavaScript")
+              }
+              
+              public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+                  print("[CallKit] ❌ TTS audio decode error: \(error?.localizedDescription ?? "unknown")")
+                  
+                  // Notify JavaScript about the error
+                  notifyListeners("debug", data: [
+                      "stage": "tts_decode_error",
+                      "error": error?.localizedDescription ?? "unknown"
+                  ])
               }
               
               @objc func stopTTSAudio(_ call: CAPPluginCall) {
