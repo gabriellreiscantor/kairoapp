@@ -208,6 +208,25 @@ function getPushNotificationBody(language: string | null, emoji: string, title: 
   return builder(emoji, title, time);
 }
 
+// Multilingual chat messages for "Me Ligue" calls
+const callChatMessages: Record<string, (title: string) => string> = {
+  'pt-BR': (title) => `📞 Te liguei para lembrar do evento "${title}"!`,
+  'en-US': (title) => `📞 I called to remind you about "${title}"!`,
+  'es-ES': (title) => `📞 ¡Te llamé para recordarte sobre "${title}"!`,
+  'fr-FR': (title) => `📞 Je t'ai appelé pour te rappeler "${title}"!`,
+  'de-DE': (title) => `📞 Ich habe angerufen, um dich an "${title}" zu erinnern!`,
+  'it-IT': (title) => `📞 Ti ho chiamato per ricordarti di "${title}"!`,
+  'ja-JP': (title) => `📞 "${title}"のリマインドコールをしました！`,
+  'ko-KR': (title) => `📞 "${title}" 알림 전화를 했어요!`,
+  'zh-CN': (title) => `📞 我打电话提醒你"${title}"！`,
+};
+
+function getCallChatMessage(language: string | null, title: string): string {
+  const lang = normalizeLanguageCode(language);
+  const builder = callChatMessages[lang] || callChatMessages['pt-BR'];
+  return builder(title);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -537,7 +556,7 @@ Deno.serve(async (req) => {
                   .insert({
                     user_id: event.user_id,
                     role: 'assistant',
-                    content: `📞 Te liguei para lembrar do evento "${event.title}"!`,
+                    content: getCallChatMessage(userLanguage, event.title),
                     metadata: {
                       type: 'call_notification',
                       callNotificationData
