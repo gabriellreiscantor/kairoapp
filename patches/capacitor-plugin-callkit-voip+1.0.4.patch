@@ -46,6 +46,7 @@ index 1234567..abcdefg 100644
 +    private var audioPlayer: AVAudioPlayer?  // For TTS playback
 +    private var silencePlayer: AVAudioPlayer?  // ANCHOR: Keeps call active
 +    private var silenceTimer: Timer?  // Timer to loop silence
++    private let audioQueue = DispatchQueue(label: "com.horah.audio", qos: .userInitiated)
  
      @objc func register(_ call: CAPPluginCall) {
          voipRegistry.delegate = self
@@ -343,45 +344,55 @@ index 1234567..abcdefg 100644
 +            audioPlayer = nil
 +            stopSilenceAnchor()
 +            
-+            // ========== AUDIO SESSION FOR MAXIMUM VOLUME ==========
-+            // Use .playback + .default instead of .playAndRecord + .voiceChat
-+            // This allows FULL volume output (voiceChat limits volume for ear safety)
++            // ========== AUDIO SESSION FOR CALLKIT COMPATIBILITY ==========
++            // MUST use .playAndRecord during CallKit calls - .playback is IGNORED by iOS!
 +            let audioSession = AVAudioSession.sharedInstance()
 +            
-+            // 1️⃣ FIRST override: Configure for playback with maximum volume
-+            try audioSession.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
++            // 1️⃣ FIRST: Configure audio session for CallKit (MUST use .playAndRecord)
++            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
 +            try audioSession.setActive(true)
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            print("[CallKit-Swift] 🔊 Audio session configured: .playback + .default + speaker")
++            print("[CallKit-Swift] 🔊 Audio session: .playAndRecord + .voiceChat + speaker")
 +            
 +            // Log initial route
-+            let route1 = audioSession.currentRoute
-+            let port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] 🔈 Initial route after 1st override: \(port1)")
++            var route1 = audioSession.currentRoute
++            var port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] 🔈 Route after 1st override: \(port1)")
 +            
-+            // Create audio player FIRST
++            // 2️⃣ Force speaker using audioQueue for synchronization
++            self.audioQueue.sync {
++                do {
++                    try audioSession.overrideOutputAudioPort(.speaker)
++                    print("[CallKit-Swift] 🔊 audioQueue: speaker forced (sync)")
++                } catch {
++                    print("[CallKit-Swift] ❌ audioQueue: force speaker failed: \(error)")
++                }
++            }
++            
++            // Create audio player
 +            audioPlayer = try AVAudioPlayer(data: audioData)
 +            audioPlayer?.delegate = self
 +            audioPlayer?.volume = 1.0
 +            audioPlayer?.enableRate = false
 +            audioPlayer?.prepareToPlay()
 +            
-+            // 2️⃣ SECOND override AFTER creating player (iOS can reset route)
++            // 3️⃣ THIRD override AFTER creating player (iOS can reset route)
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
 +            // Log route after creating player
-+            let route2 = audioSession.currentRoute
-+            let port2 = route2.outputs.first?.portType.rawValue ?? "unknown"
-+            print("[CallKit-Swift] 🔈 Route after 2nd override (post-player): \(port2)")
++            route1 = audioSession.currentRoute
++            port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] 🔈 Route after player creation + 3rd override: \(port1)")
 +            
-+            // 3️⃣ THIRD override just to be absolutely sure
-+            if port2 != "Speaker" {
-+                print("[CallKit-Swift] ⚠️ NOT on speaker (\(port2)), forcing AGAIN...")
-+                try audioSession.overrideOutputAudioPort(.speaker)
++            // 4️⃣ FOURTH override via audioQueue again
++            self.audioQueue.sync {
++                do {
++                    try audioSession.overrideOutputAudioPort(.speaker)
++                } catch {}
 +            }
 +            
-+            // Final route verification
++            // 5️⃣ Final route verification
 +            let finalRoute = audioSession.currentRoute
 +            let finalPort = finalRoute.outputs.first?.portType.rawValue ?? "unknown"
 +            let finalName = finalRoute.outputs.first?.portName ?? "unknown"
@@ -396,7 +407,9 @@ index 1234567..abcdefg 100644
 +                "outputPort": finalPort,
 +                "outputName": finalName,
 +                "isSpeaker": finalPort == "Speaker",
-+                "overrideCount": port2 != "Speaker" ? 3 : 2
++                "overrideCount": 4,
++                "category": "playAndRecord",
++                "mode": "voiceChat"
 +            ])
 +            
 +            // Log duration
@@ -433,6 +446,26 @@ index 1234567..abcdefg 100644
 +            // PLAY TTS
 +            let didPlay = audioPlayer?.play() ?? false
 +            print("[CallKit-Swift] ▶️ TTS play() returned: \(didPlay)")
++            
++            // 6️⃣ DELAYED OVERRIDE: Force speaker AFTER playback starts
++            // This catches any CallKit resets that happen during play() initialization
++            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
++                do {
++                    let session = AVAudioSession.sharedInstance()
++                    try session.overrideOutputAudioPort(.speaker)
++                    let delayedRoute = session.currentRoute
++                    let delayedPort = delayedRoute.outputs.first?.portType.rawValue ?? "unknown"
++                    print("[CallKit-Swift] 🔊 DELAYED speaker override (300ms): \(delayedPort)")
++                    
++                    self?.notifyListeners("debug", data: [
++                        "stage": "tts_delayed_override",
++                        "outputPort": delayedPort,
++                        "isSpeaker": delayedPort == "Speaker"
++                    ])
++                } catch {
++                    print("[CallKit-Swift] ❌ Delayed override failed: \(error)")
++                }
++            }
 +            
 +            // Final summary
 +            print("[CallKit-Swift] ====== TTS PLAYBACK SUMMARY ======")
@@ -556,9 +589,29 @@ index 1234567..abcdefg 100644
          action.fulfill()
      }
 +    
-+    // Handle audio session activation - CRITICAL for keeping call alive
++    // Handle audio session activation - CRITICAL for speaker and keeping call alive
 +    public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-+        print("[CallKit-Swift] 🔊 Audio session activated by CallKit")
++        print("[CallKit-Swift] 🔊 Audio session activated by CallKit - FORCING SPEAKER")
++        
++        // 🔊 FORCE SPEAKER IMMEDIATELY when CallKit activates audio session
++        // This is the CORRECT moment to configure audio - CallKit has given us control
++        do {
++            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.overrideOutputAudioPort(.speaker)
++            
++            let route = audioSession.currentRoute
++            let port = route.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] ✅ Speaker forced in didActivate: \(port)")
++            
++            notifyListeners("debug", data: [
++                "stage": "didActivate_speaker_forced",
++                "outputPort": port,
++                "isSpeaker": port == "Speaker"
++            ])
++        } catch {
++            print("[CallKit-Swift] ❌ Failed to force speaker in didActivate: \(error)")
++        }
++        
 +        // Start silence anchor here as backup
 +        if silencePlayer == nil {
 +            startSilenceAnchor()
