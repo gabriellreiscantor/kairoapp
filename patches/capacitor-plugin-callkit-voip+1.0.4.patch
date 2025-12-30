@@ -343,44 +343,69 @@ index 1234567..abcdefg 100644
 +            audioPlayer = nil
 +            stopSilenceAnchor()
 +            
-+            // Configure audio session - REMOVED .allowBluetooth to prioritize speaker
++            // ========== AUDIO SESSION FOR MAXIMUM VOLUME ==========
++            // Use .playback + .default instead of .playAndRecord + .voiceChat
++            // This allows FULL volume output (voiceChat limits volume for ear safety)
 +            let audioSession = AVAudioSession.sharedInstance()
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
++            
++            // 1️⃣ FIRST override: Configure for playback with maximum volume
++            try audioSession.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
 +            try audioSession.setActive(true)
-+            // FORCE speaker output - critical for TTS to be heard
 +            try audioSession.overrideOutputAudioPort(.speaker)
 +            
-+            // 4️⃣ Log rota de áudio ANTES de tocar
-+            let route = audioSession.currentRoute
-+            let outputPort = route.outputs.first?.portType.rawValue ?? "unknown"
-+            let outputName = route.outputs.first?.portName ?? "unknown"
-+            print("[CallKit-Swift] 🔈 Audio route outputs: \(route.outputs)")
-+            for output in route.outputs {
++            print("[CallKit-Swift] 🔊 Audio session configured: .playback + .default + speaker")
++            
++            // Log initial route
++            let route1 = audioSession.currentRoute
++            let port1 = route1.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] 🔈 Initial route after 1st override: \(port1)")
++            
++            // Create audio player FIRST
++            audioPlayer = try AVAudioPlayer(data: audioData)
++            audioPlayer?.delegate = self
++            audioPlayer?.volume = 1.0
++            audioPlayer?.enableRate = false
++            audioPlayer?.prepareToPlay()
++            
++            // 2️⃣ SECOND override AFTER creating player (iOS can reset route)
++            try audioSession.overrideOutputAudioPort(.speaker)
++            
++            // Log route after creating player
++            let route2 = audioSession.currentRoute
++            let port2 = route2.outputs.first?.portType.rawValue ?? "unknown"
++            print("[CallKit-Swift] 🔈 Route after 2nd override (post-player): \(port2)")
++            
++            // 3️⃣ THIRD override just to be absolutely sure
++            if port2 != "Speaker" {
++                print("[CallKit-Swift] ⚠️ NOT on speaker (\(port2)), forcing AGAIN...")
++                try audioSession.overrideOutputAudioPort(.speaker)
++            }
++            
++            // Final route verification
++            let finalRoute = audioSession.currentRoute
++            let finalPort = finalRoute.outputs.first?.portType.rawValue ?? "unknown"
++            let finalName = finalRoute.outputs.first?.portName ?? "unknown"
++            
++            print("[CallKit-Swift] 🔈 FINAL audio route: \(finalPort) (\(finalName))")
++            for output in finalRoute.outputs {
 +                print("[CallKit-Swift] 🔈 Output: \(output.portName) (\(output.portType.rawValue))")
 +            }
++            
 +            notifyListeners("debug", data: [
-+                "stage": "swift_route",
-+                "outputPort": outputPort,
-+                "outputName": outputName
++                "stage": "audio_route_verification",
++                "outputPort": finalPort,
++                "outputName": finalName,
++                "isSpeaker": finalPort == "Speaker",
++                "overrideCount": port2 != "Speaker" ? 3 : 2
 +            ])
 +            
-+            // Create and play audio
-+            audioPlayer = try AVAudioPlayer(data: audioData)
-+            
-+            // 5️⃣ Set delegate para capturar erros
-+            audioPlayer?.delegate = self
-+            
-+            // 2️⃣ Log duração do áudio
++            // Log duration
 +            let duration = audioPlayer?.duration ?? -1
 +            print("[CallKit-Swift] ⏱️ TTS audio duration: \(duration) seconds")
 +            notifyListeners("debug", data: [
 +                "stage": "tts_player_created",
 +                "duration": duration
 +            ])
-+            
-+            audioPlayer?.volume = 1.0  // Maximum volume
-+            audioPlayer?.enableRate = false  // No rate distortion
-+            audioPlayer?.prepareToPlay()
 +            
 +            // 🔊 FORCE SYSTEM VOLUME TO MAXIMUM
 +            let currentSystemVolume = audioSession.outputVolume
@@ -405,24 +430,29 @@ index 1234567..abcdefg 100644
 +            // Small delay to ensure volume is set before playing
 +            Thread.sleep(forTimeInterval: 0.1)
 +            
-+            // 3️⃣ Capturar retorno do play()
++            // PLAY TTS
 +            let didPlay = audioPlayer?.play() ?? false
 +            print("[CallKit-Swift] ▶️ TTS play() returned: \(didPlay)")
 +            
-+            // 7️⃣ Confirmação final
++            // Final summary
 +            print("[CallKit-Swift] ====== TTS PLAYBACK SUMMARY ======")
 +            print("[CallKit-Swift] playTTSAudio CALLED: ✅")
 +            print("[CallKit-Swift] play() returned: \(didPlay)")
-+            print("[CallKit-Swift] audio route: \(outputPort)")
++            print("[CallKit-Swift] audio route: \(finalPort)")
++            print("[CallKit-Swift] isSpeaker: \(finalPort == "Speaker")")
 +            print("[CallKit-Swift] duration: \(duration)s")
++            print("[CallKit-Swift] systemVolume: \(currentSystemVolume)")
++            print("[CallKit-Swift] playerVolume: \(audioPlayer?.volume ?? -1)")
 +            print("[CallKit-Swift] ===================================")
 +            
 +            notifyListeners("debug", data: [
 +                "stage": "swift_play_result",
 +                "didPlay": didPlay,
 +                "duration": duration,
-+                "volume": audioPlayer?.volume ?? -1,
-+                "outputPort": outputPort
++                "playerVolume": audioPlayer?.volume ?? -1,
++                "systemVolume": currentSystemVolume,
++                "outputPort": finalPort,
++                "isSpeaker": finalPort == "Speaker"
 +            ])
 +            
 +            call.resolve(["playing": didPlay, "duration": duration])
