@@ -417,7 +417,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           const ttsStages = [
             'tts_play_called', 'tts_silence_check', 'tts_audio_decoded', 
             'tts_audio_session_ready', 'tts_player_created', 'tts_play_result', 
-            'tts_finished', 'tts_decode_error', 'tts_exception'
+            'tts_finished', 'tts_decode_error', 'tts_exception',
+            // Speaker/audio route verification stages
+            'audio_route_verification', 'system_volume_before', 'swift_play_result',
+            'force_speaker_result', 'swift_playTTSAudio_called', 'didActivate_speaker_forced',
+            'swift_audio_decoded', 'tts_error', 'tts_delayed_override'
           ];
           
           if (ttsStages.includes(data.stage)) {
