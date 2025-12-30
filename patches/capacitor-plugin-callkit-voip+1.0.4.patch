@@ -29,6 +29,7 @@ index 1234567..abcdefg 100644
  import CallKit
  import PushKit
 +import AVFoundation
++import MediaPlayer
  
  /**
   *  CallKit Voip Plugin provides native PushKit functionality with apple CallKit to capacitor
@@ -380,6 +381,29 @@ index 1234567..abcdefg 100644
 +            audioPlayer?.volume = 1.0  // Maximum volume
 +            audioPlayer?.enableRate = false  // No rate distortion
 +            audioPlayer?.prepareToPlay()
++            
++            // 🔊 FORCE SYSTEM VOLUME TO MAXIMUM
++            let currentSystemVolume = audioSession.outputVolume
++            print("[CallKit-Swift] 📢 System volume BEFORE: \(currentSystemVolume)")
++            notifyListeners("debug", data: [
++                "stage": "system_volume_before",
++                "volume": currentSystemVolume
++            ])
++            
++            // Use MPVolumeView to set system volume to maximum
++            DispatchQueue.main.async {
++                let volumeView = MPVolumeView()
++                if let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider {
++                    print("[CallKit-Swift] 📢 Found volume slider, setting to 1.0")
++                    slider.setValue(1.0, animated: false)
++                    print("[CallKit-Swift] 📢 System volume FORCED to: 1.0")
++                } else {
++                    print("[CallKit-Swift] ⚠️ Could not find volume slider in MPVolumeView")
++                }
++            }
++            
++            // Small delay to ensure volume is set before playing
++            Thread.sleep(forTimeInterval: 0.1)
 +            
 +            // 3️⃣ Capturar retorno do play()
 +            let didPlay = audioPlayer?.play() ?? false
