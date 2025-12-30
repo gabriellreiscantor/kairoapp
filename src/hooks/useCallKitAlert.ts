@@ -11,6 +11,7 @@ interface CallKitEvent {
   emoji?: string;
   time?: string;
   location?: string;
+  language?: string; // Language for TTS (from event/push payload)
 }
 
 interface UseCallKitAlertReturn {
@@ -64,6 +65,7 @@ const preloadedTTSRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
   const safetyTimeoutRef = useRef<number | null>(null);
   const deviceIdRef = useRef<string | null>(null);
+  const isAnswerFlowRunningRef = useRef<boolean>(false); // Protection against race condition: callAnswered before callStarted
 
   // Sync currentEvent to ref
   useEffect(() => {
@@ -83,6 +85,7 @@ const preloadedTTSRef = useRef<string | null>(null);
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
     lastTTSLanguageRef.current = null;
+    isAnswerFlowRunningRef.current = false;
     
     if (audioRef.current) {
       try {
@@ -521,109 +524,146 @@ const preloadedTTSRef = useRef<string | null>(null);
         });
         
         CallKitVoip.addListener('callAnswered', async (data: any) => {
-          const receivedAt = new Date().toISOString();
-          console.log('[CallKit] ====== CALL ANSWERED EVENT RECEIVED ======');
-          console.log('[CallKit] Received at:', receivedAt);
-          console.log('[CallKit] Full data:', JSON.stringify(data, null, 2));
+          // RACE CONDITION PROTECTION: Signal that answer flow is running
+          isAnswerFlowRunningRef.current = true;
           
-          remoteLog.info('voip', 'call_answered_received', {
-            receivedAt,
-            eventId: data?.eventId || data?.id,
-            eventTitle: data?.eventTitle || data?.name,
-            connectionId: data?.connectionId,
-            preloadedTTSAvailable: !!preloadedTTSRef.current,
-            preloadingInProgress: !!preloadingTTSRef.current,
-            hasCurrentEvent: !!currentEventRef.current,
-            rawDataKeys: Object.keys(data || {}).join(','),
-          });
-          
-          // Step 1: Configure audio session for TTS playback during active call
-          console.log('[CallKit] Step 1: Configuring audio session...');
           try {
-            if ((CallKitVoip as any).configureAudioSession) {
-              const audioResult = await (CallKitVoip as any).configureAudioSession();
-              console.log('[CallKit] Audio session result:', audioResult);
-              remoteLog.info('voip', 'audio_session_configured', { result: audioResult });
-            } else {
-              console.log('[CallKit] configureAudioSession not available');
-              remoteLog.warn('voip', 'configure_audio_session_not_available');
-            }
-          } catch (e) {
-            console.log('[CallKit] configureAudioSession error:', e);
-            remoteLog.error('voip', 'configure_audio_session_error', { 
-              error: e instanceof Error ? e.message : String(e) 
+            const receivedAt = new Date().toISOString();
+            console.log('[CallKit] ====== CALL ANSWERED EVENT RECEIVED ======');
+            console.log('[CallKit] Received at:', receivedAt);
+            console.log('[CallKit] Full data:', JSON.stringify(data, null, 2));
+            
+            remoteLog.info('voip', 'call_answered_received', {
+              receivedAt,
+              eventId: data?.eventId || data?.id,
+              eventTitle: data?.eventTitle || data?.name,
+              connectionId: data?.connectionId,
+              preloadedTTSAvailable: !!preloadedTTSRef.current,
+              preloadingInProgress: !!preloadingTTSRef.current,
+              hasCurrentEvent: !!currentEventRef.current,
+              rawDataKeys: Object.keys(data || {}).join(','),
             });
-          }
-          
-          // Step 2: Determine which event to play TTS for
-          console.log('[CallKit] Step 2: Determining event to play...');
-          let eventToPlay: CallKitEvent | null = null;
-          
-          if (data?.eventId || data?.eventTitle || data?.name || data?.id) {
-            const eventTime = data.eventTime || data.time || data.duration || '';
-            eventToPlay = {
-              id: data.eventId || data.id || data.connectionId || 'call-event',
-              title: data.eventTitle || data.name || 'Evento',
-              emoji: data.eventEmoji || '📅',
-              time: eventTime,
-              location: data.eventLocation || data.location || '',
-            };
-            console.log('[CallKit] Event from payload:', eventToPlay);
-            setCurrentEvent(eventToPlay);
-          } else {
-            eventToPlay = currentEventRef.current;
-            console.log('[CallKit] Using currentEventRef:', eventToPlay);
-          }
-          
-          remoteLog.info('voip', 'call_answered_event_resolved', {
-            eventId: eventToPlay?.id,
-            eventTitle: eventToPlay?.title,
-            source: (data?.eventId || data?.name) ? 'payload' : 'currentEventRef',
-          });
-          
-          if (eventToPlay) {
-            // Step 3: Save call answered to database
-            console.log('[CallKit] Step 3: Saving call answered to database...');
-            if (eventToPlay.id && eventToPlay.id !== 'call-event') {
-              try {
-                await supabase
-                  .from('events')
-                  .update({ 
-                    call_alert_answered: true,
-                    call_alert_answered_at: new Date().toISOString(),
-                    call_alert_outcome: 'answered'
-                  })
-                  .eq('id', eventToPlay.id);
-                console.log('[CallKit] Database updated successfully');
-                remoteLog.info('voip', 'call_answered_db_saved', { eventId: eventToPlay.id });
-              } catch (e) {
-                console.error('[CallKit] Error saving call answered:', e);
-                remoteLog.error('voip', 'call_answered_db_error', { 
-                  error: e instanceof Error ? e.message : String(e) 
-                });
+            
+            // Step 1: Configure audio session for TTS playback during active call
+            console.log('[CallKit] Step 1: Configuring audio session...');
+            try {
+              if ((CallKitVoip as any).configureAudioSession) {
+                const audioResult = await (CallKitVoip as any).configureAudioSession();
+                console.log('[CallKit] Audio session result:', audioResult);
+                remoteLog.info('voip', 'audio_session_configured', { result: audioResult });
+              } else {
+                console.log('[CallKit] configureAudioSession not available');
+                remoteLog.warn('voip', 'configure_audio_session_not_available');
               }
+            } catch (e) {
+              console.log('[CallKit] configureAudioSession error:', e);
+              remoteLog.error('voip', 'configure_audio_session_error', { 
+                error: e instanceof Error ? e.message : String(e) 
+              });
             }
             
-            // Step 4: Delay to ensure audio session is ready (700ms is optimal for CallKit)
-            console.log('[CallKit] Step 4: Waiting 700ms for audio session...');
-            await new Promise(resolve => setTimeout(resolve, 700));
+            // Step 2: Determine which event to play TTS for
+            console.log('[CallKit] Step 2: Determining event to play...');
+            let eventToPlay: CallKitEvent | null = null;
             
-            // Step 5: Play TTS on native screen
-            console.log('[CallKit] Step 5: Playing TTS on native screen...');
-            remoteLog.info('voip', 'call_answered_playing_tts', { 
-              eventId: eventToPlay.id,
-              eventTitle: eventToPlay.title,
+            // Extract language from payload (priority) or use stored ref
+            const pushLanguage = data?.language;
+            const eventLanguage = normalizeLanguage(pushLanguage || currentLanguageRef.current);
+            
+            if (data?.eventId || data?.eventTitle || data?.name || data?.id) {
+              const eventTime = data.eventTime || data.time || data.duration || '';
+              eventToPlay = {
+                id: data.eventId || data.id || data.connectionId || 'call-event',
+                title: data.eventTitle || data.name || 'Evento',
+                emoji: data.eventEmoji || '📅',
+                time: eventTime,
+                location: data.eventLocation || data.location || '',
+                language: eventLanguage, // Include language in event
+              };
+              console.log('[CallKit] Event from payload:', eventToPlay);
+              setCurrentEvent(eventToPlay);
+            } else {
+              eventToPlay = currentEventRef.current ? { ...currentEventRef.current, language: eventLanguage } : null;
+              console.log('[CallKit] Using currentEventRef:', eventToPlay);
+            }
+            
+            remoteLog.info('voip', 'call_answered_event_resolved', {
+              eventId: eventToPlay?.id,
+              eventTitle: eventToPlay?.title,
+              eventLanguage,
+              source: (data?.eventId || data?.name) ? 'payload' : 'currentEventRef',
             });
             
-            await playTTS(eventToPlay);
-            
-            console.log('[CallKit] ====== TTS PLAYBACK INITIATED ======');
-          } else {
-            console.log('[CallKit] ⚠️ No event to play TTS for!');
-            remoteLog.warn('voip', 'call_answered_no_event', {
-              hasCurrentEventRef: !!currentEventRef.current,
-              payloadKeys: Object.keys(data || {}).join(','),
-            });
+            if (eventToPlay) {
+              // Step 3: Save call answered to database
+              console.log('[CallKit] Step 3: Saving call answered to database...');
+              if (eventToPlay.id && eventToPlay.id !== 'call-event') {
+                try {
+                  await supabase
+                    .from('events')
+                    .update({ 
+                      call_alert_answered: true,
+                      call_alert_answered_at: new Date().toISOString(),
+                      call_alert_outcome: 'answered'
+                    })
+                    .eq('id', eventToPlay.id);
+                  console.log('[CallKit] Database updated successfully');
+                  remoteLog.info('voip', 'call_answered_db_saved', { eventId: eventToPlay.id });
+                } catch (e) {
+                  console.error('[CallKit] Error saving call answered:', e);
+                  remoteLog.error('voip', 'call_answered_db_error', { 
+                    error: e instanceof Error ? e.message : String(e) 
+                  });
+                }
+              }
+              
+              // Step 4: Delay to ensure audio session is ready (700ms is optimal for CallKit)
+              console.log('[CallKit] Step 4: Waiting 700ms for audio session...');
+              await new Promise(resolve => setTimeout(resolve, 700));
+              
+              // Step 5: GUARANTEE TTS audio before playing
+              console.log('[CallKit] Step 5: Ensuring TTS audio is available...');
+              remoteLog.info('voip', 'call_answered_ensuring_tts', { 
+                eventId: eventToPlay.id,
+                eventTitle: eventToPlay.title,
+                language: eventLanguage,
+              });
+              
+              const audioBase64 = await ensureTTSBase64(eventToPlay);
+              
+              if (audioBase64) {
+                console.log('[CallKit] ✅ Audio guaranteed, initiating playback...');
+                remoteLog.info('voip', 'call_answered_audio_guaranteed', {
+                  audioLength: audioBase64.length,
+                  language: eventLanguage,
+                });
+                
+                // Save to ref for playTTS to use
+                preloadedTTSRef.current = audioBase64;
+                lastTTSLanguageRef.current = eventLanguage;
+                
+                await playTTS(eventToPlay);
+              } else {
+                console.error('[CallKit] ❌ CRITICAL: No audio available!');
+                remoteLog.error('voip', 'call_answered_no_audio_critical', {
+                  eventId: eventToPlay.id,
+                });
+                
+                // Still call playTTS - it will log the error and end the call gracefully
+                await playTTS(eventToPlay);
+              }
+              
+              console.log('[CallKit] ====== TTS PLAYBACK INITIATED ======');
+            } else {
+              console.log('[CallKit] ⚠️ No event to play TTS for!');
+              remoteLog.warn('voip', 'call_answered_no_event', {
+                hasCurrentEventRef: !!currentEventRef.current,
+                payloadKeys: Object.keys(data || {}).join(','),
+              });
+            }
+          } finally {
+            // ALWAYS clear the flag, even on errors
+            isAnswerFlowRunningRef.current = false;
           }
         });
         
@@ -641,26 +681,36 @@ const preloadedTTSRef = useRef<string | null>(null);
             eventId: data?.eventId,
             eventTitle: data?.eventTitle,
             eventTime: data?.eventTime,
+            isAnswerFlowRunning: isAnswerFlowRunningRef.current,
           });
           
-          // Cleanup previous call state
-          isCallingTTSRef.current = false;
-          preloadedTTSRef.current = null;
-          preloadingTTSRef.current = null;
-          
-          if (audioRef.current) {
-            try {
-              audioRef.current.pause();
-              audioRef.current.src = '';
-              audioRef.current.load();
-            } catch (e) {}
-            audioRef.current = null;
-          }
-          
-          if (callKitPluginRef.current?.stopTTSAudio) {
-            try {
-              await callKitPluginRef.current.stopTTSAudio();
-            } catch (e) {}
+          // RACE CONDITION PROTECTION: If callAnswered is already running, DON'T cleanup state!
+          if (isAnswerFlowRunningRef.current) {
+            console.log('[CallKit] ⚠️ RACE CONDITION DETECTED: callAnswered already running, skipping cleanup');
+            remoteLog.warn('voip', 'race_condition_detected_skipping_cleanup', {
+              receivedAt,
+            });
+            // Only set safety timeout, don't touch TTS refs
+          } else {
+            // Normal cleanup - only when callAnswered is NOT running
+            isCallingTTSRef.current = false;
+            preloadedTTSRef.current = null;
+            preloadingTTSRef.current = null;
+            
+            if (audioRef.current) {
+              try {
+                audioRef.current.pause();
+                audioRef.current.src = '';
+                audioRef.current.load();
+              } catch (e) {}
+              audioRef.current = null;
+            }
+            
+            if (callKitPluginRef.current?.stopTTSAudio) {
+              try {
+                await callKitPluginRef.current.stopTTSAudio();
+              } catch (e) {}
+            }
           }
           
           if (safetyTimeoutRef.current) {
@@ -698,12 +748,13 @@ const preloadedTTSRef = useRef<string | null>(null);
           currentLanguageRef.current = finalLanguage;
           
           if (eventId || eventTitle) {
-            const eventData = {
+            const eventData: CallKitEvent = {
               id: eventId || 'call-event',
               title: eventTitle,
               emoji: data?.eventEmoji || '📅',
               time: eventTime,
               location: data?.eventLocation || '',
+              language: finalLanguage, // Include language in event for TTS
             };
             setCurrentEvent(eventData);
             currentEventRef.current = eventData;
@@ -892,6 +943,7 @@ const preloadedTTSRef = useRef<string | null>(null);
       lastTTSLanguageRef.current = null;
       currentEventRef.current = null;
       isCallingTTSRef.current = false;
+      isAnswerFlowRunningRef.current = false;
       
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current);
@@ -1127,6 +1179,108 @@ const preloadedTTSRef = useRef<string | null>(null);
     }
   }, []);
 
+  // RACE CONDITION FIX: Guarantee TTS audio regardless of event order
+  // Priority: 1) Preloaded (correct lang) 2) Await preloading promise 3) On-demand fallback
+  const ensureTTSBase64 = useCallback(async (event: CallKitEvent): Promise<string | null> => {
+    const eventLang = normalizeLanguage(event.language || currentLanguageRef.current);
+    
+    console.log('[CallKit] ensureTTSBase64 - checking options...');
+    console.log('[CallKit] Event language:', eventLang);
+    console.log('[CallKit] Preloaded TTS:', !!preloadedTTSRef.current);
+    console.log('[CallKit] Preloaded lang:', lastTTSLanguageRef.current);
+    console.log('[CallKit] Preloading promise:', !!preloadingTTSRef.current);
+    
+    remoteLog.info('voip', 'ensure_tts_start', {
+      eventLang,
+      hasPreloaded: !!preloadedTTSRef.current,
+      preloadedLang: lastTTSLanguageRef.current,
+      hasPreloadingPromise: !!preloadingTTSRef.current,
+    });
+    
+    // OPTION 1: Preload exists AND language matches
+    if (preloadedTTSRef.current && lastTTSLanguageRef.current === eventLang) {
+      console.log('[CallKit] ✅ Using preloaded TTS (correct language)');
+      remoteLog.info('voip', 'ensure_tts_using_preload');
+      return preloadedTTSRef.current;
+    }
+    
+    // OPTION 2: Preloading promise in progress - await with timeout
+    if (preloadingTTSRef.current) {
+      console.log('[CallKit] ⏳ Awaiting preload promise (4s timeout)...');
+      remoteLog.info('voip', 'ensure_tts_awaiting_promise');
+      
+      try {
+        const audio = await Promise.race([
+          preloadingTTSRef.current,
+          new Promise<null>((_, reject) => 
+            setTimeout(() => reject(new Error('Preload timeout')), 4000)
+          )
+        ]);
+        
+        // Verify language matches
+        if (audio && lastTTSLanguageRef.current === eventLang) {
+          console.log('[CallKit] ✅ Preload promise resolved with correct language');
+          remoteLog.info('voip', 'ensure_tts_promise_success');
+          return audio;
+        } else if (audio) {
+          console.log('[CallKit] ⚠️ Preload promise resolved but wrong language, discarding');
+          remoteLog.warn('voip', 'ensure_tts_promise_wrong_lang', {
+            preloadedLang: lastTTSLanguageRef.current,
+            expectedLang: eventLang,
+          });
+        }
+      } catch (e) {
+        console.log('[CallKit] ⚠️ Preload promise timeout or error:', e);
+        remoteLog.warn('voip', 'ensure_tts_promise_timeout');
+      }
+    }
+    
+    // OPTION 3: FALLBACK ON-DEMAND - Generate TTS now
+    console.log('[CallKit] 📥 FALLBACK: Generating TTS on-demand...');
+    remoteLog.info('voip', 'ensure_tts_fallback_on_demand', {
+      eventId: event.id,
+      titulo: event.title,
+      language: eventLang,
+    });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
+          titulo: event.title,
+          hora: event.time || '',
+          language: eventLang, // Use EVENT language
+        }
+      });
+      
+      if (!error && data?.audioContent) {
+        console.log('[CallKit] ✅ TTS on-demand generated:', data.audioContent.length, 'bytes');
+        
+        // Save for potential reuse
+        preloadedTTSRef.current = data.audioContent;
+        lastTTSLanguageRef.current = eventLang;
+        
+        remoteLog.info('voip', 'ensure_tts_fallback_success', {
+          audioLength: data.audioContent.length,
+          language: eventLang,
+        });
+        
+        return data.audioContent;
+      }
+      
+      console.error('[CallKit] ❌ TTS on-demand failed:', error);
+      remoteLog.error('voip', 'ensure_tts_fallback_error', { error: error?.message });
+    } catch (e) {
+      console.error('[CallKit] ❌ TTS on-demand exception:', e);
+      remoteLog.error('voip', 'ensure_tts_fallback_exception', {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+    
+    // All options failed
+    remoteLog.error('voip', 'ensure_tts_all_failed');
+    return null;
+  }, []);
+
   // Cleanup call state
   const cleanupCall = useCallback(() => {
     if (safetyTimeoutRef.current) {
@@ -1137,6 +1291,7 @@ const preloadedTTSRef = useRef<string | null>(null);
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
     lastTTSLanguageRef.current = null;
+    isAnswerFlowRunningRef.current = false;
     
     if (audioRef.current) {
       try {
