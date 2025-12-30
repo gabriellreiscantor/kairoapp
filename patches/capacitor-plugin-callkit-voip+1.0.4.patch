@@ -337,9 +337,14 @@ index 1234567..abcdefg 100644
 +        ])
 +        
 +        do {
-+            // Configure audio session
++            // 🔇 CLEANUP: Ensure previous players are completely stopped
++            audioPlayer?.stop()
++            audioPlayer = nil
++            stopSilenceAnchor()
++            
++            // Configure audio session - REMOVED .allowBluetooth to prioritize speaker
 +            let audioSession = AVAudioSession.sharedInstance()
-+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
++            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
 +            try audioSession.setActive(true)
 +            // FORCE speaker output - critical for TTS to be heard
 +            try audioSession.overrideOutputAudioPort(.speaker)
@@ -373,6 +378,7 @@ index 1234567..abcdefg 100644
 +            ])
 +            
 +            audioPlayer?.volume = 1.0  // Maximum volume
++            audioPlayer?.enableRate = false  // No rate distortion
 +            audioPlayer?.prepareToPlay()
 +            
 +            // 3️⃣ Capturar retorno do play()

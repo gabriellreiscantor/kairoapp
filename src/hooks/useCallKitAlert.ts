@@ -583,9 +583,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               }
             }
             
-            // Step 4: Small delay to ensure audio session is ready
-            console.log('[CallKit] Step 4: Waiting 500ms for audio session...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Step 4: Delay to ensure audio session is ready (700ms is optimal for CallKit)
+            console.log('[CallKit] Step 4: Waiting 700ms for audio session...');
+            await new Promise(resolve => setTimeout(resolve, 700));
             
             // Step 5: Play TTS on native screen
             console.log('[CallKit] Step 5: Playing TTS on native screen...');
@@ -1285,8 +1285,12 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                   window.addEventListener('horah:tts-finished', onTTSFinished);
                 });
                 
-                // End call after TTS finishes
-                console.log('[CallKit] TTS finished, ending call...');
+                // Buffer before ending call (gives user time to process the message)
+                console.log('[CallKit] TTS finished, waiting 1.5s buffer before ending call...');
+                remoteLog.info('voip', 'tts_finished_buffer_start');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                console.log('[CallKit] Buffer complete, ending call...');
                 await endCallAndCleanup();
                 
                 return true;
