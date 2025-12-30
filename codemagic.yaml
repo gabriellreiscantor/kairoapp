@@ -50,8 +50,11 @@ workflows:
               private var callController = CXCallController()
               private var currentCallUUID: UUID?
               private var silencePlayer: AVAudioPlayer?
-              private var currentEventData: [String: Any] = [:]  // Store event data for TTS
-              private var voipRegistry: PKPushRegistry?  // MUST be class property to prevent ARC deallocation
+              private var currentEventData: [String: Any] = [:]
+              private var voipRegistry: PKPushRegistry?
+              
+              // TTS Media Player - plays OUTSIDE CallKit context
+              private var ttsMediaPlayer: AVAudioPlayer?
               
               @objc override public func load() {
                   let config = CXProviderConfiguration(localizedName: "Kairo")
@@ -64,73 +67,9 @@ workflows:
                   provider = CXProvider(configuration: config)
                   provider?.setDelegate(self, queue: nil)
                   
-                  // VoIP registry MUST be stored as class property to keep it alive
                   voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
                   voipRegistry?.delegate = self
                   voipRegistry?.desiredPushTypes = [.voIP]
-              }
-              
-              // Start audio anchor - plays silence.caf in loop to keep call alive
-              // Returns tuple with (found, started) for debugging
-              private func startAudioAnchor() -> (found: Bool, started: Bool) {
-                  var silenceFound = false
-                  var silenceStarted = false
-                  
-                  do {
-                      let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-                      try session.setActive(true)
-                      print("[CallKit] Audio session activated for anchor")
-                      
-                      // Debug: list bundle resources
-                      var cafFiles: [String] = []
-                      if let resourcePath = Bundle.main.resourcePath {
-                          let files = try? FileManager.default.contentsOfDirectory(atPath: resourcePath)
-                          cafFiles = files?.filter { $0.hasSuffix(".caf") } ?? []
-                          print("[CallKit] CAF files in bundle: \(cafFiles)")
-                      }
-                      
-                      // Play silence.caf in infinite loop to keep call anchored
-                      if let url = Bundle.main.url(forResource: "silence", withExtension: "caf") {
-                          print("[CallKit] Found silence.caf at: \(url.path)")
-                          silenceFound = true
-                          silencePlayer = try AVAudioPlayer(contentsOf: url)
-                          silencePlayer?.numberOfLoops = -1  // Infinite loop
-                          silencePlayer?.volume = 0.01  // Almost inaudible
-                          silenceStarted = silencePlayer?.play() ?? false
-                          print("[CallKit] Silence audio anchor started: \(silenceStarted)")
-                      } else {
-                          print("[CallKit] ❌ silence.caf NOT found in bundle!")
-                          silenceFound = false
-                      }
-                  } catch {
-                      print("[CallKit] Failed to start audio anchor: \(error)")
-                  }
-                  
-                  return (silenceFound, silenceStarted)
-              }
-              
-              // Stop audio anchor
-              private func stopAudioAnchor() {
-                  silencePlayer?.stop()
-                  silencePlayer = nil
-                  print("[CallKit] Silence audio anchor stopped")
-              }
-              
-              // Configure audio session for TTS playback during call
-              // CRITICAL: Use .spokenAudio mode consistently (same as playTTSAudio)
-              // Do NOT use .voiceChat as it conflicts with TTS playback
-              private func configureAudioSession() {
-                  do {
-                      let session = AVAudioSession.sharedInstance()
-                      // Use same config as playTTSAudio for consistency
-                      try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothA2DP, .duckOthers])
-                      try session.setActive(true)
-                      try session.overrideOutputAudioPort(.speaker)  // Force speaker for maximum volume
-                      print("[CallKit] ✅ Audio session configured with .spokenAudio mode for TTS")
-                  } catch {
-                      print("[CallKit] ❌ Failed to configure audio session: \(error)")
-                  }
               }
               
               // MARK: - PKPushRegistryDelegate
@@ -145,40 +84,27 @@ workflows:
                   print("[CallKit] ====== VOIP PUSH RECEIVED ======")
                   print("[CallKit] Full payload: \(payload.dictionaryPayload)")
                   
-                  // Extract payload data for debugging
                   let payloadId = payload.dictionaryPayload["id"] as? String ?? "NIL"
                   let payloadName = payload.dictionaryPayload["name"] as? String ?? "NIL"
                   
-                  // DEBUG EVENT 1: Push received - sends to JavaScript
                   notifyListeners("debug", data: [
                       "stage": "push_received",
                       "payload_id": payloadId,
-                      "payload_name": payloadName,
-                      "payload_full": String(describing: payload.dictionaryPayload)
+                      "payload_name": payloadName
                   ])
                   
-                  // FIX CALL CURTA: Never fail just because ID is not a valid UUID
-                  // Generate a new UUID if the provided one is invalid
                   let idString = payload.dictionaryPayload["id"] as? String ?? ""
                   let callUUID = UUID(uuidString: idString) ?? UUID()
-                  print("[CallKit] Using UUID: \(callUUID.uuidString) (original id: '\(idString)')")
                   
-                  // FIX UNKNOWN: Separate displayName and handleValue
-                  // displayName = full name with emoji (for localizedCallerName display)
-                  // handleValue = fixed "Kairo" (iOS CXHandle doesn't like emojis)
                   let rawName = payload.dictionaryPayload["name"] as? String ?? ""
                   let displayName = rawName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
                       ? "Lembrete Kairo" 
                       : rawName
-                  let handleValue = "Kairo"  // Fixed handle - no emoji!
+                  let handleValue = "Kairo"
                   
-                  print("[CallKit] displayName: '\(displayName)' | handleValue: '\(handleValue)'")
-                  
-                  // ✅ MULTILINGUAL TTS: Extract language from VoIP payload
                   let eventLanguage = payload.dictionaryPayload["language"] as? String ?? "pt-BR"
-                  print("[CallKit] Extracted language from VoIP payload: \(eventLanguage)")
+                  print("[CallKit] Extracted language: \(eventLanguage)")
                   
-                  // Store event data for TTS playback (including language!)
                   currentEventData = [
                       "eventId": idString,
                       "eventTitle": rawName,
@@ -186,25 +112,14 @@ workflows:
                       "eventTime": payload.dictionaryPayload["eventTime"] as? String ?? "",
                       "eventLocation": payload.dictionaryPayload["eventLocation"] as? String ?? "",
                       "name": displayName,
-                      "language": eventLanguage  // ✅ Pass language to JavaScript
+                      "language": eventLanguage
                   ]
-                  print("[CallKit] Stored event data with language: \(currentEventData)")
                   
                   currentCallUUID = callUUID
                   
-                  // Start audio anchor BEFORE reporting the call
-                  let anchorResult = startAudioAnchor()
-                  
-                  // DEBUG EVENT 2: Audio anchor status
-                  notifyListeners("debug", data: [
-                      "stage": "anchor_start",
-                      "silence_found": anchorResult.found,
-                      "silence_started": anchorResult.started
-                  ])
-                  
                   let update = CXCallUpdate()
-                  update.remoteHandle = CXHandle(type: .generic, value: handleValue)  // FIX: Fixed "Kairo" without emoji
-                  update.localizedCallerName = displayName  // FIX: Full name with emoji for display
+                  update.remoteHandle = CXHandle(type: .generic, value: handleValue)
+                  update.localizedCallerName = displayName
                   update.hasVideo = false
                   update.supportsHolding = false
                   update.supportsGrouping = false
@@ -212,23 +127,17 @@ workflows:
                   update.supportsDTMF = false
                   
                   provider?.reportNewIncomingCall(with: callUUID, update: update) { error in
-                      var errorMessage: String? = nil
-                      
                       if let error = error {
                           print("[CallKit] Failed to report incoming call: \(error)")
-                          errorMessage = error.localizedDescription
-                          self.stopAudioAnchor()
                       } else {
                           print("[CallKit] ✅ Incoming call reported successfully")
                       }
                       
-                      // DEBUG EVENT 3: Call reported - final status
                       self.notifyListeners("debug", data: [
                           "stage": "call_reported",
                           "displayName": displayName,
-                          "handleValue": handleValue,
                           "uuid": callUUID.uuidString,
-                          "error": errorMessage ?? "none"
+                          "error": error?.localizedDescription ?? "none"
                       ])
                       
                       completion()
@@ -243,44 +152,42 @@ workflows:
               
               public func providerDidReset(_ provider: CXProvider) {
                   print("[CallKit] Provider did reset")
-                  stopAudioAnchor()
                   currentCallUUID = nil
               }
               
               public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-                  print("[CallKit] Call answered")
+                  print("[CallKit] ====== CALL ANSWERED ======")
                   
-                  // Stop silence anchor before configuring for TTS
-                  stopAudioAnchor()
-                  
-                  // Configure audio session for TTS playback
-                  configureAudioSession()
-                  
-                  // Notify JavaScript that call was answered with event data for TTS
-                  // DO NOT end the call here - let JavaScript handle it after TTS
+                  // Notify JavaScript IMMEDIATELY with event data
                   if let uuid = currentCallUUID {
                       var answeredData = currentEventData
                       answeredData["id"] = uuid.uuidString
                       answeredData["connectionId"] = uuid.uuidString
-                      print("[CallKit] Sending callAnswered with data: \(answeredData)")
+                      print("[CallKit] Sending callAnswered with language: \(answeredData["language"] ?? "unknown")")
                       notifyListeners("callAnswered", data: answeredData)
                   }
                   
                   action.fulfill()
                   
-                  // Notify that call has started (audio connected) with event data
-                  var startedData = currentEventData
-                  startedData["id"] = currentCallUUID?.uuidString ?? ""
-                  startedData["connectionId"] = currentCallUUID?.uuidString ?? ""
-                  print("[CallKit] Sending callStarted with data: \(startedData)")
-                  notifyListeners("callStarted", data: startedData)
+                  // AUTO-END CallKit after 300ms - TTS plays as app media, not in call
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                      guard let self = self, let uuid = self.currentCallUUID else { return }
+                      print("[CallKit] Auto-ending CallKit session after 300ms")
+                      
+                      let endAction = CXEndCallAction(call: uuid)
+                      let transaction = CXTransaction(action: endAction)
+                      self.callController.request(transaction) { error in
+                          if let error = error {
+                              print("[CallKit] Failed to auto-end call: \(error)")
+                          } else {
+                              print("[CallKit] ✅ CallKit session ended automatically")
+                          }
+                      }
+                  }
               }
               
               public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
                   print("[CallKit] Call ended")
-                  
-                  // Stop audio anchor
-                  stopAudioAnchor()
                   
                   if let uuid = currentCallUUID {
                       notifyListeners("callEnded", data: [
@@ -305,113 +212,117 @@ workflows:
                   action.fulfill()
               }
               
-              // MARK: - TTS Audio Player
-              private var ttsPlayer: AVAudioPlayer?
+              // MARK: - AVAudioPlayerDelegate
+              
+              public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+                  print("[CallKit] ✅ TTS media finished playing, success: \(flag)")
+                  notifyListeners("debug", data: [
+                      "stage": "tts_media_finished",
+                      "success": flag
+                  ])
+              }
+              
+              public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+                  print("[CallKit] ❌ TTS decode error: \(error?.localizedDescription ?? "unknown")")
+                  notifyListeners("debug", data: [
+                      "stage": "tts_media_decode_error",
+                      "error": error?.localizedDescription ?? "unknown"
+                  ])
+              }
               
               // MARK: - Plugin Methods
               
               @objc func register(_ call: CAPPluginCall) {
-                  // VoIP registration is automatic in load()
                   call.resolve()
               }
               
-              @objc func playTTSAudio(_ call: CAPPluginCall) {
-                  print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
-                  notifyListeners("debug", data: ["stage": "swift_playTTSAudio_called"])
+              // ============================================
+              // playTTSAsMedia - TTS as APP MEDIA (not in CallKit)
+              // Uses AVAudioSession.Category.playback for maximum volume
+              // ============================================
+              @objc func playTTSAsMedia(_ call: CAPPluginCall) {
+                  print("[CallKit] 🔊 playTTSAsMedia CALLED - TTS as app media")
+                  notifyListeners("debug", data: ["stage": "playTTSAsMedia_called"])
                   
                   guard let base64Audio = call.getString("audio") else {
-                      print("[CallKit-Swift] ❌ No audio data provided")
-                      notifyListeners("debug", data: ["stage": "swift_no_audio_data"])
+                      print("[CallKit] ❌ No audio data provided")
+                      notifyListeners("debug", data: ["stage": "playTTSAsMedia_no_audio"])
                       call.reject("No audio data")
                       return
                   }
                   
-                  print("[CallKit-Swift] 📦 Received base64 audio, length: \(base64Audio.count)")
+                  print("[CallKit] 📦 Base64 audio length: \(base64Audio.count)")
                   
                   guard let audioData = Data(base64Encoded: base64Audio) else {
-                      print("[CallKit-Swift] ❌ Invalid base64 encoding")
-                      notifyListeners("debug", data: ["stage": "swift_decode_error"])
+                      print("[CallKit] ❌ Invalid base64")
+                      notifyListeners("debug", data: ["stage": "playTTSAsMedia_decode_error"])
                       call.reject("Invalid base64")
                       return
                   }
                   
-                  print("[CallKit-Swift] ✅ Decoded audio data, size: \(audioData.count) bytes")
-                  notifyListeners("debug", data: ["stage": "swift_audio_decoded", "bytes": audioData.count])
+                  print("[CallKit] ✅ Decoded \(audioData.count) bytes")
+                  notifyListeners("debug", data: ["stage": "playTTSAsMedia_decoded", "bytes": audioData.count])
                   
                   do {
-                      // Configure audio session for MAXIMUM volume TTS playback
+                      // Configure audio session for APP MEDIA playback (NOT call audio)
                       let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+                      try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
                       try session.setActive(true)
-                      try session.overrideOutputAudioPort(.speaker)  // FORÇA SPEAKER
                       
                       let route = session.currentRoute
                       let outputPort = route.outputs.first?.portType.rawValue ?? "unknown"
-                      print("[CallKit-Swift] 🔈 Audio route: \(outputPort)")
-                      notifyListeners("debug", data: ["stage": "swift_route", "outputPort": outputPort])
+                      print("[CallKit] 🔈 Audio route: \(outputPort)")
+                      notifyListeners("debug", data: ["stage": "playTTSAsMedia_route", "outputPort": outputPort])
                       
-                      // Create player from data
-                      ttsPlayer = try AVAudioPlayer(data: audioData)
-                      ttsPlayer?.delegate = self  // ✅ Set delegate to receive finish notification
-                      ttsPlayer?.numberOfLoops = 5  // Repeat 5 times
-                      ttsPlayer?.volume = 1.0
+                      // Create and play
+                      ttsMediaPlayer = try AVAudioPlayer(data: audioData)
+                      ttsMediaPlayer?.delegate = self
+                      ttsMediaPlayer?.volume = 1.0
                       
-                      let duration = ttsPlayer?.duration ?? -1
-                      print("[CallKit-Swift] ⏱️ duration: \(duration)")
+                      let duration = ttsMediaPlayer?.duration ?? -1
+                      print("[CallKit] ⏱️ Duration: \(duration)s")
                       
-                      let didPlay = ttsPlayer?.play() ?? false
-                      print("[CallKit-Swift] ▶️ play() returned: \(didPlay)")
+                      let didPlay = ttsMediaPlayer?.play() ?? false
+                      print("[CallKit] ▶️ play() returned: \(didPlay)")
                       
                       notifyListeners("debug", data: [
-                          "stage": "swift_play_result",
+                          "stage": "playTTSAsMedia_result",
                           "didPlay": didPlay,
                           "duration": duration,
                           "outputPort": outputPort
                       ])
                       
                       if didPlay {
-                          call.resolve(["playing": true])
+                          call.resolve(["playing": true, "duration": duration])
                       } else {
                           call.reject("Failed to start playback")
                       }
                   } catch {
-                      print("[CallKit-Swift] ❌ Exception: \(error)")
+                      print("[CallKit] ❌ Exception: \(error)")
                       notifyListeners("debug", data: [
-                          "stage": "swift_exception",
+                          "stage": "playTTSAsMedia_exception",
                           "error": error.localizedDescription
                       ])
-                      call.reject("Failed to play: \(error.localizedDescription)")
+                      call.reject("Failed: \(error.localizedDescription)")
                   }
               }
               
-              // MARK: - AVAudioPlayerDelegate
-              
-              public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-                  print("[CallKit] ✅ TTS audio finished playing, success: \(flag)")
-                  
-                  // Notify JavaScript that TTS has finished
-                  notifyListeners("debug", data: [
-                      "stage": "tts_finished",
-                      "success": flag
-                  ])
-                  
-                  print("[CallKit] 📢 Sent tts_finished event to JavaScript")
-              }
-              
-              public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-                  print("[CallKit] ❌ TTS audio decode error: \(error?.localizedDescription ?? "unknown")")
-                  
-                  // Notify JavaScript about the error
-                  notifyListeners("debug", data: [
-                      "stage": "tts_decode_error",
-                      "error": error?.localizedDescription ?? "unknown"
-                  ])
+              // Legacy method - redirects to playTTSAsMedia
+              @objc func playTTSAudio(_ call: CAPPluginCall) {
+                  print("[CallKit] playTTSAudio called - redirecting to playTTSAsMedia")
+                  playTTSAsMedia(call)
               }
               
               @objc func stopTTSAudio(_ call: CAPPluginCall) {
-                  print("[CallKit] Stopping TTS audio")
-                  ttsPlayer?.stop()
-                  ttsPlayer = nil
+                  print("[CallKit] Stopping TTS media")
+                  ttsMediaPlayer?.stop()
+                  ttsMediaPlayer = nil
+                  call.resolve()
+              }
+              
+              @objc func configureAudioSession(_ call: CAPPluginCall) {
+                  // No-op - audio session configured in playTTSAsMedia
+                  print("[CallKit] configureAudioSession - no-op")
                   call.resolve()
               }
               
@@ -421,49 +332,44 @@ workflows:
                       return
                   }
                   
-                  // Stop TTS when ending call
-                  ttsPlayer?.stop()
-                  ttsPlayer = nil
-                  stopAudioAnchor()
+                  ttsMediaPlayer?.stop()
+                  ttsMediaPlayer = nil
                   
-                  let endCallAction = CXEndCallAction(call: uuid)
-                  let transaction = CXTransaction(action: endCallAction)
+                  let endAction = CXEndCallAction(call: uuid)
+                  let transaction = CXTransaction(action: endAction)
                   
                   callController.request(transaction) { error in
                       if let error = error {
                           print("[CallKit] Failed to end call: \(error)")
-                          call.reject("Failed to end call: \(error.localizedDescription)")
+                          call.reject("Failed: \(error.localizedDescription)")
                       } else {
-                          print("[CallKit] Call ended successfully via endCall")
+                          print("[CallKit] Call ended successfully")
                           call.resolve()
                       }
                   }
               }
               
-              // New method for JavaScript to end call after TTS playback
               @objc func endCallFromJS(_ call: CAPPluginCall) {
-                  print("[CallKit] endCallFromJS called from JavaScript")
+                  print("[CallKit] endCallFromJS called")
                   
                   guard let uuid = currentCallUUID else {
-                      print("[CallKit] No active call to end")
-                      call.reject("No active call")
+                      print("[CallKit] No active call to end - already ended")
+                      call.resolve()  // Resolve anyway - call already ended
                       return
                   }
                   
-                  // Stop TTS when ending call
-                  ttsPlayer?.stop()
-                  ttsPlayer = nil
-                  stopAudioAnchor()
+                  ttsMediaPlayer?.stop()
+                  ttsMediaPlayer = nil
                   
-                  let endCallAction = CXEndCallAction(call: uuid)
-                  let transaction = CXTransaction(action: endCallAction)
+                  let endAction = CXEndCallAction(call: uuid)
+                  let transaction = CXTransaction(action: endAction)
                   
                   callController.request(transaction) { error in
                       if let error = error {
                           print("[CallKit] Failed to end call from JS: \(error)")
-                          call.reject("Failed to end call: \(error.localizedDescription)")
+                          call.reject("Failed: \(error.localizedDescription)")
                       } else {
-                          print("[CallKit] Call ended successfully from JavaScript")
+                          print("[CallKit] ✅ Call ended from JavaScript")
                           call.resolve()
                       }
                   }
@@ -471,7 +377,7 @@ workflows:
           }
           SWIFT_EOF
           
-          echo "=== Patching plugin.m to expose endCallFromJS ==="
+          echo "=== Patching plugin.m to expose all methods ==="
           
           PLUGIN_M_FILE="node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.m"
           
@@ -484,16 +390,17 @@ workflows:
               CAP_PLUGIN_METHOD(endCall, CAPPluginReturnPromise);
               CAP_PLUGIN_METHOD(endCallFromJS, CAPPluginReturnPromise);
               CAP_PLUGIN_METHOD(playTTSAudio, CAPPluginReturnPromise);
+              CAP_PLUGIN_METHOD(playTTSAsMedia, CAPPluginReturnPromise);
               CAP_PLUGIN_METHOD(stopTTSAudio, CAPPluginReturnPromise);
+              CAP_PLUGIN_METHOD(configureAudioSession, CAPPluginReturnPromise);
           )
           OBJC_EOF
           
           echo "✅ CallKit VoIP plugin patched successfully"
-          echo "   - DEBUG EVENTS: push_received, anchor_start, call_reported"
-          echo "   - FIX UNKNOWN: localizedCallerName=displayName, remoteHandle=Kairo"
-          echo "   - FIX CALL CURTA: UUID(uuidString:) ?? UUID() - never fails"
+          echo "   - playTTSAsMedia: TTS as app media (.playback, .spokenAudio)"
+          echo "   - CallKit auto-ends 300ms after answer"
           echo "   - Custom ringtone: toqueios.caf"
-          echo "   - endCallFromJS method exposed"
+          echo "   - All methods exposed: playTTSAsMedia, endCallFromJS, etc."
       
       - name: Install capacitor-assets
         script: npm install -g @capacitor/assets
