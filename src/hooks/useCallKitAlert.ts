@@ -668,6 +668,11 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           if (pushLanguage) {
             console.log('[CallKit] 🌐 Language from VoIP push:', pushLanguage);
             currentLanguageRef.current = pushLanguage;
+          } else {
+            // FALLBACK: If patch doesn't pass language, use app's current language from localStorage
+            const storedLang = localStorage.getItem('horah-language') || 'pt-BR';
+            console.log('[CallKit] ⚠️ No language in VoIP push, using localStorage fallback:', storedLang);
+            currentLanguageRef.current = storedLang;
           }
           
           if (eventId || eventTitle) {
