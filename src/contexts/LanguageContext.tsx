@@ -2388,6 +2388,10 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     localStorage.setItem('kairo-language', lang);
     document.documentElement.lang = lang;
     
+    // ✅ Emit event for other components (like CallKit) to react to language change
+    console.log('[Language] Emitting horah:language-changed event:', lang);
+    window.dispatchEvent(new CustomEvent('horah:language-changed', { detail: { language: lang } }));
+    
     // ✅ Sync language to database for MeLig/TTS to use
     try {
       const { data: { user } } = await supabase.auth.getUser();

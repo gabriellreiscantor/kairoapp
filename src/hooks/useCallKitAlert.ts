@@ -30,6 +30,21 @@ const isIOSNative = () => {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 };
 
+// Normalize language codes for consistency
+const normalizeLanguage = (lang: string | null | undefined): string => {
+  const trimmed = (lang || '').trim().toLowerCase();
+  if (!trimmed) return 'pt-BR';
+  
+  const normalize: Record<string, string> = {
+    'pt': 'pt-BR', 'pt-br': 'pt-BR', 'pt_br': 'pt-BR', 'portuguese': 'pt-BR',
+    'en': 'en-US', 'en-us': 'en-US', 'en_us': 'en-US', 'english': 'en-US',
+    'es': 'es-ES', 'es-es': 'es-ES', 'es_es': 'es-ES', 'spanish': 'es-ES',
+    'fr': 'fr-FR', 'de': 'de-DE', 'it': 'it-IT',
+  };
+  
+  return normalize[trimmed] || (trimmed.includes('-') ? trimmed : 'pt-BR');
+};
+
 export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const [isCallVisible, setIsCallVisible] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CallKitEvent | null>(null);
@@ -43,8 +58,9 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
   const callKitPluginRef = useRef<any>(null);
   const hasRegisteredRef = useRef(false);
   const pendingTokenRef = useRef<string | null>(null);
-  const preloadedTTSRef = useRef<string | null>(null);
+const preloadedTTSRef = useRef<string | null>(null);
   const preloadingTTSRef = useRef<Promise<string | null> | null>(null);
+  const lastTTSLanguageRef = useRef<string | null>(null); // Track language of preloaded TTS
   const hasInitializedRef = useRef(false);
   const safetyTimeoutRef = useRef<number | null>(null);
   const deviceIdRef = useRef<string | null>(null);
@@ -66,6 +82,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     isCallingTTSRef.current = false;
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
+    lastTTSLanguageRef.current = null;
     
     if (audioRef.current) {
       try {
@@ -669,15 +686,16 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
           
           // ✅ Extract language from VoIP push payload (synced from backend)
           const pushLanguage = data?.language;
-          if (pushLanguage) {
-            console.log('[CallKit] 🌐 Language from VoIP push:', pushLanguage);
-            currentLanguageRef.current = pushLanguage;
-          } else {
-            // FALLBACK: If patch doesn't pass language, use app's current language from localStorage
-            const storedLang = localStorage.getItem('horah-language') || 'pt-BR';
-            console.log('[CallKit] ⚠️ No language in VoIP push, using localStorage fallback:', storedLang);
-            currentLanguageRef.current = storedLang;
-          }
+          // FIXED: Use correct localStorage key 'kairo-language' (matches LanguageContext)
+          const storedLang = localStorage.getItem('kairo-language') || 'pt-BR';
+          const finalLanguage = normalizeLanguage(pushLanguage || storedLang);
+          
+          console.log('[CallKit] 🌐 Language resolution:', {
+            pushLanguage,
+            storedLang,
+            finalLanguage,
+          });
+          currentLanguageRef.current = finalLanguage;
           
           if (eventId || eventTitle) {
             const eventData = {
@@ -736,11 +754,13 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
                 if (ttsData?.audioContent) {
                   console.log(`[CallKit] ✅✅✅ TTS PRE-LOADED in ${loadTime}ms! (${ttsData.audioContent.length} bytes)`);
                   preloadedTTSRef.current = ttsData.audioContent;
+                  lastTTSLanguageRef.current = language; // ✅ Track language used for this TTS
                   
                   remoteLog.info('voip', 'tts_preload_success', { 
                     loadTimeMs: loadTime,
                     audioLength: ttsData.audioContent.length,
                     eventId: eventData.id,
+                    language, // ✅ Log language for debugging
                   });
                   
                   return ttsData.audioContent;
@@ -869,6 +889,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       pendingTokenRef.current = null;
       preloadedTTSRef.current = null;
       preloadingTTSRef.current = null;
+      lastTTSLanguageRef.current = null;
       currentEventRef.current = null;
       isCallingTTSRef.current = false;
       
@@ -887,6 +908,43 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
       window.removeEventListener('horah:reset-voip', handleResetVoIP);
     };
   }, [forceCleanupAllState]);
+
+  // ✅ CRITICAL: Invalidate TTS cache when language changes
+  // This ensures TTS is ALWAYS in the correct language
+  useEffect(() => {
+    const handleLanguageChange = (event?: Event) => {
+      const newLang = localStorage.getItem('kairo-language') || 'pt-BR';
+      const normalizedLang = normalizeLanguage(newLang);
+      
+      console.log('[CallKit] 🌐 Language change detected:', normalizedLang);
+      console.log('[CallKit] Previous TTS lang:', lastTTSLanguageRef.current);
+      
+      // Invalidate cache if language changed
+      if (lastTTSLanguageRef.current && lastTTSLanguageRef.current !== normalizedLang) {
+        console.log('[CallKit] 🗑️ Invalidating TTS cache (language changed)');
+        remoteLog.info('voip', 'tts_cache_invalidated_language_change', {
+          oldLang: lastTTSLanguageRef.current,
+          newLang: normalizedLang,
+        });
+        preloadedTTSRef.current = null;
+        lastTTSLanguageRef.current = null;
+        preloadingTTSRef.current = null;
+      }
+      
+      currentLanguageRef.current = normalizedLang;
+    };
+
+    // Listen for custom event from LanguageContext
+    window.addEventListener('horah:language-changed', handleLanguageChange);
+    
+    // Listen for storage event (cross-tab changes)
+    window.addEventListener('storage', handleLanguageChange);
+    
+    return () => {
+      window.removeEventListener('horah:language-changed', handleLanguageChange);
+      window.removeEventListener('storage', handleLanguageChange);
+    };
+  }, []);
 
   // ✅ CRITICAL: Listen for auth state changes to FORCE ASSOCIATE device with current user
   // ✅ FIX: ALWAYS reuse existing token from DB instead of trying to get new one from iOS
@@ -1078,6 +1136,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
+    lastTTSLanguageRef.current = null;
     
     if (audioRef.current) {
       try {
@@ -1176,46 +1235,77 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     };
     
     try {
-      const language = currentLanguageRef.current;
-      console.log('[CallKit] Language:', language);
+      const currentLang = normalizeLanguage(currentLanguageRef.current);
+      console.log('[CallKit] Language:', currentLang);
       
       // Step 1: Get TTS audio (pre-loaded or fetch new)
-      let base64Audio: string | null = preloadedTTSRef.current;
+      let base64Audio: string | null = null;
       
-      if (base64Audio) {
-        console.log('[CallKit] ✅ Using PRE-LOADED TTS audio (length:', base64Audio.length, ')');
-        remoteLog.info('voip', 'tts_using_preloaded', { audioLength: base64Audio.length });
+      // ✅ Check if preload exists AND language matches
+      if (preloadedTTSRef.current && lastTTSLanguageRef.current === currentLang) {
+        base64Audio = preloadedTTSRef.current;
+        console.log('[CallKit] ✅ Using PRE-LOADED TTS audio (length:', base64Audio.length, ', lang:', currentLang, ')');
+        remoteLog.info('voip', 'tts_using_preloaded', { 
+          audioLength: base64Audio.length,
+          language: currentLang,
+        });
+      } else if (preloadedTTSRef.current && lastTTSLanguageRef.current !== currentLang) {
+        // ⚠️ Preload exists but WRONG language - INVALIDATE
+        console.log('[CallKit] ⚠️ TTS preload has wrong language! Invalidating...');
+        console.log('[CallKit] Preload lang:', lastTTSLanguageRef.current, 'Current:', currentLang);
+        remoteLog.warn('voip', 'tts_preload_language_mismatch', {
+          preloadedLang: lastTTSLanguageRef.current,
+          currentLang,
+        });
+        preloadedTTSRef.current = null;
+        lastTTSLanguageRef.current = null;
       } else if (preloadingTTSRef.current) {
         console.log('[CallKit] ⏳ Waiting for pre-loading TTS to complete...');
         remoteLog.info('voip', 'tts_waiting_preload');
         base64Audio = await preloadingTTSRef.current;
         console.log('[CallKit] Pre-load completed:', base64Audio ? `${base64Audio.length} bytes` : 'null');
+        // Check if the awaited preload is the correct language
+        if (base64Audio && lastTTSLanguageRef.current !== currentLang) {
+          console.log('[CallKit] ⚠️ Awaited preload has wrong language! Discarding...');
+          base64Audio = null;
+        }
       }
       
+      // ✅ FALLBACK ON-DEMAND: If no valid audio, generate NOW
       if (!base64Audio) {
-        console.log('[CallKit] 📥 Fetching TTS from edge function...');
-        remoteLog.info('voip', 'tts_fetching_new', { 
+        console.log('[CallKit] 📥 FALLBACK: Generating TTS on-demand...');
+        remoteLog.info('voip', 'tts_fallback_on_demand', { 
           titulo: event.title,
           hora: event.time,
-          language,
+          language: currentLang,
+          reason: 'No valid preloaded audio',
         });
         
         const { data, error } = await supabase.functions.invoke('text-to-speech', {
           body: { 
             titulo: event.title,
             hora: event.time || '',
-            language: language,
+            language: currentLang,
           }
         });
 
         if (error) {
           console.error('[CallKit] TTS fetch error:', error);
-          remoteLog.error('voip', 'tts_fetch_error', { error: error.message });
+          remoteLog.error('voip', 'tts_fallback_error', { error: error.message });
           throw error;
         }
         
         base64Audio = data?.audioContent || null;
-        console.log('[CallKit] TTS fetched:', base64Audio ? `${base64Audio.length} bytes` : 'null');
+        if (base64Audio) {
+          // Save for potential reuse
+          preloadedTTSRef.current = base64Audio;
+          lastTTSLanguageRef.current = currentLang;
+          console.log('[CallKit] ✅ TTS on-demand generated:', base64Audio.length, 'bytes, lang:', currentLang);
+          remoteLog.info('voip', 'tts_fallback_success', { 
+            audioLength: base64Audio.length,
+            language: currentLang,
+          });
+        }
       }
 
       if (base64Audio) {
@@ -1494,6 +1584,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
     pendingTokenRef.current = null;
     preloadedTTSRef.current = null;
     preloadingTTSRef.current = null;
+    lastTTSLanguageRef.current = null;
     currentEventRef.current = null;
     isCallingTTSRef.current = false;
     // NOTE: deviceIdRef stays - device_id is permanent per device
