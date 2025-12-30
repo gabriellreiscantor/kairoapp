@@ -1,37 +1,37 @@
-// Event colors
+// Event colors - use labelKey for translations
 export const EVENT_COLORS = [
-  { value: 'primary', label: 'Horah', className: 'bg-gradient-to-br from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3]' },
-  { value: 'red', label: 'Vermelho', className: 'bg-red-500' },
-  { value: 'blue', label: 'Azul', className: 'bg-blue-500' },
-  { value: 'green', label: 'Verde', className: 'bg-green-500' },
-  { value: 'yellow', label: 'Amarelo', className: 'bg-yellow-500' },
-  { value: 'orange', label: 'Laranja', className: 'bg-orange-500' },
-  { value: 'purple', label: 'Roxo', className: 'bg-purple-500' },
-  { value: 'cyan', label: 'Azul Claro', className: 'bg-cyan-500' },
-  { value: 'amber', label: 'Laranja Escuro', className: 'bg-amber-700' },
-  { value: 'pink', label: 'Rosa', className: 'bg-pink-500' },
+  { value: 'primary', labelKey: 'color.horah', className: 'bg-gradient-to-br from-[#1F5BFF] via-[#39B7E5] to-[#63E0A3]' },
+  { value: 'red', labelKey: 'color.red', className: 'bg-red-500' },
+  { value: 'blue', labelKey: 'color.blue', className: 'bg-blue-500' },
+  { value: 'green', labelKey: 'color.green', className: 'bg-green-500' },
+  { value: 'yellow', labelKey: 'color.yellow', className: 'bg-yellow-500' },
+  { value: 'orange', labelKey: 'color.orange', className: 'bg-orange-500' },
+  { value: 'purple', labelKey: 'color.purple', className: 'bg-purple-500' },
+  { value: 'cyan', labelKey: 'color.cyan', className: 'bg-cyan-500' },
+  { value: 'amber', labelKey: 'color.amber', className: 'bg-amber-700' },
+  { value: 'pink', labelKey: 'color.pink', className: 'bg-pink-500' },
 ];
 
-// Repeat options
+// Repeat options - use labelKey for translations
 export const REPEAT_OPTIONS = [
-  { value: 'never', label: 'Nunca' },
-  { value: 'daily', label: 'Todos os Dias' },
-  { value: 'every2days', label: 'A cada 2 dias' },
-  { value: 'weekly', label: 'Todas as Semanas' },
-  { value: 'every2weeks', label: 'A cada 2 Semanas' },
-  { value: 'monthly', label: 'Todos os Meses' },
-  { value: 'yearly', label: 'Todos os Anos' },
+  { value: 'never', labelKey: 'repeat.never' },
+  { value: 'daily', labelKey: 'repeat.daily' },
+  { value: 'every2days', labelKey: 'repeat.every2days' },
+  { value: 'weekly', labelKey: 'repeat.weekly' },
+  { value: 'every2weeks', labelKey: 'repeat.every2weeks' },
+  { value: 'monthly', labelKey: 'repeat.monthly' },
+  { value: 'yearly', labelKey: 'repeat.yearly' },
 ];
 
-// Alert time options
+// Alert time options - use labelKey for translations
 export const ALERT_OPTIONS = [
-  { value: 'exact', label: 'No momento exato' },
-  { value: '5min', label: '5 minutos antes' },
-  { value: '15min', label: '15 minutos antes' },
-  { value: '30min', label: '30 minutos antes' },
-  { value: '1hour', label: '1 hora antes' },
-  { value: '2hours', label: '2 horas antes' },
-  { value: '1day', label: '1 dia antes' },
+  { value: 'exact', labelKey: 'alert.exact' },
+  { value: '5min', labelKey: 'alert.5min' },
+  { value: '15min', labelKey: 'alert.15min' },
+  { value: '30min', labelKey: 'alert.30min' },
+  { value: '1hour', labelKey: 'alert.1hour' },
+  { value: '2hours', labelKey: 'alert.2hours' },
+  { value: '1day', labelKey: 'alert.1day' },
 ];
 
 // Common emojis for events - organized by category
@@ -76,12 +76,43 @@ export const getColorClassName = (colorValue: string): string => {
   return EVENT_COLORS.find(c => c.value === colorValue)?.className || EVENT_COLORS[0].className;
 };
 
+// These functions now return the labelKey - components should use t(labelKey) to get translated text
+export const getRepeatLabelKey = (repeatValue: string): string => {
+  return REPEAT_OPTIONS.find(r => r.value === repeatValue)?.labelKey || 'repeat.never';
+};
+
+export const getAlertLabelKey = (alertValue: string): string => {
+  return ALERT_OPTIONS.find(a => a.value === alertValue)?.labelKey || 'alert.1hour';
+};
+
+// Legacy functions for backward compatibility - return Portuguese labels
+// Components should migrate to using t(getRepeatLabelKey()) or t(getAlertLabelKey())
 export const getRepeatLabel = (repeatValue: string): string => {
-  return REPEAT_OPTIONS.find(r => r.value === repeatValue)?.label || 'Nunca';
+  const labelKeyToPortuguese: Record<string, string> = {
+    'repeat.never': 'Nunca',
+    'repeat.daily': 'Todos os Dias',
+    'repeat.every2days': 'A cada 2 dias',
+    'repeat.weekly': 'Todas as Semanas',
+    'repeat.every2weeks': 'A cada 2 Semanas',
+    'repeat.monthly': 'Todos os Meses',
+    'repeat.yearly': 'Todos os Anos',
+  };
+  const labelKey = getRepeatLabelKey(repeatValue);
+  return labelKeyToPortuguese[labelKey] || 'Nunca';
 };
 
 export const getAlertLabel = (alertValue: string): string => {
-  return ALERT_OPTIONS.find(a => a.value === alertValue)?.label || '1 hora antes';
+  const labelKeyToPortuguese: Record<string, string> = {
+    'alert.exact': 'No momento exato',
+    'alert.5min': '5 minutos antes',
+    'alert.15min': '15 minutos antes',
+    'alert.30min': '30 minutos antes',
+    'alert.1hour': '1 hora antes',
+    'alert.2hours': '2 horas antes',
+    'alert.1day': '1 dia antes',
+  };
+  const labelKey = getAlertLabelKey(alertValue);
+  return labelKeyToPortuguese[labelKey] || '1 hora antes';
 };
 
 // Convert alert value to minutes

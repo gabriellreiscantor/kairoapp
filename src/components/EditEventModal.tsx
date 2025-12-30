@@ -497,7 +497,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
               <button key={c.value} onClick={() => { setColor(c.value); setScreenView('main'); }} className="w-full px-4 py-4 flex items-center justify-between border-b border-border/10 last:border-b-0">
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full ${c.className}`} />
-                  <span className="text-foreground">{c.label}</span>
+                  <span className="text-foreground">{t(c.labelKey)}</span>
                 </div>
                 {color === c.value && <Check className="w-5 h-5 text-primary" />}
               </button>
@@ -585,7 +585,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
                     onClick={() => selectAlertTime(opt.value)}
                     className="w-full px-4 py-4 flex items-center justify-between rounded-xl bg-kairo-surface-1/50 hover:bg-kairo-surface-3 transition-colors"
                   >
-                    <span className="text-foreground font-medium">{opt.label}</span>
+                    <span className="text-foreground font-medium">{t(opt.labelKey)}</span>
                     {isSelected && <Check className="w-5 h-5 text-primary" />}
                   </button>
                 );
@@ -886,7 +886,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave, onDelete }: EditEventM
                 onClick={() => { setRepeat(opt.value); setRepeatSheetOpen(false); }}
                 className="w-full px-4 py-4 flex items-center justify-between rounded-xl bg-kairo-surface-1/50 hover:bg-kairo-surface-3 transition-colors"
               >
-                <span className="text-foreground font-medium">{opt.label}</span>
+                <span className="text-foreground font-medium">{t(opt.labelKey)}</span>
                 {repeat === opt.value && <Check className="w-5 h-5 text-primary" />}
               </button>
             ))}
