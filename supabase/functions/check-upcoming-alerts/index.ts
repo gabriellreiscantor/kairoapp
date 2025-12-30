@@ -275,9 +275,10 @@ Deno.serve(async (req) => {
     // Query 1: Events with call_alert_scheduled_at set (normal flow)
     // CRITICAL FIX: Use now.toISOString() instead of targetTimeMaxUTC to only process events whose scheduled time has arrived
     // Include device_id for device-centric VoIP push
+    // ✅ MULTILINGUAL TTS: Include event_language in query for snapshot language
     const { data: eventsWithSchedule, error: eventsError1 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts, event_language')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -292,9 +293,10 @@ Deno.serve(async (req) => {
     // Query 2: Events WITHOUT call_alert_scheduled_at (fallback - legacy events or toggle on frontend)
     // These need dynamic calculation based on event time
     // Include device_id for device-centric VoIP push
+    // ✅ MULTILINGUAL TTS: Include event_language in query for snapshot language
     const { data: eventsWithoutSchedule, error: eventsError2 } = await supabase
       .from('events')
-      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts')
+      .select('id, title, event_date, event_time, location, user_id, emoji, call_alert_scheduled_at, device_id, call_alert_attempts, event_language')
       .eq('call_alert_enabled', true)
       .is('call_alert_sent_at', null)
       .not('event_time', 'is', null)
@@ -398,9 +400,10 @@ Deno.serve(async (req) => {
           .eq('id', event.user_id)
           .maybeSingle();
         
-        // ✅ Use language from profiles table (synced from frontend)
-        const userLanguage = (profile as any)?.language || 'pt-BR';
-        console.log(`[MeLig] User ${event.user_id} language: ${userLanguage}`);
+        // ✅ MULTILINGUAL TTS: Use event's snapshot language (not profile's current language!)
+        // This ensures TTS uses the language the user had when creating the event
+        const eventLanguage = (event as any).event_language || (profile as any)?.language || 'pt-BR';
+        console.log(`[MeLig] Event ${event.id} language: ${eventLanguage} (snapshot from event creation)`);
 
         if (profileError) {
           console.error(`Error fetching profile for user ${event.user_id}:`, profileError);
@@ -492,18 +495,20 @@ Deno.serve(async (req) => {
               console.log(`[VoIP] Attempting to invoke send-voip-push for event ${event.id} (${event.title})${event.device_id ? '' : ' [FALLBACK]'}`);
               
               try {
-                // DEVICE-CENTRIC payload - targetDeviceId may come from event or fallback lookup
-                // ✅ Include language for multilingual TTS
-                const voipPayload = {
-                  device_id: targetDeviceId,
-                  user_id: event.user_id, // For logging only
-                  event_id: event.id,
-                  event_title: event.title,
-                  event_time: event.event_time,
-                  event_location: event.location || '',
-                  event_emoji: event.emoji || '📅',
-                  language: userLanguage, // ✅ Pass user's language for TTS
-                };
+              // DEVICE-CENTRIC payload - targetDeviceId may come from event or fallback lookup
+              // ✅ MULTILINGUAL TTS: Use event's snapshot language (not profile's current language!)
+              const voipPayload = {
+                device_id: targetDeviceId,
+                user_id: event.user_id, // For logging only
+                event_id: event.id,
+                event_title: event.title,
+                event_time: event.event_time,
+                event_location: event.location || '',
+                event_emoji: event.emoji || '📅',
+                language: eventLanguage, // ✅ Event's snapshot language for TTS
+              };
+              
+              console.log(`[VoIP] Payload language: ${eventLanguage}`);
                 
                 console.log(`[VoIP] Calling send-voip-push with payload:`, JSON.stringify(voipPayload));
                 
@@ -556,7 +561,7 @@ Deno.serve(async (req) => {
                   .insert({
                     user_id: event.user_id,
                     role: 'assistant',
-                    content: getCallChatMessage(userLanguage, event.title),
+                    content: getCallChatMessage(eventLanguage, event.title),
                     metadata: {
                       type: 'call_notification',
                       callNotificationData
@@ -586,11 +591,11 @@ Deno.serve(async (req) => {
           console.log(`[Fallback Push] VoIP failed (reason: ${voipFailureReason}), sending push fallback for event ${event.id}`);
           
           // Get localized messages for the user
-          const messages = getAlertMessages(userLanguage);
+          const messages = getAlertMessages(eventLanguage);
           const eventEmoji = event.emoji || '📅';
           
           // Oriental languages don't use "at" preposition - format differently
-          const isOrientalLang = ['ja', 'ko', 'zh'].some(l => userLanguage.startsWith(l));
+          const isOrientalLang = ['ja', 'ko', 'zh'].some(l => eventLanguage.startsWith(l));
           const notificationBody = isOrientalLang 
             ? `${messages.startsIn} • ${timeDisplay}`
             : `${messages.startsIn} • ${messages.at} ${timeDisplay}`;

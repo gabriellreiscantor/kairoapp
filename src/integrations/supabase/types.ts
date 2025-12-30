@@ -121,6 +121,7 @@ export type Database = {
           duration_minutes: number | null
           emoji: string | null
           event_date: string
+          event_language: string
           event_time: string | null
           id: string
           is_all_day: boolean | null
@@ -152,6 +153,7 @@ export type Database = {
           duration_minutes?: number | null
           emoji?: string | null
           event_date: string
+          event_language?: string
           event_time?: string | null
           id?: string
           is_all_day?: boolean | null
@@ -183,6 +185,7 @@ export type Database = {
           duration_minutes?: number | null
           emoji?: string | null
           event_date?: string
+          event_language?: string
           event_time?: string | null
           id?: string
           is_all_day?: boolean | null

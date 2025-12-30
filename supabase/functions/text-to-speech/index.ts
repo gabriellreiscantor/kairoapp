@@ -8,6 +8,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ✅ MULTILINGUAL TTS: Normalize language codes to full format
+function normalizeLanguage(lang: string | null | undefined): string {
+  const trimmed = (lang || '').trim().toLowerCase();
+  if (!trimmed) return 'pt-BR';
+  
+  // Map short codes to full codes
+  const shortToFull: Record<string, string> = {
+    'en': 'en-US',
+    'pt': 'pt-BR',
+    'es': 'es-ES',
+    'fr': 'fr-FR',
+    'de': 'de-DE',
+    'it': 'it-IT',
+    'ja': 'ja-JP',
+    'ko': 'ko-KR',
+    'zh': 'zh-CN',
+  };
+  
+  // If it's a short code, return the full version
+  if (shortToFull[trimmed]) {
+    return shortToFull[trimmed];
+  }
+  
+  // If it's already a full code (contains hyphen), normalize case
+  if (trimmed.includes('-')) {
+    const [langPart, regionPart] = trimmed.split('-');
+    // Try to find a match for the language part
+    if (shortToFull[langPart]) {
+      return shortToFull[langPart];
+    }
+    // Return with proper casing
+    return `${langPart}-${regionPart.toUpperCase()}`;
+  }
+  
+  // Default fallback
+  return 'pt-BR';
+}
+
 // Converter números para palavras em português (1-12)
 const HOURS_WORDS: Record<number, string> = {
   1: 'uma', 2: 'duas', 3: 'três', 4: 'quatro', 5: 'cinco', 6: 'seis',
@@ -152,12 +190,17 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voice, language = 'pt-BR', titulo, hora } = await req.json();
+    const { text, voice, language: rawLanguage = 'pt-BR', titulo, hora } = await req.json();
+
+    // ✅ MULTILINGUAL TTS: Normalize language code before use
+    const language = normalizeLanguage(rawLanguage);
+    console.log('[TTS] Language received:', rawLanguage, '-> normalized:', language);
 
     // If titulo is provided, build the message from template
     let ttsText = text;
     if (titulo) {
       ttsText = buildTTSMessage(language, titulo, hora || '');
+      console.log('[TTS] Built message from template for language:', language);
     }
 
     if (!ttsText) {
@@ -170,8 +213,10 @@ serve(async (req) => {
 
     // Get the appropriate voice for the language
     const selectedVoice = voice || VOICE_BY_LANGUAGE[language] || 'nova';
+    const templateUsed = TTS_TEMPLATES[language] ? language : 'pt-BR (fallback)';
 
-    console.log('Generating TTS for:', ttsText.substring(0, 100) + '...', 'Language:', language, 'Voice:', selectedVoice);
+    console.log('[TTS] Generating audio - Language:', language, '| Template:', templateUsed, '| Voice:', selectedVoice);
+    console.log('[TTS] Text:', ttsText.substring(0, 100) + '...');
 
     // Generate speech from text using OpenAI TTS
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
