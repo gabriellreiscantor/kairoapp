@@ -316,31 +316,39 @@ workflows:
               }
               
               @objc func playTTSAudio(_ call: CAPPluginCall) {
-                  print("[CallKit] ====== PLAY TTS AUDIO ======")
+                  print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
+                  notifyListeners("debug", data: ["stage": "swift_playTTSAudio_called"])
                   
                   guard let base64Audio = call.getString("audio") else {
-                      print("[CallKit] No audio data provided")
+                      print("[CallKit-Swift] ❌ No audio data provided")
+                      notifyListeners("debug", data: ["stage": "swift_no_audio_data"])
                       call.reject("No audio data")
                       return
                   }
                   
-                  print("[CallKit] Received base64 audio, length: \(base64Audio.count)")
+                  print("[CallKit-Swift] 📦 Received base64 audio, length: \(base64Audio.count)")
                   
                   guard let audioData = Data(base64Encoded: base64Audio) else {
-                      print("[CallKit] Invalid base64 encoding")
+                      print("[CallKit-Swift] ❌ Invalid base64 encoding")
+                      notifyListeners("debug", data: ["stage": "swift_decode_error"])
                       call.reject("Invalid base64")
                       return
                   }
                   
-                  print("[CallKit] Decoded audio data, size: \(audioData.count) bytes")
+                  print("[CallKit-Swift] ✅ Decoded audio data, size: \(audioData.count) bytes")
+                  notifyListeners("debug", data: ["stage": "swift_audio_decoded", "bytes": audioData.count])
                   
                   do {
                       // Configure audio session for MAXIMUM volume TTS playback
                       let session = AVAudioSession.sharedInstance()
-                      try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothA2DP, .duckOthers])
+                      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
                       try session.setActive(true)
-                      try session.overrideOutputAudioPort(.speaker)  // Force speaker at max volume
-                      print("[CallKit] Audio session configured for HIGH VOLUME TTS playback")
+                      try session.overrideOutputAudioPort(.speaker)  // FORÇA SPEAKER
+                      
+                      let route = session.currentRoute
+                      let outputPort = route.outputs.first?.portType.rawValue ?? "unknown"
+                      print("[CallKit-Swift] 🔈 Audio route: \(outputPort)")
+                      notifyListeners("debug", data: ["stage": "swift_route", "outputPort": outputPort])
                       
                       // Create player from data
                       ttsPlayer = try AVAudioPlayer(data: audioData)
@@ -348,16 +356,30 @@ workflows:
                       ttsPlayer?.numberOfLoops = 5  // Repeat 5 times
                       ttsPlayer?.volume = 1.0
                       
-                      let started = ttsPlayer?.play() ?? false
-                      print("[CallKit] TTS playback started: \(started), delegate set: \(ttsPlayer?.delegate != nil)")
+                      let duration = ttsPlayer?.duration ?? -1
+                      print("[CallKit-Swift] ⏱️ duration: \(duration)")
                       
-                      if started {
+                      let didPlay = ttsPlayer?.play() ?? false
+                      print("[CallKit-Swift] ▶️ play() returned: \(didPlay)")
+                      
+                      notifyListeners("debug", data: [
+                          "stage": "swift_play_result",
+                          "didPlay": didPlay,
+                          "duration": duration,
+                          "outputPort": outputPort
+                      ])
+                      
+                      if didPlay {
                           call.resolve(["playing": true])
                       } else {
                           call.reject("Failed to start playback")
                       }
                   } catch {
-                      print("[CallKit] Failed to play TTS audio: \(error)")
+                      print("[CallKit-Swift] ❌ Exception: \(error)")
+                      notifyListeners("debug", data: [
+                          "stage": "swift_exception",
+                          "error": error.localizedDescription
+                      ])
                       call.reject("Failed to play: \(error.localizedDescription)")
                   }
               }
@@ -1032,6 +1054,20 @@ workflows:
           echo "--- Searching for CRITICAL MARKERS ---"
           echo ""
           
+          # Check for playTTSAudio method
+          if grep -n 'func playTTSAudio' "$SWIFT_FILE"; then
+            echo "✅ playTTSAudio METHOD FOUND"
+          else
+            echo "❌ playTTSAudio METHOD NOT FOUND - PATCH NOT APPLIED!"
+          fi
+          
+          # Check for swift_playTTSAudio_called marker
+          if grep -n 'swift_playTTSAudio_called' "$SWIFT_FILE"; then
+            echo "✅ swift_playTTSAudio_called MARKER FOUND"
+          else
+            echo "❌ swift_playTTSAudio_called MARKER NOT FOUND - NEW LOGS NOT IN PATCH!"
+          fi
+          
           # Check for debug events
           if grep -n 'notifyListeners.*debug' "$SWIFT_FILE"; then
             echo "✅ DEBUG LISTENER FOUND"
@@ -1044,6 +1080,18 @@ workflows:
             echo "✅ SILENCE.CAF REFERENCE FOUND"
           else
             echo "❌ SILENCE.CAF REFERENCE NOT FOUND"
+          fi
+          
+          # Check for CAP_PLUGIN_METHOD for playTTSAudio
+          OBJ_C_FILE="node_modules/capacitor-plugin-callkit-voip/ios/Plugin/CallKitVoipPlugin.m"
+          if [ -f "$OBJ_C_FILE" ]; then
+            echo ""
+            echo "--- Checking Objective-C bridge ---"
+            if grep -n 'CAP_PLUGIN_METHOD(playTTSAudio' "$OBJ_C_FILE"; then
+              echo "✅ CAP_PLUGIN_METHOD(playTTSAudio) FOUND IN .m FILE"
+            else
+              echo "❌ CAP_PLUGIN_METHOD(playTTSAudio) NOT FOUND - BRIDGE BROKEN!"
+            fi
           fi
           
           # Check for localizedCallerName (the fix for Unknown)

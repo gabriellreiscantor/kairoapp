@@ -1225,11 +1225,24 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
         }, MAX_CALL_DURATION);
         
         // Step 2: Try native audio playback first (for native call screen)
-        if (isIOSNative() && callKitPluginRef.current?.playTTSAudio) {
+        const hasPlugin = !!callKitPluginRef.current;
+        const hasMethod = !!(callKitPluginRef.current as any)?.playTTSAudio;
+        
+        console.log('[MeLig] tts_native_attempt_start', {
+          hasPlugin,
+          hasMethod,
+          base64Length: base64Audio?.length ?? 0,
+          lang: currentLanguageRef.current,
+        });
+        remoteLog.info('voip', 'tts_native_attempt_start', {
+          hasPlugin,
+          hasMethod,
+          base64Length: base64Audio?.length ?? 0,
+          lang: currentLanguageRef.current,
+        });
+        
+        if (isIOSNative() && hasPlugin && hasMethod) {
           console.log('[CallKit] 📱 Attempting native TTS playback...');
-          remoteLog.info('voip', 'tts_native_attempt_start', {
-            audioLength: base64Audio.length,
-          });
           
           let retries = 0;
           const maxRetries = 2;
@@ -1240,6 +1253,7 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               
               const result = await callKitPluginRef.current.playTTSAudio({ audio: base64Audio });
               console.log('[CallKit] Native playback result:', result);
+              remoteLog.info('voip', 'tts_native_result', { ok: true, result });
               
               if (result?.playing) {
                 console.log('[CallKit] ✅ Native TTS playback started!');
@@ -1293,9 +1307,10 @@ export const useCallKitAlert = (): UseCallKitAlertReturn => {
               return false;
             } catch (e) {
               console.error('[CallKit] Native playback exception:', e);
-              remoteLog.error('voip', 'tts_native_exception', { 
+              remoteLog.error('voip', 'tts_native_error', { 
+                message: String(e),
+                stack: (e as any)?.stack,
                 attempt: retries + 1,
-                error: e instanceof Error ? e.message : String(e),
               });
               
               if (retries < maxRetries) {

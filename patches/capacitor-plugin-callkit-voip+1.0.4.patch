@@ -292,7 +292,7 @@ index 1234567..abcdefg 100644
 +        // 1️⃣ Log CHAMADA do método
 +        print("[CallKit-Swift] 🔊 playTTSAudio CALLED")
 +        notifyListeners("debug", data: [
-+            "stage": "tts_play_called",
++            "stage": "swift_playTTSAudio_called",
 +            "timestamp": ISO8601DateFormatter().string(from: Date())
 +        ])
 +        
@@ -332,7 +332,7 @@ index 1234567..abcdefg 100644
 +        
 +        print("[CallKit-Swift] 📦 Audio data decoded: \(audioData.count) bytes")
 +        notifyListeners("debug", data: [
-+            "stage": "tts_audio_decoded",
++            "stage": "swift_audio_decoded",
 +            "audioBytes": audioData.count
 +        ])
 +        
@@ -353,7 +353,7 @@ index 1234567..abcdefg 100644
 +                print("[CallKit-Swift] 🔈 Output: \(output.portName) (\(output.portType.rawValue))")
 +            }
 +            notifyListeners("debug", data: [
-+                "stage": "tts_audio_session_ready",
++                "stage": "swift_route",
 +                "outputPort": outputPort,
 +                "outputName": outputName
 +            ])
@@ -388,7 +388,7 @@ index 1234567..abcdefg 100644
 +            print("[CallKit-Swift] ===================================")
 +            
 +            notifyListeners("debug", data: [
-+                "stage": "tts_play_result",
++                "stage": "swift_play_result",
 +                "didPlay": didPlay,
 +                "duration": duration,
 +                "volume": audioPlayer?.volume ?? -1,
