@@ -174,16 +174,21 @@ workflows:
                   
                   print("[CallKit] displayName: '\(displayName)' | handleValue: '\(handleValue)'")
                   
-                  // Store event data for TTS playback
+                  // ✅ MULTILINGUAL TTS: Extract language from VoIP payload
+                  let eventLanguage = payload.dictionaryPayload["language"] as? String ?? "pt-BR"
+                  print("[CallKit] Extracted language from VoIP payload: \(eventLanguage)")
+                  
+                  // Store event data for TTS playback (including language!)
                   currentEventData = [
                       "eventId": idString,
                       "eventTitle": rawName,
                       "eventEmoji": payload.dictionaryPayload["eventEmoji"] as? String ?? "📅",
                       "eventTime": payload.dictionaryPayload["eventTime"] as? String ?? "",
                       "eventLocation": payload.dictionaryPayload["eventLocation"] as? String ?? "",
-                      "name": displayName
+                      "name": displayName,
+                      "language": eventLanguage  // ✅ Pass language to JavaScript
                   ]
-                  print("[CallKit] Stored event data: \(currentEventData)")
+                  print("[CallKit] Stored event data with language: \(currentEventData)")
                   
                   currentCallUUID = callUUID
                   

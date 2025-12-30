@@ -2781,7 +2781,8 @@ async function executeAction(
   action: KairoAction,
   profile: UserProfile,
   timezone?: string, // User's device timezone
-  device_id?: string // Device ID for VoIP push (device-centric architecture)
+  device_id?: string, // Device ID for VoIP push (device-centric architecture)
+  language?: string // User's language for event snapshot (multilingual TTS)
 ): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
   console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
@@ -2876,6 +2877,10 @@ async function executeAction(
         console.log('[criar_evento] Calculated call_alert_scheduled_at:', callAlertScheduledAt);
         console.log('[criar_evento] Calculated notification_scheduled_at:', notificationScheduledAt);
         
+        // ✅ MULTILINGUAL TTS: Snapshot the current language at event creation
+        const eventLanguage = language || 'pt-BR';
+        console.log('[criar_evento] Saving event with event_language:', eventLanguage);
+
         const { data, error } = await supabase
           .from('events')
           .insert({
@@ -2898,7 +2903,9 @@ async function executeAction(
             call_alert_scheduled_at: callAlertScheduledAt,
             notification_scheduled_at: notificationScheduledAt,
             // DEVICE-CENTRIC: Save device_id for VoIP push targeting
-            device_id: device_id || null
+            device_id: device_id || null,
+            // MULTILINGUAL TTS: Snapshot language at creation time
+            event_language: eventLanguage
           })
           .select()
           .single();
@@ -4369,7 +4376,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {
-      executionResult = await executeAction(supabase, userId, action, userProfile, userTimezone, device_id);
+      executionResult = await executeAction(supabase, userId, action, userProfile, userTimezone, device_id, requestLanguage);
       console.log('Execution result:', executionResult);
       
       // Handle past date error - change action to data_passada
