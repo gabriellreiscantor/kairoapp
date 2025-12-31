@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendars: {
+        Row: {
+          color: string
+          created_at: string | null
+          external_id: string | null
+          id: string
+          is_default: boolean | null
+          is_visible: boolean | null
+          name: string
+          provider: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_visible?: boolean | null
+          name: string
+          provider?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_visible?: boolean | null
+          name?: string
+          provider?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           created_at: string | null
@@ -106,6 +145,7 @@ export type Database = {
       events: {
         Row: {
           alerts: Json | null
+          calendar_id: string | null
           call_alert_answered: boolean | null
           call_alert_answered_at: string | null
           call_alert_attempts: number | null
@@ -138,6 +178,7 @@ export type Database = {
         }
         Insert: {
           alerts?: Json | null
+          calendar_id?: string | null
           call_alert_answered?: boolean | null
           call_alert_answered_at?: string | null
           call_alert_attempts?: number | null
@@ -170,6 +211,7 @@ export type Database = {
         }
         Update: {
           alerts?: Json | null
+          calendar_id?: string | null
           call_alert_answered?: boolean | null
           call_alert_answered_at?: string | null
           call_alert_attempts?: number | null
@@ -200,7 +242,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_limits: {
         Row: {
