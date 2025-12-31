@@ -376,7 +376,7 @@ const MainApp = () => {
 
   // Page components - memoized to prevent unnecessary re-renders during swipe
   const ListPage = useMemo(() => (
-    <div className="h-full bg-background flex flex-col overflow-hidden relative">
+    <div className="h-full w-screen bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
       <div className="flex-1 pb-28 overflow-auto">
         <DayListView
@@ -390,7 +390,7 @@ const MainApp = () => {
   ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
 
   const ChatPageComponent = (
-    <div className="h-full w-full bg-background">
+    <div className="h-full w-screen bg-background">
       <ChatPage 
         onNavigateToCalendar={() => setActiveView('list')}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -404,7 +404,7 @@ const MainApp = () => {
   );
 
   const CalendarPage = useMemo(() => (
-    <div className="h-full bg-background flex flex-col overflow-hidden relative">
+    <div className="h-full w-screen bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
       <div className="flex-1 pb-28 overflow-auto">
         <CalendarView 

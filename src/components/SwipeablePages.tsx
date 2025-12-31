@@ -18,14 +18,14 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   children,
   className = '',
 }) => {
-  const [pageWidth, setPageWidth] = useState(() => window.innerWidth);
+  const [pageWidth, setPageWidth] = useState(() => document.documentElement.clientWidth);
   const [mounted, setMounted] = useState(false);
   const x = useMotionValue(0);
   const prevIndexRef = useRef(currentIndex);
   
-  // Update pageWidth on resize
+  // Update pageWidth on resize - use clientWidth for accuracy
   const updatePageWidth = useCallback(() => {
-    const width = window.innerWidth;
+    const width = document.documentElement.clientWidth;
     setPageWidth(width);
     return width;
   }, []);
@@ -56,8 +56,8 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     if (mounted && prevIndexRef.current !== currentIndex) {
       animate(x, -currentIndex * pageWidth, {
         type: 'spring',
-        stiffness: 400,
-        damping: 35,
+        stiffness: 600,
+        damping: 40,
       });
       prevIndexRef.current = currentIndex;
     }
@@ -88,11 +88,11 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
       }
     }
     
-    // ALWAYS snap to target page
+    // ALWAYS snap to target page with fast animation
     animate(x, -newIndex * pageWidth, {
       type: 'spring',
-      stiffness: 400,
-      damping: 35,
+      stiffness: 600,
+      damping: 40,
     });
     
     if (newIndex !== currentIndex) {
@@ -106,12 +106,9 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   
   return (
     <div 
-      className={`relative h-full overflow-hidden ${className}`}
+      className={`fixed inset-0 overflow-hidden ${className}`}
       style={{ 
         opacity: mounted ? 1 : 0,
-        width: '100vw',
-        maxWidth: '100vw',
-        overflow: 'hidden',
       }}
     >
       <motion.div
@@ -126,7 +123,7 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
           left: minX, 
           right: 0 
         }}
-        dragElastic={0.08}
+        dragElastic={0.02}
         onDragEnd={handleDragEnd}
         dragMomentum={false}
       >
