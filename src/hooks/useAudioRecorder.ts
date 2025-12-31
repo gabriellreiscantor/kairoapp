@@ -1,19 +1,42 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { remoteLog } from '@/lib/remoteLogger';
 
 interface UseAudioRecorderReturn {
   isRecording: boolean;
+  recordingDuration: number;
   startRecording: () => Promise<void>;
-  stopRecording: () => Promise<string | null>;
+  stopRecording: () => Promise<{ audio: string; duration: number } | null>;
   error: string | null;
 }
 
 export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number>(0);
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer for recording duration
+  useEffect(() => {
+    if (isRecording) {
+      setRecordingDuration(0);
+      durationIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+      }
+    };
+  }, [isRecording]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -77,7 +100,9 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     }
   }, []);
 
-  const stopRecording = useCallback(async (): Promise<string | null> => {
+  const stopRecording = useCallback(async (): Promise<{ audio: string; duration: number } | null> => {
+    const finalDuration = recordingDuration;
+    
     return new Promise((resolve) => {
       if (!mediaRecorderRef.current) {
         resolve(null);
@@ -93,6 +118,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         
         remoteLog.info('audio', 'recording_stopped', { 
           durationMs: duration,
+          durationSeconds: finalDuration,
           blobSize: blob.size,
           mimeType,
         });
@@ -107,7 +133,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
           // Remove data URL prefix
           const base64Data = base64.split(',')[1];
           remoteLog.info('audio', 'recording_converted', { base64Length: base64Data?.length });
-          resolve(base64Data);
+          resolve({ audio: base64Data, duration: finalDuration });
         };
         reader.onerror = () => {
           remoteLog.error('audio', 'recording_conversion_error');
@@ -121,10 +147,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
 
       mediaRecorder.stop();
     });
-  }, []);
+  }, [recordingDuration]);
 
   return {
     isRecording,
+    recordingDuration,
     startRecording,
     stopRecording,
     error,
