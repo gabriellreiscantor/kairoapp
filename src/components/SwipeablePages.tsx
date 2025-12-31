@@ -5,6 +5,7 @@ interface SwipeablePagesProps {
   currentIndex: number;
   onPageChange: (index: number) => void;
   onSwipeLeftAtStart?: () => void;
+  onSwipeRightAtEnd?: () => void;
   children: React.ReactNode[];
   className?: string;
 }
@@ -13,6 +14,7 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   currentIndex,
   onPageChange,
   onSwipeLeftAtStart,
+  onSwipeRightAtEnd,
   children,
   className = '',
 }) => {
@@ -63,7 +65,12 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
         }
       } else if (offset < 0 && velocity <= 0) {
         // Swiped left = go to next page
-        newIndex = Math.min(children.length - 1, currentIndex + 1);
+        if (currentIndex === children.length - 1) {
+          // At last page, trigger callback
+          onSwipeRightAtEnd?.();
+        } else {
+          newIndex = Math.min(children.length - 1, currentIndex + 1);
+        }
       }
     }
     
