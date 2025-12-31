@@ -2783,7 +2783,7 @@ async function executeAction(
   timezone?: string, // User's device timezone
   device_id?: string, // Device ID for VoIP push (device-centric architecture)
   language?: string // User's language for event snapshot (multilingual TTS)
-): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
+): Promise<{ success: boolean; data?: any; error?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number; limitType?: string; eventsUsedWeek?: number; eventsLimitWeek?: number; eventsUsedMonth?: number; eventsLimitMonth?: number }; pastDate?: boolean; attemptedEvent?: any; eventId?: string; noIdReturned?: boolean }> {
   console.log(`Backend executing action: ${action.acao}`, action);
   console.log(`User timezone: ${timezone || 'not provided, will use default'}`);
 
@@ -2834,11 +2834,16 @@ async function executeAction(
           });
           
           const planName = planData || 'free';
-          const limits: Record<string, number> = { free: 14, plus: 50, super: 280 };
-          const limit = limits[planName] || 14;
+          const weeklyLimits: Record<string, number> = { free: 14, plus: 50, super: 280 };
+          const monthlyLimits: Record<string, number> = { free: 30, plus: 150, super: 1000 };
+          const weeklyLimit = weeklyLimits[planName] || 14;
+          const monthlyLimit = monthlyLimits[planName] || 30;
           
-          // Get current event count for this week
-          const { data: eventCount } = await supabase.rpc('count_user_events_this_week', {
+          // Get current event count for this week AND month
+          const { data: weeklyCount } = await supabase.rpc('count_user_events_this_week', {
+            _user_id: userId
+          });
+          const { data: monthlyCount } = await supabase.rpc('count_user_events_this_month', {
             _user_id: userId
           });
           
@@ -2847,16 +2852,25 @@ async function executeAction(
           const dayOfWeek = now.getDay(); // 0 = Sunday
           const daysUntilReset = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
           
+          // Determine which limit was hit
+          const weeklyLimitHit = (weeklyCount || 0) >= weeklyLimit;
+          const monthlyLimitHit = (monthlyCount || 0) >= monthlyLimit;
+          
           return { 
             success: false, 
             limitReached: true,
             limitData: {
               currentPlan: planName,
-              eventsUsed: eventCount || limit,
-              eventsLimit: limit,
-              daysUntilReset
+              eventsUsed: weeklyLimitHit ? (weeklyCount || weeklyLimit) : (monthlyCount || monthlyLimit),
+              eventsLimit: weeklyLimitHit ? weeklyLimit : monthlyLimit,
+              daysUntilReset,
+              limitType: weeklyLimitHit ? 'weekly' : 'monthly',
+              eventsUsedWeek: weeklyCount || 0,
+              eventsLimitWeek: weeklyLimit,
+              eventsUsedMonth: monthlyCount || 0,
+              eventsLimitMonth: monthlyLimit
             },
-            error: `Você atingiu o limite de ${limit} eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos.`
+            error: `Você atingiu o limite de eventos do plano ${planName === 'free' ? 'grátis' : planName.toUpperCase()}. Atualize seu plano para criar mais eventos.`
           };
         }
 
@@ -4372,7 +4386,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
 
     console.log('Parsed action:', action);
 
-    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any; eventId?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number }; noIdReturned?: boolean } = { success: true };
+    let executionResult: { success: boolean; data?: any; error?: string; pastDate?: boolean; attemptedEvent?: any; eventId?: string; limitReached?: boolean; limitData?: { currentPlan: string; eventsUsed: number; eventsLimit: number; daysUntilReset: number; limitType?: string; eventsUsedWeek?: number; eventsLimitWeek?: number; eventsUsedMonth?: number; eventsLimitMonth?: number }; noIdReturned?: boolean } = { success: true };
     
     // Skip executeAction if action was already processed inline (e.g., update_event)
     if (userId && supabase && !action._alreadyExecuted && action.acao !== 'conversar' && action.acao !== 'coletar_informacoes' && action.acao !== 'solicitar_confirmacao') {

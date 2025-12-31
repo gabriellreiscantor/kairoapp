@@ -100,11 +100,6 @@ const UpgradePlanCard = React.forwardRef<HTMLDivElement, UpgradePlanCardProps>(
             {t('upgrade.waitForReset') || "Wait for Limit Reset"}
           </button>
         )}
-
-        {/* Info text */}
-        <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-center">
-          {t('upgrade.plusBenefit') || "With Plus you can create up to 50 events per week!"}
-        </p>
       </div>
     );
   }

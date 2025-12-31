@@ -209,6 +209,7 @@ export type Database = {
           has_critical_alerts: boolean
           has_daily_overview: boolean | null
           id: string
+          max_events_per_month: number
           max_events_per_week: number
           max_google_calendars: number
           max_kairo_calendars: number
@@ -222,6 +223,7 @@ export type Database = {
           has_critical_alerts?: boolean
           has_daily_overview?: boolean | null
           id?: string
+          max_events_per_month?: number
           max_events_per_week: number
           max_google_calendars?: number
           max_kairo_calendars?: number
@@ -235,6 +237,7 @@ export type Database = {
           has_critical_alerts?: boolean
           has_daily_overview?: boolean | null
           id?: string
+          max_events_per_month?: number
           max_events_per_week?: number
           max_google_calendars?: number
           max_kairo_calendars?: number
@@ -475,6 +478,10 @@ export type Database = {
     }
     Functions: {
       can_create_event: { Args: { _user_id: string }; Returns: boolean }
+      count_user_events_this_month: {
+        Args: { _user_id: string }
+        Returns: number
+      }
       count_user_events_this_week: {
         Args: { _user_id: string }
         Returns: number
