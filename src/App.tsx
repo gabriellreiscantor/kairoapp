@@ -14,6 +14,17 @@ import OfflineOverlay from "./components/OfflineOverlay";
 import { SystemLanguageSyncHandler } from "@/components/SystemLanguageSyncHandler";
 import { remoteLog } from "@/lib/remoteLogger";
 
+// Esconde o splash HTML imediatamente quando React monta (evita overlay invisível bloqueando cliques)
+const HideSplashOnMount = () => {
+  useEffect(() => {
+    const initialSplash = document.getElementById('initial-splash');
+    if (initialSplash) {
+      initialSplash.style.display = 'none';
+    }
+  }, []);
+  return null;
+};
+
 // Eager load - critical path
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
@@ -132,6 +143,7 @@ const GlobalErrorHandlers = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <HideSplashOnMount />
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <LanguageProvider>
         <AuthProvider>
