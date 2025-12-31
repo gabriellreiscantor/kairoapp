@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
-import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 import { remoteLog } from '@/lib/remoteLogger';
+
+// Helper to get Geolocation dynamically
+const getGeolocation = async () => {
+  const { Geolocation } = await import('@capacitor/geolocation');
+  return Geolocation;
+};
 
 // Brazilian state abbreviations
 const STATE_ABBREVIATIONS: Record<string, string> = {
@@ -62,7 +68,16 @@ export const useGeolocation = () => {
   // Request location permission explicitly
   const requestLocationPermission = useCallback(async (): Promise<boolean> => {
     try {
+      // Skip on web/preview - only run on native platforms
+      if (!Capacitor.isNativePlatform()) {
+        remoteLog.debug('geolocation', 'permission_skipped_web');
+        return false;
+      }
+
       remoteLog.info('geolocation', 'permission_check_started');
+      
+      // Dynamic import to avoid loading plugin in web preview
+      const Geolocation = await getGeolocation();
       
       // First check current permission status
       const status = await Geolocation.checkPermissions();
@@ -113,6 +128,9 @@ export const useGeolocation = () => {
       }
       
       remoteLog.info('geolocation', 'position_fetching');
+      
+      // Dynamic import to avoid loading plugin in web preview
+      const Geolocation = await getGeolocation();
       
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,

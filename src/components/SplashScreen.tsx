@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SplashScreen as NativeSplash } from '@capacitor/splash-screen';
+import { Capacitor } from "@capacitor/core";
 import splashDark from "@/assets/horah-splash-dark.png";
 import splashLight from "@/assets/horah-splash-light.png";
 
@@ -27,10 +27,18 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   // Esconder splash nativo do Capacitor IMEDIATAMENTE para evitar tela branca
   useEffect(() => {
-    // Esconder o splash nativo o mais rápido possível
-    NativeSplash.hide().catch(() => {
-      // Silently ignore - não está rodando em ambiente nativo
-    });
+    // Dynamic import to avoid loading plugin in web preview
+    const hideNativeSplash = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { SplashScreen: NativeSplash } = await import('@capacitor/splash-screen');
+          await NativeSplash.hide();
+        } catch {
+          // Silently ignore - não está rodando em ambiente nativo
+        }
+      }
+    };
+    hideNativeSplash();
     
     // Delay mínimo reduzido para transição mais rápida
     const minDelayTimer = setTimeout(() => {
