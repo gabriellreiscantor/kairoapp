@@ -1853,7 +1853,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                           <img src={resolvedTheme === 'dark' ? horahAvatarDark : horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <div className="flex-1 pt-0.5">
-                          <div className="inline-block bg-kairo-surface-2/50 backdrop-blur-sm rounded-2xl rounded-tl-md px-4 py-2.5 border border-border/10 bubble-shadow">
+                      <div className="inline-block bg-kairo-surface-2 dark:bg-kairo-surface-3 backdrop-blur-sm rounded-2xl rounded-tl-md px-4 py-2.5 border border-border/20 bubble-shadow">
                             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                               {message.content}
                             </p>
