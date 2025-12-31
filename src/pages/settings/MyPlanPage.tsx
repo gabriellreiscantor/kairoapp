@@ -213,13 +213,17 @@ const MyPlanPage = () => {
                   onClick={() => setSelectedPlan(plan)}
                   className={cn(
                     "flex-1 py-3 px-2 rounded-xl transition-all duration-300 relative",
+                    // Super always has the glow effect (recommended)
+                    plan === 'super' && "plan-glow-super",
                     isSelected 
                       ? plan === 'super' 
-                        ? "bg-kairo-amber/20 border-2 border-kairo-amber plan-glow-super" 
+                        ? "bg-primary/20 border-2 border-primary" 
                         : plan === 'plus'
-                          ? "bg-primary/20 border-2 border-primary"
+                          ? "bg-kairo-surface-3 border-2 border-border"
                           : "bg-kairo-surface-3 border-2 border-border"
-                      : "bg-kairo-surface-2 border-2 border-transparent"
+                      : plan === 'super'
+                        ? "bg-primary/10 border-2 border-primary/50"
+                        : "bg-kairo-surface-2 border-2 border-transparent"
                   )}
                 >
                   {isRecommended && (
@@ -229,13 +233,13 @@ const MyPlanPage = () => {
                   )}
                   <Icon className={cn(
                     "w-4 h-4 mx-auto mb-1",
-                    isSelected && plan === 'plus' && "text-primary",
-                    isSelected && plan === 'super' && "text-kairo-amber",
-                    !isSelected && "text-muted-foreground"
+                    plan === 'super' && "text-primary",
+                    isSelected && plan !== 'super' && "text-foreground",
+                    !isSelected && plan !== 'super' && "text-muted-foreground"
                   )} />
                   <p className={cn(
                     "text-xs font-semibold",
-                    isSelected ? "text-foreground" : "text-muted-foreground"
+                    plan === 'super' ? "text-primary" : isSelected ? "text-foreground" : "text-muted-foreground"
                   )}>
                     {data.name}
                   </p>
