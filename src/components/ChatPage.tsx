@@ -1651,7 +1651,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
       {/* Fixed Header Navigation - only show when chat is active */}
       {activeView === 'chat' && (
         <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">

@@ -103,17 +103,20 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   
   return (
     <div 
-      className={`relative w-screen h-full overflow-hidden ${className}`}
+      className={`relative h-full overflow-hidden ${className}`}
       style={{ 
         opacity: mounted ? 1 : 0,
+        width: '100vw',
         maxWidth: '100vw',
+        overflow: 'hidden',
       }}
     >
       <motion.div
         className="flex h-full touch-pan-y"
         style={{ 
           x,
-          width: `${totalWidth}px`,
+          width: `${children.length * pageWidth}px`,
+          display: 'flex',
         }}
         drag="x"
         dragConstraints={{ 
@@ -128,7 +131,11 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
           <div 
             key={index}
             className="h-full flex-shrink-0"
-            style={{ width: `${pageWidth}px` }}
+            style={{ 
+              width: `${pageWidth}px`,
+              minWidth: `${pageWidth}px`,
+              maxWidth: `${pageWidth}px`,
+            }}
           >
             {child}
           </div>
