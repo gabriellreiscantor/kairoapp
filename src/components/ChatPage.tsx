@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Camera, Image, Mic, Send, Calendar as CalendarIcon, User, Loader2, ChevronDown, History } from "lucide-react";
-import { format, isToday, isYesterday, differenceInMinutes, startOfDay } from "date-fns";
+import { format, isToday, isYesterday, startOfDay } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -307,22 +307,27 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     ? onboardingSuggestions 
     : (smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions);
 
-  const formatMessageTime = (date: Date): string => {
-    const time = format(date, 'HH:mm');
-    
+  // WhatsApp-style date separator format (no time, abbreviated)
+  const formatDateSeparator = (date: Date): string => {
     if (isToday(date)) {
-      return `${t('chat.today')} ${time}`;
+      return t('chat.today'); // "Hoje" (sem hora)
     } else if (isYesterday(date)) {
-      return `${t('chat.yesterday')} ${time}`;
+      return t('chat.yesterday'); // "Ontem" (sem hora)
     } else {
-      return format(date, "d MMM HH:mm", { locale: dateLocale });
+      // "Sáb, 31 dez" - abbreviated day + date
+      return format(date, "EEE, d MMM", { locale: dateLocale });
     }
   };
 
-  const shouldShowTimestamp = (currentMsg: Message, prevMsg: Message | null): boolean => {
-    if (!prevMsg) return true;
-    const minutesDiff = differenceInMinutes(currentMsg.createdAt, prevMsg.createdAt);
-    return minutesDiff >= 5 || currentMsg.type !== prevMsg.type;
+  // Only show separator when the DAY changes (WhatsApp style)
+  const shouldShowDateSeparator = (currentMsg: Message, prevMsg: Message | null): boolean => {
+    if (!prevMsg) return true; // First message always shows separator
+    
+    // Compare only the DAY (ignore time)
+    const currentDay = startOfDay(currentMsg.createdAt);
+    const prevDay = startOfDay(prevMsg.createdAt);
+    
+    return currentDay.getTime() !== prevDay.getTime();
   };
 
   const scrollToBottom = () => {
@@ -1773,9 +1778,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         {/* Show suggestions when chat is empty */}
         {!isLoadingHistory && !isOnboardingLoading && messages.length === 0 && (
           <div className="pt-4">
-            {/* Timestamp */}
+            {/* Date separator - WhatsApp style */}
             <p className="text-center text-[10px] text-muted-foreground mb-4">
-              {formatMessageTime(new Date())}
+              {formatDateSeparator(new Date())}
             </p>
             
             {/* Welcome message - premium style */}
@@ -1828,14 +1833,14 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           
           {messages.map((message, index) => {
             const prevMessage = index > 0 ? messages[index - 1] : null;
-            const showTimestamp = shouldShowTimestamp(message, prevMessage);
+            const showDateSeparator = shouldShowDateSeparator(message, prevMessage);
             
             return (
               <div key={message.id} className="relative">
-                {/* Timestamp */}
-                {showTimestamp && (
+                {/* Date separator - only when day changes (WhatsApp style) */}
+                {showDateSeparator && (
                   <p className="text-center text-[10px] text-muted-foreground my-4 relative z-10">
-                    {formatMessageTime(message.createdAt)}
+                    {formatDateSeparator(message.createdAt)}
                   </p>
                 )}
                 
