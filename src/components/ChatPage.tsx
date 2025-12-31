@@ -1652,37 +1652,39 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Fixed Header Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
-        {/* Single gradient: opaque at top (status bar) -> transparent at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-transparent pointer-events-none" />
-        
-        <div className="relative flex items-center justify-center gap-2 px-4 py-3">
-          {/* Calendar View - Left */}
-          <button
-            onClick={() => onViewChange('calendar')}
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
-          >
-            <CalendarIcon className="w-5 h-5" />
-          </button>
+      {/* Fixed Header Navigation - only show when chat is active */}
+      {activeView === 'chat' && (
+        <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
+          {/* Single gradient: opaque at top (status bar) -> transparent at bottom */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-transparent pointer-events-none" />
           
-          {/* Center - Kairo Logo */}
-          <button
-            onClick={() => onViewChange('chat')}
-            className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
-          >
-            <img src={resolvedTheme === 'dark' ? horahHeaderDark : horahHeader} alt="Horah" className="w-full h-full object-cover" />
-          </button>
-          
-          {/* Settings - Right */}
-          <button
-            onClick={onOpenSettings}
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
-          >
-            <User className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
+          <div className="relative flex items-center justify-center gap-2 px-4 py-3">
+            {/* Calendar View - Left */}
+            <button
+              onClick={() => onViewChange('calendar')}
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
+            >
+              <CalendarIcon className="w-5 h-5" />
+            </button>
+            
+            {/* Center - Kairo Logo */}
+            <button
+              onClick={() => onViewChange('chat')}
+              className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
+            >
+              <img src={resolvedTheme === 'dark' ? horahHeaderDark : horahHeader} alt="Horah" className="w-full h-full object-cover" />
+            </button>
+            
+            {/* Settings - Right */}
+            <button
+              onClick={onOpenSettings}
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
+            >
+              <User className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* Messages - Timeline style */}
       <div 
@@ -1994,8 +1996,8 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         </div>
       </div>
 
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
+      {/* Scroll to bottom button - only show when chat is active */}
+      {activeView === 'chat' && showScrollButton && (
         <button
           onClick={scrollToBottom}
           className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/40 shadow-lg flex items-center justify-center transition-all duration-300 animate-fade-in hover:scale-110 hover:bg-background"
@@ -2004,8 +2006,9 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         </button>
       )}
 
-      {/* Input with safe area - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom bg-background/95 backdrop-blur-xl border-t border-border/20">
+      {/* Input with safe area - Fixed at bottom - only show when chat is active */}
+      {activeView === 'chat' && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom bg-background/95 backdrop-blur-xl border-t border-border/20">
         <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl px-4 py-3">
           <input
             type="text"
@@ -2071,7 +2074,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           </div>
         </div>
       </div>
-
+      )}
       {/* Event Confirmation Modal */}
       {confirmationModal.resumo && (
         <EventConfirmationModal
