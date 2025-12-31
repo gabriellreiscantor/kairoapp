@@ -40,11 +40,11 @@ type ViewType = 'chat' | 'list' | 'calendar';
 // Map view types to page indices
 const VIEW_TO_INDEX: Record<ViewType, number> = {
   'chat': 0,
-  'calendar': 1,
-  'list': 2,
+  'list': 1,
+  'calendar': 2,
 };
 
-const INDEX_TO_VIEW: ViewType[] = ['chat', 'calendar', 'list'];
+const INDEX_TO_VIEW: ViewType[] = ['chat', 'list', 'calendar'];
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -427,8 +427,8 @@ const ChatPageComponent = useMemo(() => (
         className="h-screen"
       >
         {ChatPageComponent}
-        {CalendarPage}
         {ListPage}
+        {CalendarPage}
       </SwipeablePages>
 
       {/* Gradient Overlay Bottom */}
