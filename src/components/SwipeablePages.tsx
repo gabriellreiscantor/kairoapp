@@ -106,7 +106,7 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   
   return (
     <div 
-      className={`fixed inset-0 overflow-hidden ${className}`}
+      className={`relative w-full h-full overflow-hidden ${className}`}
       style={{ 
         opacity: mounted ? 1 : 0,
       }}
