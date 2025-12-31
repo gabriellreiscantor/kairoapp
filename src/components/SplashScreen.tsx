@@ -48,6 +48,17 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     return () => clearTimeout(minDelayTimer);
   }, []);
 
+  // FALLBACK DE SEGURANÇA - máximo 3 segundos na splash
+  useEffect(() => {
+    const maxTimeout = setTimeout(() => {
+      console.log('[SplashScreen] Max timeout reached, forcing complete');
+      setFadeOut(true);
+      setTimeout(onComplete, 400);
+    }, 3000);
+    
+    return () => clearTimeout(maxTimeout);
+  }, [onComplete]);
+
   // Esconder splash inline do HTML e pré-carregar imagem
   useEffect(() => {
     const initialSplash = document.getElementById('initial-splash');
@@ -61,8 +72,9 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     img.src = splashImage;
     
     const fallbackTimer = setTimeout(() => {
+      console.log('[SplashScreen] Image load fallback triggered');
       setImageLoaded(true);
-    }, 1000);
+    }, 800);
     
     return () => clearTimeout(fallbackTimer);
   }, [splashImage]);
