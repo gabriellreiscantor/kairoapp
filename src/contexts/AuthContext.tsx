@@ -228,8 +228,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
+    // Safety timeout - force loading to false if getSession takes too long
+    const authTimeout = setTimeout(() => {
+      remoteLog.warn('auth', 'session_timeout', { waited: '5s', isLoading: true });
+      setIsLoading(false);
+    }, 5000);
+
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(authTimeout); // Cancel timeout if completed
       remoteLog.info('auth', 'session_restored', { hasSession: !!session });
       
       setSession(session);
@@ -241,6 +248,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
       }
+      setIsLoading(false);
+    }).catch((error) => {
+      clearTimeout(authTimeout);
+      remoteLog.error('auth', 'session_error', { error: String(error) });
       setIsLoading(false);
     });
 

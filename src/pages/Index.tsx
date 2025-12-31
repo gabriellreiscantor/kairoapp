@@ -42,7 +42,7 @@ const Index = () => {
     setAppState('loading');
   };
 
-  // Fallback timeout - força transição se travar por mais de 10 segundos
+  // Fallback timeout - força transição se travar por mais de 5 segundos
   useEffect(() => {
     if (appState !== 'loading') return;
     
@@ -50,16 +50,27 @@ const Index = () => {
       remoteLog.warn('app_lifecycle', 'loading_timeout', { 
         hasUser: !!user, 
         isLoading,
-        waited: '10s' 
+        waited: '5s' 
       });
       
       // Forçar navegação se ainda travado
       if (user) {
         setAppState('app');
-      } else {
+      } else if (!isLoading) {
+        // Auth finished loading and no user
         navigate('/auth');
+      } else {
+        // Still loading after timeout - check localStorage fallback
+        const authToken = localStorage.getItem('sb-codkpccwtffhoacwswso-auth-token');
+        if (authToken) {
+          // Has cached session, try to show app
+          remoteLog.info('app_lifecycle', 'forcing_app_from_cache');
+          setAppState('app');
+        } else {
+          navigate('/auth');
+        }
       }
-    }, 10000);
+    }, 5000);
     
     return () => clearTimeout(timeout);
   }, [appState, user, navigate, isLoading]);
