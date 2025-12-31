@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
+import { motion, useMotionValue, animate, PanInfo } from 'framer-motion';
 
 interface SwipeablePagesProps {
   currentIndex: number;
@@ -18,16 +18,15 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   children,
   className = '',
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [pageWidth, setPageWidth] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
   const x = useMotionValue(0);
   
-  // Update page width on resize
+  // Update page width on resize - use window.innerWidth for reliable 100vw
   useEffect(() => {
     const updateWidth = () => {
-      if (containerRef.current) {
-        setPageWidth(containerRef.current.offsetWidth);
-      }
+      const width = window.innerWidth;
+      setPageWidth(width);
     };
     
     updateWidth();
@@ -35,17 +34,26 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
   
-  // Animate to current page when index changes externally
+  // Initialize position and animate on page change
   useEffect(() => {
     if (pageWidth > 0) {
-      animate(x, -currentIndex * pageWidth, {
-        type: 'spring',
-        stiffness: 500,
-        damping: 40,
-        mass: 0.8,
-      });
+      const targetX = -currentIndex * pageWidth;
+      
+      if (!isInitialized) {
+        // First render - set position immediately without animation
+        x.set(targetX);
+        setIsInitialized(true);
+      } else {
+        // Subsequent changes - animate
+        animate(x, targetX, {
+          type: 'spring',
+          stiffness: 500,
+          damping: 40,
+          mass: 0.8,
+        });
+      }
     }
-  }, [currentIndex, pageWidth, x]);
+  }, [currentIndex, pageWidth, isInitialized, x]);
   
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const velocity = info.velocity.x;
@@ -92,16 +100,18 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   const minX = -(children.length - 1) * pageWidth;
   const maxX = 0;
   
+  // Don't render until we have page width
+  if (pageWidth === 0) {
+    return <div className={`w-full h-full ${className}`} />;
+  }
+  
   return (
-    <div 
-      ref={containerRef}
-      className={`relative w-full h-full overflow-hidden ${className}`}
-    >
+    <div className={`relative w-full h-full overflow-hidden ${className}`}>
       <motion.div
         className="flex h-full"
         style={{ 
           x,
-          width: `${children.length * 100}%`,
+          width: `${children.length * pageWidth}px`,
         }}
         drag="x"
         dragConstraints={{ left: minX, right: maxX }}
@@ -113,8 +123,8 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
         {React.Children.map(children, (child, index) => (
           <div 
             key={index}
-            className="h-full flex-shrink-0 relative overflow-hidden"
-            style={{ width: `${100 / children.length}%` }}
+            className="h-full flex-shrink-0"
+            style={{ width: `${pageWidth}px` }}
           >
             {child}
           </div>
