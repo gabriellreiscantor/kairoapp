@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { Plus, Calendar as CalendarIcon, ChevronUp, ChevronLeft, ChevronRight, LayoutGrid, RefreshCw } from "lucide-react";
 import { Capacitor } from '@capacitor/core';
@@ -13,7 +13,7 @@ import CreateEventModal from "@/components/CreateEventModal";
 import EditEventModal from "@/components/EditEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
-import EdgeSwipeZone from "@/components/EdgeSwipeZone";
+import SwipeablePages from "@/components/SwipeablePages";
 import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -23,6 +23,7 @@ import horahLogo from "@/assets/horah-logo.png";
 import horahLogoDark from "@/assets/horah-logo-dark.png";
 import { useTheme } from "next-themes";
 import { getOrCreateDeviceId } from "@/hooks/useDeviceId";
+
 interface Event {
   id: string;
   title: string;
@@ -35,6 +36,15 @@ interface Event {
 }
 
 type ViewType = 'chat' | 'list' | 'calendar';
+
+// Map view types to page indices
+const VIEW_TO_INDEX: Record<ViewType, number> = {
+  'list': 0,
+  'chat': 1,
+  'calendar': 2,
+};
+
+const INDEX_TO_VIEW: ViewType[] = ['list', 'chat', 'calendar'];
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -225,6 +235,17 @@ const MainApp = () => {
     setShowMonthPicker(false);
   };
 
+  // Handle page change from swipe
+  const handlePageChange = useCallback((index: number) => {
+    const newView = INDEX_TO_VIEW[index];
+    if (newView) {
+      setActiveView(newView);
+    }
+  }, []);
+
+  // Current page index
+  const currentPageIndex = VIEW_TO_INDEX[activeView];
+
   // Floating Dock Component
   const FloatingDock = () => (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 safe-area-bottom">
@@ -267,78 +288,11 @@ const MainApp = () => {
     </div>
   );
 
-  // Chat Page (Home)
-  if (activeView === 'chat') {
-    return (
-      <>
-        <EdgeSwipeZone
-          onSwipeLeft={() => setIsSettingsOpen(true)}
-          onSwipeRight={() => setActiveView('list')}
-        >
-          <div className="h-screen">
-            <ChatPage 
-              onNavigateToCalendar={() => setActiveView('list')}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              activeView={activeView}
-              onViewChange={setActiveView}
-              onEventCreated={handleEventCreated}
-              initialEditMessage={initialEditMessage}
-              onClearInitialEditMessage={() => setInitialEditMessage(null)}
-            />
-            
-            {/* Botão para ENVIAR VoIP push - DEBUG */}
-            <button
-              onClick={async () => {
-                if (!deviceId) {
-                  toast({ title: 'Aguarde', description: 'Carregando device ID...', variant: 'destructive' });
-                  return;
-                }
-                
-                toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
-                
-                try {
-                  const { data, error } = await supabase.functions.invoke('send-voip-push', {
-                    body: {
-                      device_id: deviceId,
-                      user_id: user?.id,
-                      event_id: 'test-' + Date.now(),
-                      event_title: 'Teste VoIP',
-                      event_time: format(new Date(), 'HH:mm'),
-                    },
-                  });
-                  
-                  if (error) {
-                    console.error('[Test VoIP] Error:', error);
-                    toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-                  } else {
-                    console.log('[Test VoIP] Success:', data);
-                    toast({ title: 'VoIP enviado!', description: 'A chamada deve aparecer em segundos' });
-                  }
-                } catch (err) {
-                  console.error('[Test VoIP] Exception:', err);
-                  toast({ title: 'Erro', description: 'Falha ao enviar', variant: 'destructive' });
-                }
-              }}
-              className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-            >
-              📞
-            </button>
-          </div>
-        </EdgeSwipeZone>
-        
-        <SettingsDrawer
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      </>
-    );
-  }
-
   const months = getMonths();
 
-  // Calendar/List Views
-  return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+  // Calendar Header (only shown when not on chat)
+  const CalendarHeader = () => (
+    <>
       {/* Gradient Overlay Top */}
       <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
@@ -417,30 +371,105 @@ const MainApp = () => {
           onClick={() => setShowMonthPicker(false)} 
         />
       )}
+    </>
+  );
 
-      {/* Main Content */}
-      <div className="flex-1 pt-20 pb-28 overflow-hidden bg-background">
-        {activeView === 'calendar' ? (
-          <CalendarView 
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelect}
-            currentMonth={currentMonth}
-            onMonthChange={setCurrentMonth}
-            events={events}
-          />
-        ) : (
-          <DayListView
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelect}
-            onAddEvent={handleAddEvent}
-            events={events}
-          />
-        )}
+  // Page components - memoized to prevent unnecessary re-renders during swipe
+  const ListPage = useMemo(() => (
+    <div className="h-full bg-background flex flex-col overflow-hidden">
+      <CalendarHeader />
+      <div className="flex-1 pt-20 pb-28 overflow-hidden">
+        <DayListView
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          onAddEvent={handleAddEvent}
+          events={events}
+        />
       </div>
+    </div>
+  ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
+
+  const ChatPageComponent = useMemo(() => (
+    <div className="h-full">
+      <ChatPage 
+        onNavigateToCalendar={() => setActiveView('list')}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onEventCreated={handleEventCreated}
+        initialEditMessage={initialEditMessage}
+        onClearInitialEditMessage={() => setInitialEditMessage(null)}
+      />
+      
+      {/* Botão para ENVIAR VoIP push - DEBUG */}
+      <button
+        onClick={async () => {
+          if (!deviceId) {
+            toast({ title: 'Aguarde', description: 'Carregando device ID...', variant: 'destructive' });
+            return;
+          }
+          
+          toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
+          
+          try {
+            const { data, error } = await supabase.functions.invoke('send-voip-push', {
+              body: {
+                device_id: deviceId,
+                user_id: user?.id,
+                event_id: 'test-' + Date.now(),
+                event_title: 'Teste VoIP',
+                event_time: format(new Date(), 'HH:mm'),
+              },
+            });
+            
+            if (error) {
+              console.error('[Test VoIP] Error:', error);
+              toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+            } else {
+              console.log('[Test VoIP] Success:', data);
+              toast({ title: 'VoIP enviado!', description: 'A chamada deve aparecer em segundos' });
+            }
+          } catch (err) {
+            console.error('[Test VoIP] Exception:', err);
+            toast({ title: 'Erro', description: 'Falha ao enviar', variant: 'destructive' });
+          }
+        }}
+        className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+      >
+        📞
+      </button>
+    </div>
+  ), [activeView, initialEditMessage, handleEventCreated, deviceId, user, toast]);
+
+  const CalendarPage = useMemo(() => (
+    <div className="h-full bg-background flex flex-col overflow-hidden">
+      <CalendarHeader />
+      <div className="flex-1 pt-20 pb-28 overflow-hidden">
+        <CalendarView 
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
+          events={events}
+        />
+      </div>
+    </div>
+  ), [selectedDate, currentMonth, events, showMonthPicker, pickerYear, months, dateLocale, t]);
+
+  return (
+    <>
+      <SwipeablePages
+        currentIndex={currentPageIndex}
+        onPageChange={handlePageChange}
+        className="h-screen"
+      >
+        {ListPage}
+        {ChatPageComponent}
+        {CalendarPage}
+      </SwipeablePages>
 
       {/* Gradient Overlay Bottom */}
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom pointer-events-none z-10" />
-
 
       {/* Floating Dock Navigation */}
       <FloatingDock />
@@ -518,7 +547,7 @@ const MainApp = () => {
           }}
         />
       )}
-    </div>
+    </>
   );
 };
 
