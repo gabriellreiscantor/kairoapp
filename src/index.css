@@ -107,8 +107,47 @@ input, textarea, [contenteditable="true"] {
   }
   
   .dark {
-    --background: 20 8% 8%;
-    --foreground: 40 20% 95%;
+    /* Core backgrounds - Deep midnight blue */
+    --background: 231 35% 8%;
+    --foreground: 210 20% 95%;
+    
+    /* Surfaces - layered dark with blue tint */
+    --kairo-surface-1: 231 30% 12%;
+    --kairo-surface-2: 231 25% 15%;
+    --kairo-surface-3: 231 22% 18%;
+    
+    /* Message colors */
+    --kairo-ai-bubble: 231 25% 14%;
+    --kairo-user-bubble: 217 62% 48%;
+    
+    /* Primary - Azul vivo */
+    --primary: 217 62% 48%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary */
+    --secondary: 221 50% 22%;
+    --secondary-foreground: 210 40% 85%;
+    
+    /* Muted - visible on dark */
+    --muted: 231 25% 18%;
+    --muted-foreground: 210 15% 60%;
+    
+    /* Accent */
+    --accent: 221 50% 30%;
+    --accent-foreground: 210 20% 95%;
+    
+    /* Card */
+    --card: 231 30% 10%;
+    --card-foreground: 210 20% 95%;
+    
+    /* Popover */
+    --popover: 231 30% 10%;
+    --popover-foreground: 210 20% 95%;
+    
+    /* Border - more visible */
+    --border: 221 25% 22%;
+    --input: 221 25% 22%;
+    --ring: 217 62% 48%;
   }
   
   .light {
