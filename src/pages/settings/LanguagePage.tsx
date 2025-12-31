@@ -1,25 +1,13 @@
 import { Check, Search } from "lucide-react";
 import { useState } from "react";
-import { useLanguage, LanguageCode } from "@/contexts/LanguageContext";
+import { useLanguage, LanguageCode, SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 import BackButton from "@/components/BackButton";
-
-const LANGUAGES = [
-  { code: 'pt-BR' as LanguageCode, name: 'Português (Brasil)', native: 'Português (Brasil)' },
-  { code: 'en-US' as LanguageCode, name: 'English (US)', native: 'English (US)' },
-  { code: 'es-ES' as LanguageCode, name: 'Spanish', native: 'Español' },
-  { code: 'fr-FR' as LanguageCode, name: 'French', native: 'Français' },
-  { code: 'de-DE' as LanguageCode, name: 'German', native: 'Deutsch' },
-  { code: 'it-IT' as LanguageCode, name: 'Italian', native: 'Italiano' },
-  { code: 'ja-JP' as LanguageCode, name: 'Japanese', native: '日本語' },
-  { code: 'ko-KR' as LanguageCode, name: 'Korean', native: '한국어' },
-  { code: 'zh-CN' as LanguageCode, name: 'Chinese (Simplified)', native: '简体中文' },
-];
 
 const LanguagePage = () => {
   const { language, setLanguage, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredLanguages = LANGUAGES.filter(lang => 
+  const filteredLanguages = SUPPORTED_LANGUAGES.filter(lang => 
     lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     lang.native.toLowerCase().includes(searchQuery.toLowerCase())
   );

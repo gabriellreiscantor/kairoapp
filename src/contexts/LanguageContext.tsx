@@ -78,6 +78,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.search': 'Buscar idioma...',
     'language.note': 'O idioma será aplicado a toda a interface do Horah. Algumas traduções podem estar incompletas.',
     
+    // Language Change Dialog
+    'languageChange.title': 'Idioma do sistema alterado',
+    'languageChange.description': 'Detectamos que você mudou o idioma do seu dispositivo para {language}. Deseja atualizar o idioma do Horah?',
+    'languageChange.keep': 'Manter {language}',
+    'languageChange.change': 'Mudar para {language}',
+    
     // My Plan page
     'plan.title': 'Meu plano',
     'plan.free': 'Grátis',
@@ -539,6 +545,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.search': 'Search language...',
     'language.note': 'The language will be applied to the entire Horah interface. Some translations may be incomplete.',
     
+    // Language Change Dialog
+    'languageChange.title': 'System language changed',
+    'languageChange.description': 'We detected that you changed your device language to {language}. Would you like to update Horah\'s language?',
+    'languageChange.keep': 'Keep {language}',
+    'languageChange.change': 'Switch to {language}',
+    
     // My Plan page
     'plan.title': 'My Plan',
     'plan.free': 'Free',
@@ -992,6 +1004,12 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.search': 'Buscar idioma...',
     'language.note': 'El idioma se aplicará a toda la interfaz de Horah. Algunas traducciones pueden estar incompletas.',
     
+    // Language Change Dialog
+    'languageChange.title': 'Idioma del sistema cambiado',
+    'languageChange.description': 'Detectamos que cambiaste el idioma de tu dispositivo a {language}. ¿Deseas actualizar el idioma de Horah?',
+    'languageChange.keep': 'Mantener {language}',
+    'languageChange.change': 'Cambiar a {language}',
+    
     // My Plan page
     'plan.title': 'Mi plan',
     'plan.free': 'Gratis',
@@ -1198,6 +1216,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': 'Langue',
     'language.search': 'Rechercher une langue...',
     'language.note': 'La langue sera appliquée à toute l\'interface Horah.',
+    
+    // Language Change Dialog
+    'languageChange.title': 'Langue du système modifiée',
+    'languageChange.description': 'Nous avons détecté que vous avez changé la langue de votre appareil en {language}. Voulez-vous mettre à jour la langue de Horah?',
+    'languageChange.keep': 'Garder {language}',
+    'languageChange.change': 'Passer à {language}',
+    
     'plan.title': 'Mon forfait',
     'plan.free': 'Gratuit',
     'plan.plus': 'PLUS',
@@ -1394,6 +1419,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': 'Sprache',
     'language.search': 'Sprache suchen...',
     'language.note': 'Die Sprache wird auf die gesamte Horah-Oberfläche angewendet.',
+    
+    // Language Change Dialog
+    'languageChange.title': 'Systemsprache geändert',
+    'languageChange.description': 'Wir haben festgestellt, dass Sie die Sprache Ihres Geräts auf {language} geändert haben. Möchten Sie die Sprache von Horah aktualisieren?',
+    'languageChange.keep': '{language} behalten',
+    'languageChange.change': 'Zu {language} wechseln',
+    
     'plan.title': 'Mein Plan',
     'plan.free': 'Kostenlos',
     'plan.plus': 'PLUS',
@@ -1590,6 +1622,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': 'Lingua',
     'language.search': 'Cerca lingua...',
     'language.note': 'La lingua verrà applicata a tutta l\'interfaccia Horah.',
+    
+    // Language Change Dialog
+    'languageChange.title': 'Lingua del sistema cambiata',
+    'languageChange.description': 'Abbiamo rilevato che hai cambiato la lingua del dispositivo in {language}. Vuoi aggiornare la lingua di Horah?',
+    'languageChange.keep': 'Mantieni {language}',
+    'languageChange.change': 'Cambia in {language}',
+    
     'plan.title': 'Il mio piano',
     'plan.free': 'Gratuito',
     'plan.plus': 'PLUS',
@@ -1786,6 +1825,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': '言語',
     'language.search': '言語を検索...',
     'language.note': '言語はHorahインターフェース全体に適用されます。',
+    
+    // Language Change Dialog
+    'languageChange.title': 'システム言語が変更されました',
+    'languageChange.description': 'デバイスの言語が{language}に変更されたことを検出しました。Horahの言語を更新しますか？',
+    'languageChange.keep': '{language}を維持',
+    'languageChange.change': '{language}に変更',
+    
     'plan.title': 'マイプラン',
     'plan.free': '無料',
     'plan.plus': 'PLUS',
@@ -1982,6 +2028,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': '언어',
     'language.search': '언어 검색...',
     'language.note': '언어는 전체 Horah 인터페이스에 적용됩니다.',
+    
+    // Language Change Dialog
+    'languageChange.title': '시스템 언어가 변경되었습니다',
+    'languageChange.description': '기기 언어가 {language}(으)로 변경된 것을 감지했습니다. Horah 언어를 업데이트하시겠습니까?',
+    'languageChange.keep': '{language} 유지',
+    'languageChange.change': '{language}(으)로 변경',
+    
     'plan.title': '내 플랜',
     'plan.free': '무료',
     'plan.plus': 'PLUS',
@@ -2178,6 +2231,13 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'language.title': '语言',
     'language.search': '搜索语言...',
     'language.note': '语言将应用于整个Horah界面。',
+    
+    // Language Change Dialog
+    'languageChange.title': '系统语言已更改',
+    'languageChange.description': '我们检测到您将设备语言更改为{language}。是否要更新Horah的语言？',
+    'languageChange.keep': '保持{language}',
+    'languageChange.change': '切换到{language}',
+    
     'plan.title': '我的计划',
     'plan.free': '免费',
     'plan.plus': 'PLUS',
@@ -2342,14 +2402,24 @@ const translations: Record<LanguageCode, Record<string, string>> = {
   },
 };
 
-// Detect device language
-const detectDeviceLanguage = (): LanguageCode => {
-  const savedLanguage = localStorage.getItem('kairo-language') as LanguageCode;
-  if (savedLanguage && translations[savedLanguage]) {
-    return savedLanguage;
-  }
-  
-  // Get browser/device language
+// List of supported languages for external use
+export const SUPPORTED_LANGUAGES = [
+  { code: 'pt-BR' as LanguageCode, name: 'Português (Brasil)', native: 'Português (Brasil)' },
+  { code: 'en-US' as LanguageCode, name: 'English (US)', native: 'English (US)' },
+  { code: 'es-ES' as LanguageCode, name: 'Spanish', native: 'Español' },
+  { code: 'fr-FR' as LanguageCode, name: 'French', native: 'Français' },
+  { code: 'de-DE' as LanguageCode, name: 'German', native: 'Deutsch' },
+  { code: 'it-IT' as LanguageCode, name: 'Italian', native: 'Italiano' },
+  { code: 'ja-JP' as LanguageCode, name: 'Japanese', native: '日本語' },
+  { code: 'ko-KR' as LanguageCode, name: 'Korean', native: '한국어' },
+  { code: 'zh-CN' as LanguageCode, name: 'Chinese (Simplified)', native: '简体中文' },
+];
+
+/**
+ * Gets the current system/browser language without checking localStorage.
+ * Used for detecting system language changes.
+ */
+export const getSystemLanguage = (): LanguageCode => {
   const browserLang = navigator.language || (navigator as any).userLanguage;
   
   // Try exact match first
@@ -2367,8 +2437,20 @@ const detectDeviceLanguage = (): LanguageCode => {
     return matchingLang;
   }
   
-  // Default to English if device language is not supported
   return 'en-US';
+};
+
+/**
+ * Detects the device language and returns a supported language code.
+ * Priority: 1. LocalStorage (user preference), 2. System language, 3. English
+ */
+export const detectDeviceLanguage = (): LanguageCode => {
+  const savedLanguage = localStorage.getItem('kairo-language') as LanguageCode;
+  if (savedLanguage && translations[savedLanguage]) {
+    return savedLanguage;
+  }
+  
+  return getSystemLanguage();
 };
 
 interface LanguageProviderProps {
