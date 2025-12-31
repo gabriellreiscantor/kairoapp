@@ -32,9 +32,12 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   
   // Set initial position BEFORE first paint (useLayoutEffect)
   useLayoutEffect(() => {
-    const width = updatePageWidth();
-    x.set(-currentIndex * width);
-    setMounted(true);
+    // Wait a tick for any scrollbar to disappear and layout to stabilize
+    requestAnimationFrame(() => {
+      const width = updatePageWidth();
+      x.set(-currentIndex * width);
+      setMounted(true);
+    });
   }, []);
   
   // Handle window resize - update width and reposition
