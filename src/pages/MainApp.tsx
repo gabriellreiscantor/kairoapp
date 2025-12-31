@@ -293,11 +293,11 @@ const MainApp = () => {
   // Calendar Header (only shown when not on chat)
   const CalendarHeader = () => (
     <>
-      {/* Gradient Overlay Top */}
-      <div className="fixed top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
+      {/* Gradient Overlay Top - sticky instead of fixed */}
+      <div className="absolute top-0 left-0 right-0 h-24 gradient-overlay-top pointer-events-none z-30" />
       
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl px-5 safe-area-top pb-3 flex items-center justify-between">
+      {/* Sticky Header - stays within container */}
+      <header className="sticky top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl px-5 safe-area-top pb-3 flex items-center justify-between">
         <button 
           onClick={() => {
             setPickerYear(currentMonth.getFullYear());
@@ -322,9 +322,9 @@ const MainApp = () => {
         </div>
       </header>
 
-      {/* Month Picker Popup */}
+      {/* Month Picker Popup - absolute within container */}
       {showMonthPicker && (
-        <div className="fixed top-20 left-5 z-50 glass border border-border/20 rounded-2xl p-4 shadow-2xl w-[280px] safe-area-top mt-2">
+        <div className="absolute top-20 left-5 z-50 glass border border-border/20 rounded-2xl p-4 shadow-2xl w-[280px] safe-area-top mt-2">
           {/* Year Navigation */}
           <div className="flex items-center justify-between mb-4">
             <button 
@@ -364,10 +364,10 @@ const MainApp = () => {
         </div>
       )}
 
-      {/* Click outside to close month picker */}
+      {/* Click outside to close month picker - absolute within container */}
       {showMonthPicker && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="absolute inset-0 z-40" 
           onClick={() => setShowMonthPicker(false)} 
         />
       )}
@@ -376,9 +376,9 @@ const MainApp = () => {
 
   // Page components - memoized to prevent unnecessary re-renders during swipe
   const ListPage = useMemo(() => (
-    <div className="h-full bg-background flex flex-col overflow-hidden">
+    <div className="h-full bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
-      <div className="flex-1 pt-20 pb-28 overflow-hidden">
+      <div className="flex-1 pb-28 overflow-auto">
         <DayListView
           selectedDate={selectedDate}
           onDateSelect={handleDateSelect}
@@ -404,9 +404,9 @@ const ChatPageComponent = useMemo(() => (
   ), [activeView, initialEditMessage, handleEventCreated]);
 
   const CalendarPage = useMemo(() => (
-    <div className="h-full bg-background flex flex-col overflow-hidden">
+    <div className="h-full bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
-      <div className="flex-1 pt-20 pb-28 overflow-hidden">
+      <div className="flex-1 pb-28 overflow-auto">
         <CalendarView 
           selectedDate={selectedDate}
           onDateSelect={handleDateSelect}

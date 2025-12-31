@@ -103,7 +103,7 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
         {React.Children.map(children, (child, index) => (
           <div 
             key={index}
-            className="h-full flex-shrink-0"
+            className="h-full flex-shrink-0 relative overflow-hidden"
             style={{ width: `${100 / children.length}%` }}
           >
             {child}
