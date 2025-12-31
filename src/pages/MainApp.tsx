@@ -375,9 +375,9 @@ const MainApp = () => {
   );
 
   // Page components - memoized to prevent unnecessary re-renders during swipe
+  // NOTE: CalendarHeader is now rendered OUTSIDE SwipeablePages (in the return statement)
   const ListPage = useMemo(() => (
-    <div className="h-full w-full bg-background flex flex-col overflow-hidden relative">
-      <CalendarHeader />
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden">
       <div className="flex-1 pb-28 overflow-auto">
         <DayListView
           selectedDate={selectedDate}
@@ -387,7 +387,7 @@ const MainApp = () => {
         />
       </div>
     </div>
-  ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
+  ), [selectedDate, events]);
 
   const ChatPageComponent = (
     <div className="h-full w-full bg-background">
@@ -404,8 +404,7 @@ const MainApp = () => {
   );
 
   const CalendarPage = useMemo(() => (
-    <div className="h-full w-full bg-background flex flex-col overflow-hidden relative">
-      <CalendarHeader />
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden">
       <div className="flex-1 pb-28 overflow-auto">
         <CalendarView 
           selectedDate={selectedDate}
@@ -416,10 +415,13 @@ const MainApp = () => {
         />
       </div>
     </div>
-  ), [selectedDate, currentMonth, events, showMonthPicker, pickerYear, months, dateLocale, t]);
+  ), [selectedDate, currentMonth, events]);
 
   return (
     <div className="h-screen w-screen bg-background flex flex-col overflow-hidden">
+      {/* Header FIXO - fora do swipe, só para List e Calendar */}
+      {activeView !== 'chat' && <CalendarHeader />}
+      
       {/* Content Area - único lugar do swipe */}
       <div className="flex-1 w-full overflow-hidden">
         <SwipeablePages
