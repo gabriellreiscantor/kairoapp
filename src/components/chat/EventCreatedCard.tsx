@@ -579,6 +579,9 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
     }
   };
 
+  // Check if save failed due to limit reached
+  const isLimitReached = event.saveFailed && event.saveFailedReason?.toLowerCase().includes('limite');
+
   // Render save failed state
   if (event.saveFailed) {
     const formatDateFailed = (dateStr: string) => {
@@ -624,10 +627,11 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           )}
           
           <div className="text-xs text-destructive/70 pl-9 mt-2">
-            {t('event.notSaved')}
+            {isLimitReached ? t('event.notSavedLimit') : t('event.notSaved')}
           </div>
           
-          {onRetry && (
+          {/* Only show retry button if NOT a limit issue */}
+          {onRetry && !isLimitReached && (
             <Button
               variant="outline"
               size="sm"

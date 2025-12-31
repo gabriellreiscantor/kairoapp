@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface PlanLimits {
   plan: 'free' | 'plus' | 'super';
   max_events_per_week: number;
+  max_events_per_month: number;
   max_google_calendars: number;
   max_kairo_calendars: number;
   chat_capacity_multiplier: number;
@@ -26,6 +27,7 @@ interface UseSubscriptionReturn {
   subscription: SubscriptionData | null;
   limits: PlanLimits | null;
   usedEvents: number;
+  usedEventsMonth: number;
   canCreateEvent: boolean;
   loading: boolean;
   error: string | null;
@@ -37,6 +39,7 @@ export function useSubscription(): UseSubscriptionReturn {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [limits, setLimits] = useState<PlanLimits | null>(null);
   const [usedEvents, setUsedEvents] = useState(0);
+  const [usedEventsMonth, setUsedEventsMonth] = useState(0);
   const [canCreateEvent, setCanCreateEvent] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +89,14 @@ export function useSubscription(): UseSubscriptionReturn {
       const eventCount = countData || 0;
       setUsedEvents(eventCount);
 
+      // Count events this month using RPC
+      const { data: monthCountData } = await supabase.rpc('count_user_events_this_month', {
+        _user_id: user.id
+      });
+
+      const eventMonthCount = monthCountData || 0;
+      setUsedEventsMonth(eventMonthCount);
+
       // Check if can create event
       const { data: canCreate } = await supabase.rpc('can_create_event', {
         _user_id: user.id
@@ -109,6 +120,7 @@ export function useSubscription(): UseSubscriptionReturn {
     subscription,
     limits,
     usedEvents,
+    usedEventsMonth,
     canCreateEvent,
     loading,
     error,
