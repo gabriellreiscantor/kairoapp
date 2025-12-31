@@ -434,8 +434,8 @@ const ChatPageComponent = useMemo(() => (
       {/* Gradient Overlay Bottom */}
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom pointer-events-none z-10" />
 
-      {/* Floating Dock Navigation */}
-      <FloatingDock />
+      {/* Floating Dock Navigation - só mostra fora do chat */}
+      {activeView !== 'chat' && <FloatingDock />}
 
       {/* Event Detail Page */}
       <EventDetailPage
