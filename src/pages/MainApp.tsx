@@ -376,7 +376,7 @@ const MainApp = () => {
 
   // Page components - memoized to prevent unnecessary re-renders during swipe
   const ListPage = useMemo(() => (
-    <div className="h-full w-screen bg-background flex flex-col overflow-hidden relative">
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
       <div className="flex-1 pb-28 overflow-auto">
         <DayListView
@@ -390,7 +390,7 @@ const MainApp = () => {
   ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
 
   const ChatPageComponent = (
-    <div className="h-full w-screen bg-background">
+    <div className="h-full w-full bg-background">
       <ChatPage 
         onNavigateToCalendar={() => setActiveView('list')}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -404,7 +404,7 @@ const MainApp = () => {
   );
 
   const CalendarPage = useMemo(() => (
-    <div className="h-full w-screen bg-background flex flex-col overflow-hidden relative">
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden relative">
       <CalendarHeader />
       <div className="flex-1 pb-28 overflow-auto">
         <CalendarView 
@@ -419,17 +419,20 @@ const MainApp = () => {
   ), [selectedDate, currentMonth, events, showMonthPicker, pickerYear, months, dateLocale, t]);
 
   return (
-    <>
-      <SwipeablePages
-        currentIndex={currentPageIndex}
-        onPageChange={handlePageChange}
-        onSwipeRightAtEnd={() => setIsSettingsOpen(true)}
-        className="h-screen"
-      >
-        {ListPage}
-        {CalendarPage}
-        {ChatPageComponent}
-      </SwipeablePages>
+    <div className="h-screen w-screen bg-background flex flex-col overflow-hidden">
+      {/* Content Area - único lugar do swipe */}
+      <div className="flex-1 w-full overflow-hidden">
+        <SwipeablePages
+          currentIndex={currentPageIndex}
+          onPageChange={handlePageChange}
+          onSwipeRightAtEnd={() => setIsSettingsOpen(true)}
+          className="h-full w-full"
+        >
+          {ListPage}
+          {CalendarPage}
+          {ChatPageComponent}
+        </SwipeablePages>
+      </div>
 
       {/* Gradient Overlay Bottom */}
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom pointer-events-none z-10" />
@@ -510,7 +513,7 @@ const MainApp = () => {
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 
