@@ -3,7 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserTimezone } from "@/lib/date-utils";
 import { remoteLog } from "@/lib/remoteLogger";
-import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 
 interface Profile {
   id: string;
@@ -122,6 +122,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Silently update user location if weather forecast is enabled
   const updateLocationSilently = async (userId: string, currentCity: string | null) => {
     try {
+      // Skip geolocation on web/preview - only run on native platforms
+      if (!Capacitor.isNativePlatform()) {
+        remoteLog.debug('geolocation', 'auto_update_skipped', { reason: 'not_native_platform' });
+        return;
+      }
+
+      // Dynamic import to avoid loading plugin in web preview
+      const { Geolocation } = await import('@capacitor/geolocation');
+
       // Check permission status first
       const permStatus = await Geolocation.checkPermissions();
       if (permStatus.location !== 'granted') {

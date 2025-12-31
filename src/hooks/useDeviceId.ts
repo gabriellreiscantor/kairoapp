@@ -1,5 +1,4 @@
 import { Capacitor } from '@capacitor/core';
-import { Device } from '@capacitor/device';
 
 const DEVICE_ID_KEY = 'horah_device_id';
 const DEVICE_ID_TIMEOUT_MS = 5000;
@@ -47,6 +46,9 @@ export async function getOrCreateDeviceId(): Promise<string> {
     console.log('[DeviceId] 📱 Native platform - attempting Device.getId() with', DEVICE_ID_TIMEOUT_MS, 'ms timeout...');
     
     try {
+      // Dynamic import to avoid loading plugin in web preview
+      const { Device } = await import('@capacitor/device');
+      
       const deviceInfo = await withTimeout(
         Device.getId(),
         DEVICE_ID_TIMEOUT_MS,
