@@ -40,8 +40,9 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     if (pageWidth > 0) {
       animate(x, -currentIndex * pageWidth, {
         type: 'spring',
-        stiffness: 300,
-        damping: 30,
+        stiffness: 500,
+        damping: 40,
+        mass: 0.8,
       });
     }
   }, [currentIndex, pageWidth, x]);
@@ -74,11 +75,12 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
       }
     }
     
-    // Animate to the target page
+    // Animate to the target page with firm snap
     animate(x, -newIndex * pageWidth, {
       type: 'spring',
-      stiffness: 300,
-      damping: 30,
+      stiffness: 500,
+      damping: 40,
+      mass: 0.8,
     });
     
     if (newIndex !== currentIndex) {
@@ -103,9 +105,10 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
         }}
         drag="x"
         dragConstraints={{ left: minX, right: maxX }}
-        dragElastic={0.1}
+        dragElastic={0.05}
         onDragEnd={handleDragEnd}
         dragMomentum={false}
+        dragTransition={{ bounceStiffness: 600, bounceDamping: 50 }}
       >
         {React.Children.map(children, (child, index) => (
           <div 

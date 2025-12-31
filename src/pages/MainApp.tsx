@@ -389,7 +389,7 @@ const MainApp = () => {
     </div>
   ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
 
-const ChatPageComponent = useMemo(() => (
+  const ChatPageComponent = (
     <div className="h-full bg-transparent">
       <ChatPage 
         onNavigateToCalendar={() => setActiveView('list')}
@@ -401,7 +401,7 @@ const ChatPageComponent = useMemo(() => (
         onClearInitialEditMessage={() => setInitialEditMessage(null)}
       />
     </div>
-  ), [activeView, initialEditMessage, handleEventCreated]);
+  );
 
   const CalendarPage = useMemo(() => (
     <div className="h-full bg-background flex flex-col overflow-hidden relative">
