@@ -330,6 +330,25 @@ const MyPlanPage = () => {
             )}
           </div>
 
+          {/* Sales CTA Title */}
+          <div className="text-center mb-6">
+            <h3 className="text-foreground font-semibold text-lg mb-2">
+              {selectedPlan === 'free' 
+                ? 'Comece agora gratuitamente' 
+                : selectedPlan === 'plus'
+                  ? 'Desbloqueie todo o potencial'
+                  : 'A experiência completa'}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {selectedPlan === 'free'
+                ? 'Organize sua vida com o Horah'
+                : 'Aproveite 7 dias grátis para experimentar'}
+            </p>
+          </div>
+
+          {/* Spacer for fixed CTA */}
+          <div className="h-52" aria-hidden="true" />
+
           {/* FAQ Section - Card Style */}
           <div className="mb-8">
             <h3 className="text-foreground font-semibold text-lg mb-4 flex items-center gap-2">
@@ -396,8 +415,8 @@ const MyPlanPage = () => {
             </button>
           </div>
 
-          {/* Spacer for fixed CTA */}
-          <div className="h-48" aria-hidden="true" />
+          {/* Extra spacer at bottom */}
+          <div className="h-8" aria-hidden="true" />
 
         </div>
       </div>
