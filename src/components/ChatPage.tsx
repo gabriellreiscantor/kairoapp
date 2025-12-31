@@ -2000,9 +2000,11 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         transcription={message.audioMessageData.transcription}
                       />
                     )}
-                    {/* Only show text bubble if there's content and no audio */}
+                    {/* User text bubble - premium style */}
                     {message.content && message.content.trim() !== '' && !message.audioMessageData && (
-                      <p className="text-sm text-primary-foreground">{message.content}</p>
+                      <div className="inline-block bg-primary rounded-2xl rounded-br-md px-4 py-2.5 shadow-lg shadow-primary/25">
+                        <p className="text-sm text-primary-foreground">{message.content}</p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -2069,7 +2071,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
           <div className="absolute inset-0 bg-background/80 backdrop-blur-2xl -z-10" />
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
           
-          <div className="bg-kairo-surface-2/80 backdrop-blur-xl border border-border/20 rounded-3xl px-4 py-3 shadow-xl shadow-black/5">
+          <div className="bg-kairo-surface-2 border border-border/30 rounded-3xl px-4 py-3 shadow-xl shadow-black/10">
             <input
               type="text"
               value={inputValue}
@@ -2077,7 +2079,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={isRecording ? "Gravando..." : (isInOnboarding ? "Digite ou fale seu lembrete..." : t('chat.placeholder'))}
               disabled={isProcessing}
-              className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
+              className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
             />
             
             <div className="flex items-center justify-between">
