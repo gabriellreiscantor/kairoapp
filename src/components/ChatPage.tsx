@@ -29,6 +29,7 @@ import WeatherForecastCard from "@/components/chat/WeatherForecastCard";
 import WeatherForecastModal from "@/components/chat/WeatherForecastModal";
 import EditEventModal from "@/components/EditEventModal";
 import AudioRecordingOverlay from "@/components/chat/AudioRecordingOverlay";
+import AudioMessageCard from "@/components/chat/AudioMessageCard";
 import CallNotificationCard from "@/components/chat/CallNotificationCard";
 import PushNotificationCard from "@/components/chat/PushNotificationCard";
 import UpgradePlanCard from "@/components/chat/UpgradePlanCard";
@@ -106,6 +107,10 @@ interface Message {
     eventsLimit: number;
     daysUntilReset: number;
   };
+  audioMessageData?: { // For audio messages
+    duration: number;
+    transcription: string;
+  };
 }
 
 interface ExecutedAction {
@@ -160,7 +165,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const { user, session } = useAuth();
   const { resolvedTheme } = useTheme();
   const { t, getDateLocale, language } = useLanguage();
-  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+  const { isRecording, recordingDuration, startRecording, stopRecording } = useAudioRecorder();
   const { captureFromCamera, selectFromGallery } = useImageCapture();
   const { 
     step: onboardingStep, 
@@ -176,8 +181,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcribedText, setTranscribedText] = useState<string | null>(null);
+  const [isSendingAudio, setIsSendingAudio] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [showWeeklySuggestion, setShowWeeklySuggestion] = useState(false);
   const [showCalendarSuggestion, setShowCalendarSuggestion] = useState(false);
@@ -351,6 +355,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       callNotificationData: m.metadata?.callNotificationData,
       pushNotificationData: m.metadata?.pushNotificationData,
       limitReachedData: m.metadata?.limitReachedData,
+      audioMessageData: m.metadata?.audioMessageData,
     };
   };
 
@@ -1473,50 +1478,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     completeOnboarding();
   };
 
-  // AUDIO RECORDING - with preview before sending
+  // AUDIO RECORDING - direct send flow (no preview)
   const handleMicPress = async () => {
-    if (isRecording) {
-      // Stop recording and transcribe
-      setIsTranscribing(true);
-      try {
-        const audioBase64 = await stopRecording();
-        if (!audioBase64) {
-          throw new Error('Nenhum áudio gravado');
-        }
-
-        console.log('Sending audio for transcription...');
-
-        // Send to Whisper for transcription
-        const response = await fetch(TRANSCRIBE_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ audio: audioBase64 }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro na transcrição');
-        }
-
-        const result = await response.json();
-        console.log('Transcription result:', result);
-
-        if (result.text) {
-          // Show preview instead of sending immediately
-          setTranscribedText(result.text);
-        }
-      } catch (error) {
-        console.error('Transcription error:', error);
-        setTranscribedText(null);
-      } finally {
-        setIsTranscribing(false);
-      }
-    } else {
+    if (!isRecording) {
       // Start recording
-      setTranscribedText(null);
       try {
         await startRecording();
       } catch (error) {
@@ -1525,26 +1490,78 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  // Audio overlay handlers
-  const handleCancelAudio = () => {
-    setTranscribedText(null);
-    setIsTranscribing(false);
-  };
-
-  const handleConfirmAudioSend = async () => {
-    if (transcribedText) {
-      await handleSend(transcribedText);
-      setTranscribedText(null);
-    }
-  };
-
-  const handleRetryAudio = async () => {
-    setTranscribedText(null);
+  // Stop recording and send audio
+  const handleStopAndSendAudio = async () => {
+    if (!isRecording) return;
+    
+    setIsSendingAudio(true);
     try {
-      await startRecording();
+      const result = await stopRecording();
+      if (!result || !result.audio) {
+        throw new Error('Nenhum áudio gravado');
+      }
+
+      console.log('Sending audio for transcription...');
+      const { audio: audioBase64, duration: audioDuration } = result;
+
+      // Send to Whisper for transcription
+      const response = await fetch(TRANSCRIBE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ audio: audioBase64 }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro na transcrição');
+      }
+
+      const transcriptionResult = await response.json();
+      console.log('Transcription result:', transcriptionResult);
+
+      if (transcriptionResult.text) {
+        const transcribedText = transcriptionResult.text;
+        
+        // Create audio message in chat
+        const audioMessage: Message = {
+          id: Date.now().toString(),
+          type: 'user',
+          content: '', // Empty content - we use audioMessageData instead
+          createdAt: new Date(),
+          audioMessageData: {
+            duration: audioDuration,
+            transcription: transcribedText,
+          },
+        };
+        
+        const newMessages = [...messages, audioMessage];
+        setMessages(newMessages);
+        
+        // Save the audio message to database
+        await saveMessage('user', transcribedText, { 
+          audioMessageData: { duration: audioDuration, transcription: transcribedText } 
+        });
+        
+        // Now send the transcription to the chat assistant
+        await streamChat(transcribedText, newMessages);
+      }
     } catch (error) {
-      console.error('Recording error:', error);
+      console.error('Audio send error:', error);
+      toast.error('Erro ao enviar áudio');
+    } finally {
+      setIsSendingAudio(false);
     }
+  };
+
+  // Audio overlay cancel handler
+  const handleCancelAudio = async () => {
+    if (isRecording) {
+      await stopRecording();
+    }
+    setIsSendingAudio(false);
   };
 
   // IMAGE CAPTURE
@@ -1620,7 +1637,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     }
   };
 
-  const isProcessing = isLoading || isTranscribing || isAnalyzingImage;
+  const isProcessing = isLoading || isSendingAudio || isAnalyzingImage;
 
   // Get welcome message based on onboarding state
   const getWelcomeMessage = () => {
@@ -1919,8 +1936,15 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                         />
                       </div>
                     )}
-                    {/* Only show text bubble if there's content */}
-                    {message.content && message.content.trim() !== '' && (
+                    {/* Audio message card */}
+                    {message.audioMessageData && (
+                      <AudioMessageCard
+                        duration={message.audioMessageData.duration}
+                        transcription={message.audioMessageData.transcription}
+                      />
+                    )}
+                    {/* Only show text bubble if there's content and no audio */}
+                    {message.content && message.content.trim() !== '' && !message.audioMessageData && (
                       <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
                         <p className="text-sm text-foreground">{message.content}</p>
                       </div>
@@ -2006,16 +2030,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             ) : (
               <button 
                 onClick={handleMicPress}
-                disabled={isTranscribing || isLoading}
+                disabled={isSendingAudio || isLoading}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isRecording 
                     ? 'bg-red-500 animate-pulse' 
-                    : isTranscribing
+                    : isSendingAudio
                     ? 'bg-kairo-surface-3 opacity-50'
                     : 'bg-kairo-surface-3 hover:bg-kairo-surface-2'
                 }`}
               >
-                {isTranscribing ? (
+                {isSendingAudio ? (
                   <Loader2 className="w-4 h-4 text-foreground animate-spin" />
                 ) : (
                   <Mic className={`w-4 h-4 ${isRecording ? 'text-white' : 'text-foreground'}`} />
@@ -2172,11 +2196,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Audio Recording Overlay */}
       <AudioRecordingOverlay
         isRecording={isRecording}
-        isTranscribing={isTranscribing}
-        transcribedText={transcribedText}
+        isSendingAudio={isSendingAudio}
         onCancel={handleCancelAudio}
-        onConfirmSend={handleConfirmAudioSend}
-        onRetry={handleRetryAudio}
+        onStopAndSend={handleStopAndSendAudio}
+        recordingDuration={recordingDuration}
       />
 
       {/* Weekly Report Modal */}
