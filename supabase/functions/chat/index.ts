@@ -287,6 +287,10 @@ interface KairoAction {
   weeklyReportData?: any; // Weekly report data for WeeklyReportCard
   weeklyReportNotReady?: any; // Weekly report not ready data
   weatherData?: any; // Weather forecast data for WeatherForecastCard
+  conflito_detectado?: { // Conflict detection for Plus/Super users
+    evento_existente: string;
+    horario_existente: string;
+  };
 }
 
 interface UserProfile {
@@ -2822,6 +2826,64 @@ async function executeAction(
               local: action.local
             }
           };
+        }
+
+        // === CONFLICT DETECTION (Plus/Super only) ===
+        // Check user's plan and profile settings for conflict detection
+        const { data: planData } = await supabase.rpc('get_user_plan', {
+          _user_id: userId
+        });
+        const userPlan = planData || 'free';
+        
+        // Only check conflicts for Plus and Super users (has_conflict_detection in plan_limits)
+        if (userPlan !== 'free' && normalizedTime) {
+          const { data: planLimits } = await supabase
+            .from('plan_limits')
+            .select('has_conflict_detection')
+            .eq('plan', userPlan)
+            .single();
+          
+          if (planLimits?.has_conflict_detection) {
+            // Check for conflicting events on the same date
+            const { data: existingEvents } = await supabase
+              .from('events')
+              .select('id, title, event_time, duration_minutes')
+              .eq('user_id', userId)
+              .eq('event_date', eventDate)
+              .not('event_time', 'is', null);
+            
+            if (existingEvents && existingEvents.length > 0) {
+              // Parse new event time
+              const [newHour, newMinute] = normalizedTime.split(':').map(Number);
+              const newEventStart = newHour * 60 + newMinute;
+              const newEventDuration = action.duracao_minutos || 60;
+              const newEventEnd = newEventStart + newEventDuration;
+              
+              // Check each existing event for overlap
+              const conflicts = existingEvents.filter((existing: any) => {
+                if (!existing.event_time) return false;
+                const [existingHour, existingMinute] = existing.event_time.split(':').map(Number);
+                const existingStart = existingHour * 60 + existingMinute;
+                const existingDuration = existing.duration_minutes || 60;
+                const existingEnd = existingStart + existingDuration;
+                
+                // Check for overlap: events overlap if one starts before the other ends
+                return (newEventStart < existingEnd && newEventEnd > existingStart);
+              });
+              
+              if (conflicts.length > 0) {
+                const conflictEvent = conflicts[0];
+                console.log(`[criar_evento] Conflict detected with event: ${conflictEvent.title} at ${conflictEvent.event_time}`);
+                
+                // Return conflict warning but still create the event (soft warning)
+                // The AI response will mention the conflict
+                action.conflito_detectado = {
+                  evento_existente: conflictEvent.title,
+                  horario_existente: conflictEvent.event_time
+                };
+              }
+            }
+          }
         }
 
         const { data: canCreate } = await supabase.rpc('can_create_event', {
