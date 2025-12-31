@@ -59,8 +59,12 @@ serve(async (req) => {
       const userPlan = subscription?.plan || 'free';
       
       if (!plansWithDailyOverview.includes(userPlan)) {
-        continue; // Skip free users
+        console.log(`[send-daily-overview] Skipping user ${profile.id} - plan ${userPlan} doesn't have daily overview`);
+        continue; // Skip users without daily overview feature
       }
+      
+      console.log(`[send-daily-overview] Processing user ${profile.id} with plan ${userPlan} (has daily overview)`);
+      
 
       // Calculate if it's the right hour for this user (default 7:00 AM)
       const userTimezone = profile.timezone || 'America/Sao_Paulo';
@@ -186,6 +190,7 @@ Idioma: ${language}`;
             type: 'daily_overview',
             eventsCount: todayEvents.length,
             date: today,
+            plan: userPlan,
           }
         });
 
@@ -193,7 +198,41 @@ Idioma: ${language}`;
         console.error(`[send-daily-overview] Error saving chat message for user ${profile.id}:`, chatError);
       } else {
         overviewsSent++;
-        console.log(`[send-daily-overview] Sent overview to user ${profile.id} with ${todayEvents.length} events`);
+        console.log(`[send-daily-overview] Sent overview to user ${profile.id} (${userPlan}) with ${todayEvents.length} events`);
+      }
+
+      // Also send push notification if user has FCM token
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('fcm_token, display_name')
+        .eq('id', profile.id)
+        .single();
+
+      if (userProfile?.fcm_token) {
+        try {
+          const pushTitle = language === 'en-US' ? '📅 Your Day Today' :
+                           language === 'es-ES' ? '📅 Tu Día de Hoy' :
+                           '📅 Seu Dia Hoje';
+          
+          const pushBody = language === 'en-US' 
+            ? `You have ${todayEvents.length} appointment${todayEvents.length > 1 ? 's' : ''} today. Check your schedule!`
+            : language === 'es-ES'
+            ? `Tienes ${todayEvents.length} compromiso${todayEvents.length > 1 ? 's' : ''} hoy. ¡Revisa tu agenda!`
+            : `Você tem ${todayEvents.length} compromisso${todayEvents.length > 1 ? 's' : ''} hoje. Confira sua agenda!`;
+
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
+              fcm_token: userProfile.fcm_token,
+              title: pushTitle,
+              body: pushBody,
+              data: { type: 'daily_overview', date: today }
+            }
+          });
+          
+          console.log(`[send-daily-overview] Push notification sent to user ${profile.id}`);
+        } catch (pushError) {
+          console.error(`[send-daily-overview] Error sending push to user ${profile.id}:`, pushError);
+        }
       }
     }
 

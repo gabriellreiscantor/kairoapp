@@ -112,9 +112,20 @@ serve(async (req) => {
       );
     }
     
-    // Determine number of events to analyze based on plan
-    // FREE: 10 events, PLUS: 50 events (5x), SUPER: 100 events (20x)
-    const eventsLimit = plan === 'super' ? 100 : plan === 'plus' ? 50 : 10;
+    // Get chat_capacity_multiplier from plan_limits table (dynamic, not hardcoded)
+    const { data: planLimits } = await supabase
+      .from('plan_limits')
+      .select('chat_capacity_multiplier')
+      .eq('plan', plan)
+      .single();
+    
+    // Use dynamic multiplier from database: FREE=1x, PLUS=5x, SUPER=20x
+    // Base is 10 events, multiplied by the plan's capacity
+    const baseEventsLimit = 10;
+    const capacityMultiplier = planLimits?.chat_capacity_multiplier || 1;
+    const eventsLimit = baseEventsLimit * capacityMultiplier;
+    
+    console.log(`[generate-smart-suggestions] Plan: ${plan}, Multiplier: ${capacityMultiplier}x, Events limit: ${eventsLimit}`);
     
     // Fetch user's past events
     const { data: events, error: eventsError } = await supabase
