@@ -390,7 +390,7 @@ const MainApp = () => {
   ), [selectedDate, events, showMonthPicker, currentMonth, pickerYear, months, dateLocale, t]);
 
   const ChatPageComponent = (
-    <div className="h-full bg-background">
+    <div className="h-full w-full bg-background">
       <ChatPage 
         onNavigateToCalendar={() => setActiveView('list')}
         onOpenSettings={() => setIsSettingsOpen(true)}

@@ -221,6 +221,14 @@ input, textarea, [contenteditable="true"] {
     -webkit-overflow-scrolling: touch;
   }
   
+  /* Swipeable pages - force exact viewport width */
+  .swipeable-page {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+  }
+  
   /* Remove focus rings for mobile native app - touch-first interface */
   *,
   *:focus,
