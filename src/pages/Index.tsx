@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SplashScreen from "@/components/SplashScreen";
 import MainApp from "@/pages/MainApp";
@@ -41,6 +41,14 @@ const Index = () => {
     sessionStorage.setItem('hasSeenSplash', 'true');
     setAppState('loading');
   };
+
+  // SEMPRE esconde o splash HTML quando o React carrega (evita overlay invisível bloqueando cliques)
+  useEffect(() => {
+    const initialSplash = document.getElementById('initial-splash');
+    if (initialSplash) {
+      initialSplash.style.display = 'none';
+    }
+  }, []);
 
   // Fallback timeout - força transição se travar por mais de 5 segundos
   useEffect(() => {
