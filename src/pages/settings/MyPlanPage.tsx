@@ -118,15 +118,15 @@ const MyPlanPage = () => {
   const CurrentPlanIcon = currentPlanData.icon;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col hide-scrollbar overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 py-4 safe-area-top flex items-center border-b border-border/10 relative">
         <BackButton />
         <h1 className="absolute left-0 right-0 text-center text-lg font-semibold text-foreground pointer-events-none">Planos</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="px-4 pb-96 pt-4">
+      <div className="flex-1 overflow-y-auto hide-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="px-4 pb-64 pt-4">
           
           {/* Current Plan Compact Banner */}
           <div className="flex items-center gap-3 p-4 bg-kairo-surface-1 rounded-2xl mb-6">
@@ -395,6 +395,9 @@ const MyPlanPage = () => {
               EULA
             </button>
           </div>
+
+          {/* Spacer for fixed CTA */}
+          <div className="h-48" aria-hidden="true" />
 
         </div>
       </div>
