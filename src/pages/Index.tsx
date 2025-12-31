@@ -91,8 +91,8 @@ const Index = () => {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  // App carregado - MainApp
-  if (appState === 'app' && user) {
+  // App carregado - MainApp (não verifica user aqui, MainApp lida com isso)
+  if (appState === 'app') {
     return <MainApp />;
   }
 
