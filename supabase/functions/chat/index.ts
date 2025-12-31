@@ -2940,6 +2940,57 @@ async function executeAction(
         // Ter hora sem duração NÃO é dia inteiro - é evento com horário sem duração explícita
         const isAllDay = !normalizedTime;
         
+        // === INTELLIGENT CONTEXT: Suggest duration based on event type ===
+        // Only apply if context_aware_enabled and no explicit duration was provided
+        let suggestedDuration = action.duracao_minutos;
+        if (!suggestedDuration && profile?.context_aware_enabled) {
+          const titleLower = (action.titulo || '').toLowerCase();
+          const categoryLower = (action.categoria || '').toLowerCase();
+          
+          // Duration suggestions based on event type
+          const durationMap: Record<string, number> = {
+            'mercado': 60,
+            'supermercado': 60,
+            'compras': 90,
+            'dentista': 30,
+            'médico': 30,
+            'medico': 30,
+            'consulta': 30,
+            'academia': 90,
+            'treino': 60,
+            'yoga': 60,
+            'pilates': 60,
+            'corrida': 45,
+            'reunião': 60,
+            'reuniao': 60,
+            'meeting': 60,
+            'almoço': 90,
+            'almoco': 90,
+            'jantar': 120,
+            'café': 45,
+            'cafe': 45,
+            'barbearia': 45,
+            'cabelo': 60,
+            'manicure': 60,
+            'pedicure': 45,
+            'cinema': 180,
+            'filme': 150,
+            'terapia': 60,
+            'psicólogo': 60,
+            'psicologo': 60,
+            'fisioterapia': 60,
+          };
+          
+          // Check title first, then category
+          for (const [keyword, duration] of Object.entries(durationMap)) {
+            if (titleLower.includes(keyword) || categoryLower.includes(keyword)) {
+              suggestedDuration = duration;
+              console.log(`[criar_evento] Context-aware duration: ${duration} min for "${keyword}"`);
+              break;
+            }
+          }
+        }
+        
         // Calculate intelligent alert time based on time until event (use normalized time!)
         const bestAlertTime = getBestAlertTimeForEvent(eventDate, normalizedTime, timezone);
         
@@ -2966,7 +3017,7 @@ async function executeAction(
             event_date: eventDate, // Use corrected date, not AI's date
             event_time: normalizedTime || null, // Use normalized time!
             location: action.local || null,
-            duration_minutes: action.duracao_minutos || null, // null se não explícito
+            duration_minutes: suggestedDuration || null, // Use context-aware duration if available
             is_all_day: isAllDay,
             priority: action.prioridade || 'medium',
             category: action.categoria || 'geral',

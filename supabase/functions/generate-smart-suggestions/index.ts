@@ -153,10 +153,10 @@ serve(async (req) => {
     }
     
     // Use AI to generate smart suggestions based on events and patterns
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
-    if (!LOVABLE_API_KEY) {
-      console.warn('[generate-smart-suggestions] No LOVABLE_API_KEY, using pattern-based suggestions');
+    if (!OPENAI_API_KEY) {
+      console.warn('[generate-smart-suggestions] No OPENAI_API_KEY, using pattern-based suggestions');
       const patternSuggestions = generatePatternBasedSuggestions(events, patterns, language);
       return new Response(
         JSON.stringify({ suggestions: patternSuggestions, source: 'patterns' }),
@@ -209,14 +209,14 @@ ${patternsSummary.length > 0 ? `Padrões identificados:\n${JSON.stringify(patter
 
 Gere 4 sugestões personalizadas baseadas nesses dados. Retorne APENAS JSON válido.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },

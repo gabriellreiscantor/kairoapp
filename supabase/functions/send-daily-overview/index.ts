@@ -15,7 +15,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     console.log('[send-daily-overview] Starting daily overview generation...');
 
@@ -103,7 +103,7 @@ serve(async (req) => {
       const language = profile.language || 'pt-BR';
       let overviewMessage = '';
 
-      if (LOVABLE_API_KEY && todayEvents.length >= 1) {
+      if (OPENAI_API_KEY && todayEvents.length >= 1) {
         // Use AI to generate a friendly overview
         const eventsText = todayEvents.map((e, i) => {
           const time = e.event_time ? e.event_time.substring(0, 5) : 'Dia inteiro';
@@ -126,14 +126,14 @@ Idioma: ${language}`;
         const userPrompt = `Eventos de hoje:\n${eventsText}`;
 
         try {
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
+              model: 'gpt-4o-mini',
               messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
