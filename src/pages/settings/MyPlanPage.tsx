@@ -126,7 +126,7 @@ const MyPlanPage = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="px-4 pb-48 pt-4">
+        <div className="px-4 pb-72 pt-4">
           
           {/* Current Plan Compact Banner */}
           <div className="flex items-center gap-3 p-4 bg-kairo-surface-1 rounded-2xl mb-6">
