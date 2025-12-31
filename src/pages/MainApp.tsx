@@ -13,6 +13,7 @@ import CreateEventModal from "@/components/CreateEventModal";
 import EditEventModal from "@/components/EditEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
+import EdgeSwipeZone from "@/components/EdgeSwipeZone";
 import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -22,7 +23,6 @@ import horahLogo from "@/assets/horah-logo.png";
 import horahLogoDark from "@/assets/horah-logo-dark.png";
 import { useTheme } from "next-themes";
 import { getOrCreateDeviceId } from "@/hooks/useDeviceId";
-
 interface Event {
   id: string;
   title: string;
@@ -271,62 +271,65 @@ const MainApp = () => {
   if (activeView === 'chat') {
     return (
       <>
-        
-        <div className="h-screen">
-          <ChatPage 
-            onNavigateToCalendar={() => setActiveView('list')}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            activeView={activeView}
-            onViewChange={setActiveView}
-            onEventCreated={handleEventCreated}
-            initialEditMessage={initialEditMessage}
-            onClearInitialEditMessage={() => setInitialEditMessage(null)}
-          />
-          
-          {/* Botão para ENVIAR VoIP push - DEBUG */}
-          <button
-            onClick={async () => {
-              if (!deviceId) {
-                toast({ title: 'Aguarde', description: 'Carregando device ID...', variant: 'destructive' });
-                return;
-              }
-              
-              toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
-              
-              try {
-                const { data, error } = await supabase.functions.invoke('send-voip-push', {
-                  body: {
-                    device_id: deviceId,
-                    user_id: user?.id,
-                    event_id: 'test-' + Date.now(),
-                    event_title: 'Teste VoIP',
-                    event_time: format(new Date(), 'HH:mm'),
-                  },
-                });
-                
-                if (error) {
-                  console.error('[Test VoIP] Error:', error);
-                  toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-                } else {
-                  console.log('[Test VoIP] Success:', data);
-                  toast({ title: 'VoIP enviado!', description: 'A chamada deve aparecer em segundos' });
+        <EdgeSwipeZone
+          onSwipeLeft={() => setIsSettingsOpen(true)}
+          onSwipeRight={() => setActiveView('list')}
+        >
+          <div className="h-screen">
+            <ChatPage 
+              onNavigateToCalendar={() => setActiveView('list')}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              activeView={activeView}
+              onViewChange={setActiveView}
+              onEventCreated={handleEventCreated}
+              initialEditMessage={initialEditMessage}
+              onClearInitialEditMessage={() => setInitialEditMessage(null)}
+            />
+            
+            {/* Botão para ENVIAR VoIP push - DEBUG */}
+            <button
+              onClick={async () => {
+                if (!deviceId) {
+                  toast({ title: 'Aguarde', description: 'Carregando device ID...', variant: 'destructive' });
+                  return;
                 }
-              } catch (err) {
-                console.error('[Test VoIP] Exception:', err);
-                toast({ title: 'Erro', description: 'Falha ao enviar', variant: 'destructive' });
-              }
-            }}
-            className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-          >
-            📞
-          </button>
-          
-          
-          <SettingsDrawer
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-          />
-        </div>
+                
+                toast({ title: 'Enviando VoIP push...', description: 'Aguarde a chamada nativa' });
+                
+                try {
+                  const { data, error } = await supabase.functions.invoke('send-voip-push', {
+                    body: {
+                      device_id: deviceId,
+                      user_id: user?.id,
+                      event_id: 'test-' + Date.now(),
+                      event_title: 'Teste VoIP',
+                      event_time: format(new Date(), 'HH:mm'),
+                    },
+                  });
+                  
+                  if (error) {
+                    console.error('[Test VoIP] Error:', error);
+                    toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                  } else {
+                    console.log('[Test VoIP] Success:', data);
+                    toast({ title: 'VoIP enviado!', description: 'A chamada deve aparecer em segundos' });
+                  }
+                } catch (err) {
+                  console.error('[Test VoIP] Exception:', err);
+                  toast({ title: 'Erro', description: 'Falha ao enviar', variant: 'destructive' });
+                }
+              }}
+              className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+            >
+              📞
+            </button>
+          </div>
+        </EdgeSwipeZone>
+        
+        <SettingsDrawer
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       </>
     );
   }
