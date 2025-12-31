@@ -11,6 +11,7 @@ import { CallKitProvider } from "@/contexts/CallKitContext";
 import FontInitializer from "@/components/FontInitializer";
 import IOSWebViewConfigurator from "@/components/IOSWebViewConfigurator";
 import OfflineOverlay from "./components/OfflineOverlay";
+import { SystemLanguageSyncHandler } from "@/components/SystemLanguageSyncHandler";
 import { remoteLog } from "@/lib/remoteLogger";
 
 // Eager load - critical path
@@ -140,6 +141,7 @@ const App = () => (
             <FontInitializer />
             <IOSWebViewConfigurator />
             <GlobalErrorHandlers />
+            <SystemLanguageSyncHandler />
             <TooltipProvider>
               <Toaster />
               <Sonner />
