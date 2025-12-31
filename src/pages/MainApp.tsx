@@ -13,7 +13,8 @@ import CreateEventModal from "@/components/CreateEventModal";
 import EditEventModal from "@/components/EditEventModal";
 import EventDetailPage from "@/components/EventDetailPage";
 import ChatPage from "@/components/ChatPage";
-import SwipeablePages from "@/components/SwipeablePages";
+// SwipeablePages disabled for stability - using dock navigation only
+// import SwipeablePages from "@/components/SwipeablePages";
 import { useCallKit } from "@/contexts/CallKitContext";
 import { requestNotificationPermissions } from "@/hooks/useCallAlertScheduler";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -36,15 +37,6 @@ interface Event {
 }
 
 type ViewType = 'chat' | 'list' | 'calendar';
-
-// Map view types to page indices
-const VIEW_TO_INDEX: Record<ViewType, number> = {
-  'list': 0,
-  'calendar': 1,
-  'chat': 2,
-};
-
-const INDEX_TO_VIEW: ViewType[] = ['list', 'calendar', 'chat'];
 
 const MainApp = () => {
   const { t, getDateLocale, language } = useLanguage();
@@ -235,16 +227,6 @@ const MainApp = () => {
     setShowMonthPicker(false);
   };
 
-  // Handle page change from swipe
-  const handlePageChange = useCallback((index: number) => {
-    const newView = INDEX_TO_VIEW[index];
-    if (newView) {
-      setActiveView(newView);
-    }
-  }, []);
-
-  // Current page index
-  const currentPageIndex = VIEW_TO_INDEX[activeView];
 
   // Floating Dock Component
   const FloatingDock = () => (
@@ -419,21 +401,14 @@ const MainApp = () => {
 
   return (
     <div className="h-screen w-screen bg-background flex flex-col overflow-hidden">
-      {/* Header FIXO - fora do swipe, só para List e Calendar */}
+      {/* Header FIXO - só para List e Calendar */}
       {activeView !== 'chat' && <CalendarHeader />}
       
-      {/* Content Area - único lugar do swipe */}
+      {/* Content Area - renderiza view ativa condicionalmente */}
       <div className="flex-1 w-full overflow-hidden">
-        <SwipeablePages
-          currentIndex={currentPageIndex}
-          onPageChange={handlePageChange}
-          onSwipeRightAtEnd={() => setIsSettingsOpen(true)}
-          className="h-full w-full"
-        >
-          {ListPage}
-          {CalendarPage}
-          {ChatPageComponent}
-        </SwipeablePages>
+        {activeView === 'list' && ListPage}
+        {activeView === 'calendar' && CalendarPage}
+        {activeView === 'chat' && ChatPageComponent}
       </div>
 
       {/* Gradient Overlay Bottom */}
