@@ -310,7 +310,7 @@ input, textarea, [contenteditable="true"] {
   
   .plan-glow-super {
     box-shadow: 0 0 20px hsl(var(--kairo-accent-amber) / 0.2), 0 0 40px hsl(var(--kairo-accent-amber) / 0.1);
-    animation: plan-pulse 3s ease-in-out infinite;
+    animation: plan-pulse-super 3s ease-in-out infinite;
   }
   
   @keyframes plan-pulse {
@@ -319,6 +319,15 @@ input, textarea, [contenteditable="true"] {
     }
     50% {
       box-shadow: 0 0 30px hsl(var(--primary) / 0.3), 0 0 60px hsl(var(--primary) / 0.15);
+    }
+  }
+  
+  @keyframes plan-pulse-super {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--kairo-accent-amber) / 0.2), 0 0 40px hsl(var(--kairo-accent-amber) / 0.1);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--kairo-accent-amber) / 0.3), 0 0 60px hsl(var(--kairo-accent-amber) / 0.15);
     }
   }
 

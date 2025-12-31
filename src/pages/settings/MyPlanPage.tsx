@@ -126,7 +126,7 @@ const MyPlanPage = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        <div className="px-4 pb-72 pt-4">
+        <div className="px-4 pb-96 pt-4">
           
           {/* Current Plan Compact Banner */}
           <div className="flex items-center gap-3 p-4 bg-kairo-surface-1 rounded-2xl mb-6">
@@ -215,9 +215,9 @@ const MyPlanPage = () => {
                     "flex-1 py-3 px-2 rounded-xl transition-all duration-300 relative",
                     isSelected 
                       ? plan === 'super' 
-                        ? "bg-kairo-amber/20 border-2 border-kairo-amber" 
+                        ? "bg-kairo-amber/20 border-2 border-kairo-amber plan-glow-super" 
                         : plan === 'plus'
-                          ? "bg-primary/20 border-2 border-primary plan-glow-plus"
+                          ? "bg-primary/20 border-2 border-primary"
                           : "bg-kairo-surface-3 border-2 border-border"
                       : "bg-kairo-surface-2 border-2 border-transparent"
                   )}
