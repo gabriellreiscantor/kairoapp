@@ -1697,22 +1697,24 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
       {/* Fixed Header Navigation - only show when chat is active */}
       {activeView === 'chat' && (
         <header className="fixed top-0 left-0 right-0 z-50 safe-area-top">
-          {/* Single gradient: opaque at top (status bar) -> transparent at bottom */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-transparent pointer-events-none" />
+          {/* Premium gradient with intense blur */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-transparent backdrop-blur-2xl pointer-events-none" />
+          {/* Subtle bottom border line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
           
           <div className="relative flex items-center justify-center gap-2 px-4 py-3">
             {/* Calendar View - Left */}
             <button
               onClick={() => onViewChange('calendar')}
-              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 glass border border-border/20 text-foreground hover:bg-muted/50 shadow-lg shadow-black/5 active:scale-95"
             >
               <CalendarIcon className="w-5 h-5" />
             </button>
             
-            {/* Center - Kairo Logo */}
+            {/* Center - Kairo Logo with premium glow */}
             <button
               onClick={() => onViewChange('chat')}
-              className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-lg shadow-primary/30 border-2 border-primary/30"
+              className="w-14 h-14 rounded-full overflow-hidden mx-2 shadow-xl shadow-primary/25 border-2 border-primary/40 ring-4 ring-primary/10 transition-transform active:scale-95"
             >
               <img src={resolvedTheme === 'dark' ? horahHeaderDark : horahHeader} alt="Horah" className="w-full h-full object-cover" />
             </button>
@@ -1720,7 +1722,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             {/* Settings - Right */}
             <button
               onClick={onOpenSettings}
-              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 bg-muted/50 text-foreground hover:bg-muted"
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 glass border border-border/20 text-foreground hover:bg-muted/50 shadow-lg shadow-black/5 active:scale-95"
             >
               <User className="w-5 h-5" />
             </button>
@@ -1776,27 +1778,31 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
               {formatMessageTime(new Date())}
             </p>
             
-            {/* Welcome message */}
+            {/* Welcome message - premium style */}
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg shadow-primary/20">
-<img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20 shadow-lg shadow-primary/20">
+                <img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-                  {getWelcomeMessage()}
-                </p>
+                <div className="inline-block bg-kairo-surface-2/50 backdrop-blur-sm rounded-2xl rounded-tl-md px-4 py-2.5 border border-border/10 bubble-shadow">
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                    {getWelcomeMessage()}
+                  </p>
+                </div>
               </div>
             </div>
             
-            {/* Suggestions - vertical stack, left aligned */}
-            <div className="flex flex-col gap-2 pl-11">
+            {/* Suggestions - vertical stack, left aligned - premium style */}
+            <div className="flex flex-col gap-2.5 pl-11">
               {suggestions.map((suggestion, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion.text)}
-                  className="flex items-start gap-2.5 bg-kairo-surface-2 hover:bg-kairo-surface-3 border border-border/20 rounded-2xl px-4 py-3 text-left transition-all duration-300 hover:border-primary/20 w-fit max-w-[85%]"
+                  className="flex items-start gap-2.5 glass-premium border border-border/15 rounded-2xl px-4 py-3 text-left 
+                    shadow-sm hover:shadow-md hover:border-primary/30 hover:bg-primary/5
+                    transition-all duration-300 w-fit max-w-[85%] active:scale-[0.98]"
                 >
-                  <span className="text-lg">{suggestion.emoji}</span>
+                  <span className="text-lg drop-shadow-sm">{suggestion.emoji}</span>
                   <span className="text-xs text-foreground/90 leading-relaxed">{suggestion.text}</span>
                 </button>
               ))}
@@ -1834,17 +1840,19 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                 )}
                 
                 {message.type === 'assistant' ? (
-                  <div className="flex flex-col gap-3 mb-4">
+                  <div className="flex flex-col gap-3 mb-4 animate-message-in">
                     {/* Only show message content if there's text */}
                     {message.content && (
                       <div className="flex items-start gap-3 pl-1">
-                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
-<img src={resolvedTheme === 'dark' ? horahAvatarDark : horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
+                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20 shadow-lg z-10">
+                          <img src={resolvedTheme === 'dark' ? horahAvatarDark : horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
                         </div>
                         <div className="flex-1 pt-0.5">
-                          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                            {message.content}
-                          </p>
+                          <div className="inline-block bg-kairo-surface-2/50 backdrop-blur-sm rounded-2xl rounded-tl-md px-4 py-2.5 border border-border/10 bubble-shadow">
+                            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                              {message.content}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1989,9 +1997,7 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
                     )}
                     {/* Only show text bubble if there's content and no audio */}
                     {message.content && message.content.trim() !== '' && !message.audioMessageData && (
-                      <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%]">
-                        <p className="text-sm text-foreground">{message.content}</p>
-                      </div>
+                      <p className="text-sm text-primary-foreground">{message.content}</p>
                     )}
                   </div>
                 )}
@@ -1999,16 +2005,16 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
             );
           })}
           
-          {/* Typing indicator */}
+          {/* Typing indicator - premium style */}
           {isLoading && (
-            <div className="flex items-start gap-3 mb-4 pl-1">
-              <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 shadow-sm z-10">
+            <div className="flex items-start gap-3 mb-4 pl-1 animate-message-in">
+              <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20 shadow-lg z-10">
                 <img src={horahAvatar} alt="Horah" className="w-full h-full object-cover mask-fade-bottom" />
               </div>
-              <div className="flex items-center gap-1 pt-2">
-                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:300ms]" />
+              <div className="flex items-center gap-1.5 pt-2 bg-kairo-surface-2/30 backdrop-blur-sm rounded-full px-3 py-2">
+                <span className="w-2 h-2 bg-gradient-to-r from-primary to-primary/60 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-gradient-to-r from-primary to-primary/60 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-gradient-to-r from-primary to-primary/60 rounded-full animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           )}
@@ -2038,84 +2044,94 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
         </div>
       </div>
 
-      {/* Scroll to bottom button - only show when chat is active */}
+      {/* Scroll to bottom button - premium style */}
       {activeView === 'chat' && showScrollButton && (
         <button
           onClick={scrollToBottom}
-          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/40 shadow-lg flex items-center justify-center transition-all duration-300 animate-fade-in hover:scale-110 hover:bg-background"
+          className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 w-10 h-10 rounded-full 
+            glass-premium border border-border/30 shadow-xl shadow-black/10 
+            flex items-center justify-center transition-all duration-300 
+            animate-fade-in hover:scale-110 hover:shadow-2xl active:scale-95"
         >
-          <ChevronDown className="w-5 h-5 text-foreground" />
+          <ChevronDown className="w-5 h-5 text-foreground/80" />
         </button>
       )}
 
-      {/* Input with safe area - Fixed at bottom - only show when chat is active */}
+      {/* Input with safe area - Fixed at bottom - premium style */}
       {activeView === 'chat' && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom bg-background/95 backdrop-blur-xl border-t border-border/20">
-        <div className="bg-kairo-surface-2 border border-border/30 rounded-2xl px-4 py-3">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isRecording ? "Gravando..." : (isInOnboarding ? "Digite ou fale seu lembrete..." : t('chat.placeholder'))}
-            disabled={isProcessing}
-            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
-          />
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pt-2 safe-area-bottom">
+          {/* Premium blur overlay */}
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-2xl -z-10" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
           
-          <div className="flex items-center justify-between">
-            {/* Mic/Send button on left */}
-            {inputValue ? (
-              <button 
-                onClick={() => handleSend()}
-                disabled={isProcessing}
-                className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center transition-all duration-300 active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/30 golden-ripple"
-              >
-                <Send className="w-4 h-4 text-primary-foreground" />
-              </button>
-            ) : (
-              <button 
-                onClick={handleMicPress}
-                disabled={isSendingAudio || isLoading}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isRecording 
-                    ? 'bg-red-500 animate-pulse' 
-                    : isSendingAudio
-                    ? 'bg-kairo-surface-3 opacity-50'
-                    : 'bg-kairo-surface-3 hover:bg-kairo-surface-2'
-                }`}
-              >
-                {isSendingAudio ? (
-                  <Loader2 className="w-4 h-4 text-foreground animate-spin" />
-                ) : (
-                  <Mic className={`w-4 h-4 ${isRecording ? 'text-white' : 'text-foreground'}`} />
-                )}
-              </button>
-            )}
+          <div className="bg-kairo-surface-2/80 backdrop-blur-xl border border-border/20 rounded-3xl px-4 py-3 shadow-xl shadow-black/5">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isRecording ? "Gravando..." : (isInOnboarding ? "Digite ou fale seu lembrete..." : t('chat.placeholder'))}
+              disabled={isProcessing}
+              className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 text-sm focus:outline-none py-1 mb-2 disabled:opacity-50"
+            />
             
-            {/* Camera and Image buttons on right */}
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => handleImageCapture(true)}
-                disabled={isProcessing}
-                className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300 disabled:opacity-50"
-              >
-                {isAnalyzingImage ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Camera className="w-5 h-5" />
-                )}
-              </button>
-              <button 
-                onClick={() => handleImageCapture(false)}
-                disabled={isProcessing}
-                className="p-2 text-foreground hover:text-foreground/80 transition-colors duration-300 disabled:opacity-50"
-              >
-                <Image className="w-5 h-5" />
-              </button>
+            <div className="flex items-center justify-between">
+              {/* Mic/Send button on left - premium gradient */}
+              {inputValue ? (
+                <button 
+                  onClick={() => handleSend()}
+                  disabled={isProcessing}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 
+                    flex items-center justify-center shadow-lg shadow-primary/30 
+                    transition-all duration-300 active:scale-95 hover:shadow-xl hover:shadow-primary/40 
+                    disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4 text-primary-foreground" />
+                </button>
+              ) : (
+                <button 
+                  onClick={handleMicPress}
+                  disabled={isSendingAudio || isLoading}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isRecording 
+                      ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/30' 
+                      : isSendingAudio
+                      ? 'bg-kairo-surface-3/80 opacity-50'
+                      : 'bg-kairo-surface-3/80 hover:bg-kairo-surface-2'
+                  }`}
+                >
+                  {isSendingAudio ? (
+                    <Loader2 className="w-4 h-4 text-foreground animate-spin" />
+                  ) : (
+                    <Mic className={`w-4 h-4 ${isRecording ? 'text-white' : 'text-foreground/80'}`} />
+                  )}
+                </button>
+              )}
+              
+              {/* Camera and Image buttons on right - subtle hover */}
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => handleImageCapture(true)}
+                  disabled={isProcessing}
+                  className="p-2.5 rounded-xl text-foreground/60 hover:text-foreground hover:bg-kairo-surface-3/50 transition-all duration-300 disabled:opacity-50"
+                >
+                  {isAnalyzingImage ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
+                </button>
+                <button 
+                  onClick={() => handleImageCapture(false)}
+                  disabled={isProcessing}
+                  className="p-2.5 rounded-xl text-foreground/60 hover:text-foreground hover:bg-kairo-surface-3/50 transition-all duration-300 disabled:opacity-50"
+                >
+                  <Image className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
       {/* Event Confirmation Modal */}
       {confirmationModal.resumo && (
