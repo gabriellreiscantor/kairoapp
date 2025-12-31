@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-m
 interface SwipeablePagesProps {
   currentIndex: number;
   onPageChange: (index: number) => void;
+  onSwipeLeftAtStart?: () => void;
   children: React.ReactNode[];
   className?: string;
 }
@@ -11,6 +12,7 @@ interface SwipeablePagesProps {
 const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   currentIndex,
   onPageChange,
+  onSwipeLeftAtStart,
   children,
   className = '',
 }) => {
@@ -53,7 +55,12 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     if (Math.abs(offset) > threshold || Math.abs(velocity) > 500) {
       if (offset > 0 && velocity >= 0) {
         // Swiped right = go to previous page
-        newIndex = Math.max(0, currentIndex - 1);
+        if (currentIndex === 0) {
+          // At first page, trigger settings callback
+          onSwipeLeftAtStart?.();
+        } else {
+          newIndex = currentIndex - 1;
+        }
       } else if (offset < 0 && velocity <= 0) {
         // Swiped left = go to next page
         newIndex = Math.min(children.length - 1, currentIndex + 1);
