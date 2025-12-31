@@ -18,42 +18,59 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   children,
   className = '',
 }) => {
-  const [pageWidth, setPageWidth] = useState(() => document.documentElement.clientWidth);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pageWidth, setPageWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const x = useMotionValue(0);
   const prevIndexRef = useRef(currentIndex);
   
-  // Update pageWidth on resize - use clientWidth for accuracy
-  const updatePageWidth = useCallback(() => {
-    const width = document.documentElement.clientWidth;
-    setPageWidth(width);
-    return width;
+  // Medir largura real do container
+  const measureContainer = useCallback(() => {
+    if (containerRef.current) {
+      return containerRef.current.getBoundingClientRect().width;
+    }
+    return 0;
   }, []);
   
-  // Set initial position BEFORE first paint (useLayoutEffect)
+  // Medir antes do primeiro paint
   useLayoutEffect(() => {
-    // Wait a tick for any scrollbar to disappear and layout to stabilize
-    requestAnimationFrame(() => {
-      const width = updatePageWidth();
-      x.set(-currentIndex * width);
-      setMounted(true);
-    });
-  }, []);
-  
-  // Handle window resize - update width and reposition
-  useEffect(() => {
-    const handleResize = () => {
-      const width = updatePageWidth();
-      x.set(-currentIndex * width);
+    const measure = () => {
+      const width = measureContainer();
+      if (width > 0) {
+        setPageWidth(width);
+        x.set(-currentIndex * width);
+        setMounted(true);
+      }
     };
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [currentIndex, x, updatePageWidth]);
+    measure();
+    // Fallback se ainda não tiver dimensão
+    if (!mounted) {
+      requestAnimationFrame(measure);
+    }
+  }, []);
   
-  // Animate on page change (after mount)
+  // ResizeObserver para mudanças de tamanho do container
   useEffect(() => {
-    if (mounted && prevIndexRef.current !== currentIndex) {
+    if (!containerRef.current) return;
+    
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        if (width > 0 && width !== pageWidth) {
+          setPageWidth(width);
+          x.set(-currentIndex * width);
+        }
+      }
+    });
+    
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, [currentIndex, x, pageWidth]);
+  
+  // Animar quando página muda (após mount)
+  useEffect(() => {
+    if (mounted && prevIndexRef.current !== currentIndex && pageWidth > 0) {
       animate(x, -currentIndex * pageWidth, {
         type: 'spring',
         stiffness: 600,
@@ -64,6 +81,8 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   }, [currentIndex, mounted, x, pageWidth]);
   
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (pageWidth === 0) return;
+    
     const offset = info.offset.x;
     const velocity = info.velocity.x;
     const threshold = pageWidth * 0.2;
@@ -88,7 +107,7 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
       }
     }
     
-    // ALWAYS snap to target page with fast animation
+    // SEMPRE snap para a página target
     animate(x, -newIndex * pageWidth, {
       type: 'spring',
       stiffness: 600,
@@ -100,29 +119,24 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     }
   };
   
-  // Calculate total width and constraints
-  const totalWidth = children.length * pageWidth;
   const minX = -(children.length - 1) * pageWidth;
   
   return (
     <div 
+      ref={containerRef}
       className={`relative w-full h-full overflow-hidden ${className}`}
-      style={{ 
-        opacity: mounted ? 1 : 0,
-      }}
+      style={{ opacity: mounted ? 1 : 0 }}
     >
       <motion.div
-        className="flex h-full touch-pan-y"
+        className="h-full touch-pan-y"
         style={{ 
           x,
-          width: `${children.length * pageWidth}px`,
           display: 'flex',
+          flexDirection: 'row',
+          width: `${children.length * pageWidth}px`,
         }}
         drag="x"
-        dragConstraints={{ 
-          left: minX, 
-          right: 0 
-        }}
+        dragConstraints={{ left: minX, right: 0 }}
         dragElastic={0.02}
         onDragEnd={handleDragEnd}
         dragMomentum={false}
@@ -130,11 +144,11 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
         {React.Children.map(children, (child, index) => (
           <div 
             key={index}
-            className="h-full flex-shrink-0"
             style={{ 
+              flex: `0 0 ${pageWidth}px`,
               width: `${pageWidth}px`,
-              minWidth: `${pageWidth}px`,
-              maxWidth: `${pageWidth}px`,
+              height: '100%',
+              overflow: 'hidden',
             }}
           >
             {child}
