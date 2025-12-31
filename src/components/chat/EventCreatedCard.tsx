@@ -700,7 +700,7 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
           </>
         ) : (
           <>
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
+            <CheckCircle className="w-4 h-4 text-emerald-500 drop-shadow-sm" />
             <p className="text-sm text-muted-foreground">
               {type === 'updated' ? t('event.updated') : t('event.created')}
             </p>
@@ -708,15 +708,15 @@ const EventCreatedCard = React.forwardRef<HTMLDivElement, EventCreatedCardProps>
         )}
       </div>
       
-      {/* Event Card - clickable */}
+      {/* Event Card - clickable - premium style */}
       <div 
         onClick={handleCardClick}
-        className={`border rounded-2xl p-4 space-y-3 transition-all ${
+        className={`rounded-3xl p-4 space-y-3 transition-all duration-300 ${
           isExpired 
-            ? 'bg-kairo-surface-2/60 border-border/20' 
-            : 'bg-kairo-surface-2 border-border/30'
+            ? 'bg-kairo-surface-2/40 border border-border/10' 
+            : 'bg-kairo-surface-2/80 backdrop-blur-sm border border-border/20 shadow-lg shadow-black/5'
         } ${
-          event.id && onEdit ? 'cursor-pointer hover:bg-kairo-surface-3 active:scale-[0.99]' : ''
+          event.id && onEdit ? 'cursor-pointer hover:bg-kairo-surface-3/80 hover:shadow-xl hover:border-primary/20 active:scale-[0.99]' : ''
         }`}
       >
         {/* Header: Color dot + Emoji + Title + Arrow */}

@@ -598,6 +598,23 @@ input, textarea, [contenteditable="true"] {
     -webkit-backdrop-filter: blur(20px);
   }
   
+  /* Premium glass effect - more intense */
+  .glass-premium {
+    background: linear-gradient(135deg, hsl(var(--kairo-surface-2) / 0.7) 0%, hsl(var(--kairo-surface-1) / 0.5) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  
+  /* Chat bubble shadow */
+  .bubble-shadow {
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.06), 0 1px 2px hsl(0 0% 0% / 0.04);
+  }
+  
+  /* Premium glow ring */
+  .glow-ring {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1), 0 0 20px hsl(var(--primary) / 0.15);
+  }
+  
   /* Golden text glow */
   .text-glow {
     text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
@@ -687,6 +704,22 @@ input, textarea, [contenteditable="true"] {
     transform: scale(1.5);
     opacity: 0;
   }
+}
+
+/* Premium message entry animation */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-up {
