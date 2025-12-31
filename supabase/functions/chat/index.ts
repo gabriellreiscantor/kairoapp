@@ -3570,12 +3570,34 @@ prioridade:
 - trabalho, reuniao = medium
 - lazer, cinema, cafe = low
 
-=== CONFIRMACAO POS-CRIACAO (OBRIGATORIO) ===
+=== CONFIRMACAO POS-CRIACAO COM FRASE CRIATIVA (OBRIGATORIO) ===
 
-APOS criar o evento, envie confirmacao com resumo visual.
-Use a resposta_usuario no idioma configurado. Exemplo: "${t.createdWithEdit}"
+APOS criar o evento, envie confirmacao com:
+1. "Pronto!" ou confirmacao similar
+2. Uma FRASE CRIATIVA e DIVERTIDA relacionada ao evento (1-2 frases curtas, max 20 palavras)
+3. "Quer editar algo?" no final
 
-{"acao": "criar_evento", "titulo": "...", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "...", "data": "Hoje", "hora": "${t.allDay}", "local": "", "notificacao": "${t.minBefore}"}, "idioma_detectado": "${langCode}", "resposta_usuario": "${t.createdWithEdit}"}
+A frase criativa deve ser:
+- Leve e bem-humorada (como um amigo falaria)
+- Contextual ao tipo de evento
+- Curta (maximo 20 palavras)
+- Pode incluir emoji relacionado
+
+Exemplos de resposta_usuario:
+- Evento "Dar banho no gato" -> "Pronto! Seu gato vai ficar lindo e cheiroso. Ele pode nao gostar, mas vai valer a pena! 🐱 Quer editar algo?"
+- Evento "Reuniao de trabalho" -> "Pronto! Bora arrasar nessa reuniao! Voce ta preparado. 💼 Quer editar algo?"
+- Evento "Dentista" -> "Pronto! Cuidar dos dentes e importante! Lembra de nao comer antes se for limpeza. 🦷 Quer editar algo?"
+- Evento "Cinema" -> "Pronto! Pipoca e obrigatorio, ne? Bom filme! 🍿 Quer editar algo?"
+- Evento "Academia" -> "Pronto! Bora puxar ferro! No pain, no gain. 💪 Quer editar algo?"
+- Evento "Aniversario da mae" -> "Pronto! Que lindo! Manda um abraco bem forte nela. 🎂 Quer editar algo?"
+- Evento "Barbearia" -> "Pronto! Hora de ficar bonito! O shape vai ficar impecavel. ✂️ Quer editar algo?"
+- Evento "Mercado" -> "Pronto! Nao esquece a listinha! E cuidado com as tentacoes. 🛒 Quer editar algo?"
+
+NAO use frases genericas como apenas "Pronto! Quer editar algo?"
+SEMPRE adicione contexto CRIATIVO e DIVERTIDO relacionado ao evento.
+Use o idioma configurado (${responseLanguage}) para a frase criativa.
+
+{"acao": "criar_evento", "titulo": "...", "data": "${todayISO}", "hora": null, "local": null, "prioridade": "low", "categoria": "pessoal", "duracao_minutos": 60, "resumo_evento": {"titulo": "...", "data": "Hoje", "hora": "${t.allDay}", "local": "", "notificacao": "${t.minBefore}"}, "idioma_detectado": "${langCode}", "resposta_usuario": "[FRASE CRIATIVA CONTEXTUAL] Quer editar algo?"}
 
 === MODO EDICAO (CRITICO) ===
 
@@ -3701,7 +3723,7 @@ ${imageAnalysis ? `IMAGEM ANALISADA: ${JSON.stringify(imageAnalysis)}` : ''}`;
               prioridade: { type: "string", enum: ["low", "medium", "high"], description: "low=lazer, medium=trabalho, high=saude/urgente" },
               categoria: { type: "string", description: "pessoal, trabalho, saude, lazer" },
               descricao: { type: "string", description: "Descricao CURTA (max 10 palavras) e amigavel do evento. Ex: 'Hora de cuidar do visual', 'Momento de diversao com a familia', 'Consulta importante de saude'" },
-              resposta_usuario: { type: "string", description: "Mensagem curta confirmando criacao. Ex: Pronto! Criei o evento X para hoje." }
+              resposta_usuario: { type: "string", description: "Confirmacao CRIATIVA e CONTEXTUAL. Formato: 'Pronto! [frase divertida sobre o evento, 1-2 frases curtas, max 20 palavras, pode ter emoji]. Quer editar algo?' Exemplo para 'Dar banho no gato': 'Pronto! Seu gato vai ficar lindo e cheiroso! 🐱 Quer editar algo?'" }
             },
             required: ["titulo", "data", "prioridade", "categoria", "descricao", "resposta_usuario"]
           }
