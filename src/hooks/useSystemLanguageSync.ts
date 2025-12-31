@@ -1,5 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
-import { App } from '@capacitor/app';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LanguageCode, getSystemLanguage, SUPPORTED_LANGUAGES } from '@/contexts/LanguageContext';
 import { remoteLog } from '@/lib/remoteLogger';
@@ -82,16 +81,26 @@ export const useSystemLanguageSync = (
     // Check on initial mount
     checkLanguageChange();
 
-    // Listen for app state changes (foreground/background)
-    const listener = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        remoteLog.info('app_lifecycle', 'app_resumed_checking_language');
-        checkLanguageChange();
-      }
-    });
+    // Dynamic import to avoid loading plugin in web preview
+    let listenerHandle: { remove: () => void } | null = null;
+    
+    const setupListener = async () => {
+      const { App } = await import('@capacitor/app');
+      const listener = await App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          remoteLog.info('app_lifecycle', 'app_resumed_checking_language');
+          checkLanguageChange();
+        }
+      });
+      listenerHandle = listener;
+    };
+    
+    setupListener();
 
     return () => {
-      listener.then(l => l.remove());
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
     };
   }, [checkLanguageChange]);
 
