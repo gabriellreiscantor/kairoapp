@@ -224,6 +224,10 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
   // Device ID for VoIP push (device-centric architecture)
   const [deviceId, setDeviceId] = useState<string | null>(null);
   
+  // Smart suggestions state
+  const [smartSuggestions, setSmartSuggestions] = useState<Array<{ emoji: string; text: string }>>([]);
+  const [isLoadingSmartSuggestions, setIsLoadingSmartSuggestions] = useState(false);
+  
   // Load device ID on mount
   useEffect(() => {
     const loadDeviceId = async () => {
@@ -253,17 +257,55 @@ const ChatPage = ({ onNavigateToCalendar, onOpenSettings, activeView, onViewChan
     loadDisplayName();
   }, [user]);
 
-  const suggestions = isInOnboarding ? [
-    { emoji: "🦷", text: t('onboarding.suggestion1') },
-    { emoji: "💊", text: t('onboarding.suggestion2') },
-    { emoji: "📞", text: t('onboarding.suggestion3') },
-    { emoji: "🏃", text: t('onboarding.suggestion4') },
-  ] : [
+  // Load smart suggestions based on user history and preferences
+  useEffect(() => {
+    const loadSmartSuggestions = async () => {
+      if (!user || isInOnboarding) return;
+      
+      setIsLoadingSmartSuggestions(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-smart-suggestions', {
+          body: { userId: user.id, language }
+        });
+        
+        if (error) {
+          console.error('[ChatPage] Error loading smart suggestions:', error);
+          return;
+        }
+        
+        if (data?.suggestions && Array.isArray(data.suggestions)) {
+          console.log('[ChatPage] Loaded smart suggestions:', data.source, data.suggestions.length);
+          setSmartSuggestions(data.suggestions);
+        }
+      } catch (error) {
+        console.error('[ChatPage] Failed to load smart suggestions:', error);
+      } finally {
+        setIsLoadingSmartSuggestions(false);
+      }
+    };
+    
+    loadSmartSuggestions();
+  }, [user, language, isInOnboarding]);
+
+  // Default suggestions as fallback
+  const defaultSuggestions = [
     { emoji: "🍖", text: t('chat.suggestion1') },
     { emoji: "🩺", text: t('chat.suggestion2') },
     { emoji: "☕", text: t('chat.suggestion3') },
     { emoji: "🏆", text: t('chat.suggestion4') },
   ];
+
+  const onboardingSuggestions = [
+    { emoji: "🦷", text: t('onboarding.suggestion1') },
+    { emoji: "💊", text: t('onboarding.suggestion2') },
+    { emoji: "📞", text: t('onboarding.suggestion3') },
+    { emoji: "🏃", text: t('onboarding.suggestion4') },
+  ];
+
+  // Use smart suggestions if available, otherwise fall back to defaults
+  const suggestions = isInOnboarding 
+    ? onboardingSuggestions 
+    : (smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions);
 
   const formatMessageTime = (date: Date): string => {
     const time = format(date, 'HH:mm');

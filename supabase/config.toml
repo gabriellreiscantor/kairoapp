@@ -54,3 +54,15 @@ verify_jwt = false
 [functions.claim-device]
 enabled = true
 verify_jwt = false
+
+[functions.generate-smart-suggestions]
+enabled = true
+verify_jwt = false
+
+[functions.send-daily-overview]
+enabled = true
+verify_jwt = false
+
+[functions.check-missed-events]
+enabled = true
+verify_jwt = false
