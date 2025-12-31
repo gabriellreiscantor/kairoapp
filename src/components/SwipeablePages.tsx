@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useLayoutEffect, useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, animate, PanInfo } from 'framer-motion';
 
 interface SwipeablePagesProps {
@@ -18,77 +18,75 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
   children,
   className = '',
 }) => {
-  const [pageWidth, setPageWidth] = useState(0);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const x = useMotionValue(0);
+  const prevIndexRef = useRef(currentIndex);
   
-  // Update page width on resize - use window.innerWidth for reliable 100vw
-  useEffect(() => {
-    const updateWidth = () => {
-      const width = window.innerWidth;
-      setPageWidth(width);
-    };
-    
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+  // Get page width directly from window
+  const getPageWidth = () => window.innerWidth;
+  
+  // Set initial position BEFORE first paint (useLayoutEffect)
+  useLayoutEffect(() => {
+    const width = getPageWidth();
+    x.set(-currentIndex * width);
+    setMounted(true);
   }, []);
   
-  // Initialize position and animate on page change
+  // Handle window resize
   useEffect(() => {
-    if (pageWidth > 0) {
-      const targetX = -currentIndex * pageWidth;
-      
-      if (!isInitialized) {
-        // First render - set position immediately without animation
-        x.set(targetX);
-        setIsInitialized(true);
-      } else {
-        // Subsequent changes - animate
-        animate(x, targetX, {
-          type: 'spring',
-          stiffness: 500,
-          damping: 40,
-          mass: 0.8,
-        });
-      }
+    const handleResize = () => {
+      const width = getPageWidth();
+      x.set(-currentIndex * width);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [currentIndex, x]);
+  
+  // Animate on page change (after mount)
+  useEffect(() => {
+    if (mounted && prevIndexRef.current !== currentIndex) {
+      const width = getPageWidth();
+      animate(x, -currentIndex * width, {
+        type: 'spring',
+        stiffness: 400,
+        damping: 35,
+      });
+      prevIndexRef.current = currentIndex;
     }
-  }, [currentIndex, pageWidth, isInitialized, x]);
+  }, [currentIndex, mounted, x]);
   
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const velocity = info.velocity.x;
+    const width = getPageWidth();
     const offset = info.offset.x;
-    const threshold = pageWidth * 0.2;
+    const velocity = info.velocity.x;
+    const threshold = width * 0.25;
     
     let newIndex = currentIndex;
     
-    // Determine direction based on offset and velocity
-    if (Math.abs(offset) > threshold || Math.abs(velocity) > 500) {
-      if (offset > 0 && velocity >= 0) {
-        // Swiped right = go to previous page
-        if (currentIndex === 0) {
-          // At first page, trigger settings callback
-          onSwipeLeftAtStart?.();
-        } else {
+    if (Math.abs(offset) > threshold || Math.abs(velocity) > 300) {
+      if (offset > 0) {
+        // Swipe right -> previous page
+        if (currentIndex > 0) {
           newIndex = currentIndex - 1;
-        }
-      } else if (offset < 0 && velocity <= 0) {
-        // Swiped left = go to next page
-        if (currentIndex === children.length - 1) {
-          // At last page, trigger callback
-          onSwipeRightAtEnd?.();
         } else {
-          newIndex = Math.min(children.length - 1, currentIndex + 1);
+          onSwipeLeftAtStart?.();
+        }
+      } else {
+        // Swipe left -> next page
+        if (currentIndex < children.length - 1) {
+          newIndex = currentIndex + 1;
+        } else {
+          onSwipeRightAtEnd?.();
         }
       }
     }
     
-    // Animate to the target page with firm snap
-    animate(x, -newIndex * pageWidth, {
+    // ALWAYS snap to target page
+    animate(x, -newIndex * width, {
       type: 'spring',
-      stiffness: 500,
-      damping: 40,
-      mass: 0.8,
+      stiffness: 400,
+      damping: 35,
     });
     
     if (newIndex !== currentIndex) {
@@ -96,35 +94,33 @@ const SwipeablePages: React.FC<SwipeablePagesProps> = ({
     }
   };
   
-  // Calculate drag constraints
-  const minX = -(children.length - 1) * pageWidth;
-  const maxX = 0;
-  
-  // Don't render until we have page width
-  if (pageWidth === 0) {
-    return <div className={`w-full h-full ${className}`} />;
-  }
+  const pageWidth = getPageWidth();
   
   return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`}>
+    <div 
+      className={`relative w-full h-full overflow-hidden ${className}`}
+      style={{ opacity: mounted ? 1 : 0 }}
+    >
       <motion.div
-        className="flex h-full"
+        className="flex h-full touch-pan-y"
         style={{ 
           x,
-          width: `${children.length * pageWidth}px`,
+          width: `${children.length * 100}vw`,
         }}
         drag="x"
-        dragConstraints={{ left: minX, right: maxX }}
-        dragElastic={0.05}
+        dragConstraints={{ 
+          left: -(children.length - 1) * pageWidth, 
+          right: 0 
+        }}
+        dragElastic={0.1}
         onDragEnd={handleDragEnd}
         dragMomentum={false}
-        dragTransition={{ bounceStiffness: 600, bounceDamping: 50 }}
       >
         {React.Children.map(children, (child, index) => (
           <div 
             key={index}
             className="h-full flex-shrink-0"
-            style={{ width: `${pageWidth}px` }}
+            style={{ width: '100vw' }}
           >
             {child}
           </div>
